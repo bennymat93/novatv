@@ -32,7 +32,7 @@ MENU = {  # include name -> (file, label, nova path, icon, id)
     'TVShowsMainMenu': ('script-fentastic-main_menu_tvshows.xml', '$LOCALIZE[20343]', '?a=media_root&amp;m=tv', 'tv.png', 'tvshows', 22000),
     'Custom1MainMenu': ('script-fentastic-main_menu_custom1.xml', '$LOCALIZE[19020]', '?a=tv_root', 'livetv.png', 'custom1', 23000),
     'Custom2MainMenu': ('script-fentastic-main_menu_custom2.xml', '$LOCALIZE[19021]', '?a=radio_root', 'radio.png', 'custom2', 24000),
-    'Custom3MainMenu': ('script-fentastic-main_menu_custom3.xml', 'NovaTV', '', 'favourites.png', 'custom3', 25000),
+    'Custom3MainMenu': ('script-fentastic-main_menu_custom3.xml', 'BN', '', 'favourites.png', 'custom3', 25000),
 }
 HIDE = ['homemenunomusicbutton', 'homemenunomusicvideobutton', 'homemenunotvbutton', 'homemenunoradiobutton',
         'homemenunogamesbutton', 'homemenunopicturesbutton', 'homemenunovideosbutton', 'homemenunoweatherbutton',
@@ -59,7 +59,7 @@ def patch_menu(skin):
     xml = os.path.join(skin, 'xml')
     for inc, (fn, label, path, ic, mid, num) in MENU.items():
         body = ('<?xml version="1.0" encoding="UTF-8"?>\n<includes>\n    <include name="%s">\n        <item>\n'
-                '            <label>[B]%s[/B]</label>\n'
+                '            <label>%s</label>\n'
                 '            <onclick>ActivateWindow(Videos,%s%s,return)</onclick>\n'
                 '            <property name="menu_id">$NUMBER[%d]</property>\n'
                 '            <thumb>icons/sidemenu/%s</thumb>\n'
@@ -122,6 +122,24 @@ def patch_pov(path):
         f.write(s)
 
 
+BRAND = os.path.join(ROOT, 'brand')
+
+
+def apply_brand(stage):
+    """BN logo everywhere: splash, skin logos, our add-on icons/fanart."""
+    from shutil import copyfile
+    skin = os.path.join(stage, 'addons', 'skin.fentastic', 'media')
+    copyfile(os.path.join(BRAND, 'splash.jpg'), os.path.join(stage, 'media', 'splash.jpg'))
+    copyfile(os.path.join(BRAND, 'bn_wordmark.png'), os.path.join(skin, 'kodirdil', 'group_logo', 'kodirdil-vendor_logo.png'))
+    copyfile(os.path.join(BRAND, 'bn_mark_941.png'), os.path.join(skin, 'logos', 'K-logo.png'))
+    copyfile(os.path.join(BRAND, 'icon.png'), os.path.join(skin, 'kodirdil', 'group_logo', 'kodirdil-logo.png'))
+    copyfile(os.path.join(BRAND, 'bn_wordmark.png'), os.path.join(skin, 'logos', 'letters.png'))
+    for ad in OUR_ADDONS:
+        d = os.path.join(stage, 'addons', ad)
+        copyfile(os.path.join(BRAND, 'icon.png'), os.path.join(d, 'icon.png'))
+        copyfile(os.path.join(BRAND, 'fanart.jpg'), os.path.join(d, 'fanart.jpg'))
+
+
 def enable_addons(db, ids):
     c = sqlite3.connect(db)
     now = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -151,6 +169,7 @@ def main():
         shutil.copytree(os.path.join(ROOT, 'addons', ad), dst,
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    apply_brand(STAGE)
     patch_skin_settings(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     patch_guisettings(os.path.join(STAGE, 'userdata', 'guisettings.xml'))
     patch_pov(os.path.join(STAGE, 'userdata', 'addon_data', 'plugin.video.pov', 'settings.xml'))
