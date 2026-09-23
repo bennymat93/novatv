@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+  <category label="General">
+    <setting id="tmdb_key" label="TMDb API key (v3, optional)" type="text" default=""/>
+    <setting id="content_lang" label="Metadata language" type="enum" values="auto|he-IL|en-US|ru-RU" default="0"/>
+    <setting id="open_on_start" label="Open NovaTV on Kodi start" type="bool" default="true"/>
+    <setting id="ui_sounds" label="Navigation sounds" type="bool" default="true"/>
+  </category>
+  <category label="Subtitles">
+    <setting id="ai_subs" label="AI Hebrew subtitles when none found" type="bool" default="true"/>
+    <setting id="ai_wait" label="Seconds to wait for human subtitles" type="slider" range="5,5,90" option="int" default="25"/>
+    <setting id="sub_server" label="AI subtitle server (http://PC-IP:8765)" type="text" default="http://127.0.0.1:8765"/>
+    <setting id="gemini_key" label="Gemini API key (optional)" type="text" option="hidden" default=""/>
+  </category>
+  <category label="Live TV">
+    <setting id="iptv_refresh_h" label="Refresh every (hours)" type="slider" range="1,1,48" option="int" default="12"/>
+  </category>
+</settings>

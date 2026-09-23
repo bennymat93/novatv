@@ -1,0 +1,11 @@
+.venv*/
+testkodi/
+work/
+dist/
+site/
+test/
+server/cache/
+server/*.log
+gemini.key
+__pycache__/
+*.pyc

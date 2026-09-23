@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.program.novawizard" name="NovaTV Wizard" version="0.1.0" provider-name="NovaTV">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+  </requires>
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>executable</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">Install / update the NovaTV build</summary>
+    <summary lang="he">התקנה ועדכון של בילד NovaTV</summary>
+    <summary lang="ru">Установка и обновление сборки NovaTV</summary>
+    <platform>all</platform>
+    <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
+  </extension>
+</addon>
