@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addons>
+<addon id="repository.nova" name="NovaTV Repository" version="1.0.0" provider-name="NovaTV">
+  <extension point="xbmc.addon.repository" name="NovaTV Repository">
+    <dir>
+      <info compressed="false">https://bennymat93.github.io/novatv/repo/addons.xml</info>
+      <checksum>https://bennymat93.github.io/novatv/repo/addons.xml.md5</checksum>
+      <datadir zip="true">https://bennymat93.github.io/novatv/repo/</datadir>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary>NovaTV add-ons and build updates</summary>
+    <platform>all</platform>
+    <assets><icon>icon.png</icon></assets>
+  </extension>
+</addon>
+<addon id="plugin.video.nova" name="NovaTV" version="0.1.0" provider-name="NovaTV">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+    <import addon="script.module.requests" version="2.22.0"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video audio</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <reuselanguageinvoker>false</reuselanguageinvoker>
+    <summary lang="en">NovaTV - Movies, Series, Live TV and Radio in one place</summary>
+    <summary lang="he">NovaTV - סרטים, סדרות, ערוצי טלוויזיה ורדיו במקום אחד</summary>
+    <summary lang="ru">NovaTV - фильмы, сериалы, ТВ и радио в одном месте</summary>
+    <description lang="en">Unified hub: TMDb-verified catalogue (plays via POV + Real-Debrid), merged IPTV with auto numbering, radio, watch history with timestamps, auto-categorised favourites, central accounts screen and AI Hebrew subtitles.</description>
+    <platform>all</platform>
+    <license>GPL-3.0-or-later</license>
+    <assets>
+      <icon>icon.png</icon>
+      <fanart>fanart.jpg</fanart>
+    </assets>
+  </extension>
+</addon>
+<addon id="plugin.program.novawizard" name="NovaTV Wizard" version="0.1.0" provider-name="NovaTV">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+  </requires>
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>executable</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">Install / update the NovaTV build</summary>
+    <summary lang="he">התקנה ועדכון של בילד NovaTV</summary>
+    <summary lang="ru">Установка и обновление сборки NovaTV</summary>
+    <platform>all</platform>
+    <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
+  </extension>
+</addon>
+</addons>
