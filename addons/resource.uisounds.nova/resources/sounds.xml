@@ -1,0 +1,18 @@
+<sounds>
+  <actions>
+    <action><name>left</name><file>cursor.wav</file></action>
+    <action><name>right</name><file>cursor.wav</file></action>
+    <action><name>up</name><file>cursor.wav</file></action>
+    <action><name>down</name><file>cursor.wav</file></action>
+    <action><name>select</name><file>select.wav</file></action>
+    <action><name>back</name><file>back.wav</file></action>
+    <action><name>previousmenu</name><file>back.wav</file></action>
+    <action><name>contextmenu</name><file>open.wav</file></action>
+    <action><name>info</name><file>open.wav</file></action>
+  </actions>
+  <windows>
+    <window><name>notification</name><activate>notify.wav</activate></window>
+    <window><name>yesnodialog</name><activate>notify.wav</activate></window>
+    <window><name>okdialog</name><activate>error.wav</activate></window>
+  </windows>
+</sounds>

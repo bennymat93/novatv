@@ -24,7 +24,7 @@ BASE_TXT = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wiza
 
 REMOVE = ['plugin.program.kodipovilwizard', 'service.subtitles.kodipovilai', 'plugin.program.orderfavourites-hebrew',
           'service.xbmc.versioncheck', 'game.controller.snes', 'plugin.video.otaku', 'context.otaku', 'repository.otaku']
-OUR_ADDONS = ['plugin.video.nova', 'repository.nova', 'plugin.program.novawizard']
+OUR_ADDONS = ['plugin.video.nova', 'repository.nova', 'plugin.program.novawizard', 'resource.uisounds.nova']
 NOVA = 'plugin://plugin.video.nova/'
 
 MENU = {  # include name -> (file, label, nova path, icon, id)
@@ -88,12 +88,36 @@ def patch_guisettings(path):
         rx = re.compile(r'<setting id="%s"[^>]*>[^<]*</setting>' % re.escape(sid))
         line = '<setting id="%s">%s</setting>' % (sid, val)
         s = rx.sub(line, s) if rx.search(s) else s.replace('</settings>', '    %s\n</settings>' % line)
+    setv('lookandfeel.soundskin', 'resource.uisounds.nova')
     setv('pvrmanager.usebackendchannelnumbers', 'true')
     setv('pvrplayback.switchtofullscreenchanneltypes', '3')
     setv('videoplayer.autoplaynextitem', '0,1,2,3,4')      # continuous playback of episodes
     setv('subtitles.languages', 'Hebrew,English,Russian')
     setv('subtitles.charset', 'UTF-8')
     setv('locale.keyboardlayouts', 'Hebrew QWERTY|English QWERTY|Russian ЙЦУКЕН')
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(s)
+
+
+POV_SETTINGS = {
+    'auto_play_movie': 'true', 'auto_play_episode': 'true',          # calculated link choice, no list
+    'autoplay_quality_movie': '720p, 1080p, 4K', 'autoplay_quality_episode': '720p, 1080p, 4K',
+    'autoplay_next_episode': 'true', 'autoplay_next_show_window': 'true',
+    'autoplay_next_check_threshold': '0',                             # keep playing; history logs each episode
+    'autoscrape_next_episode': 'true',
+    'results.language_filter': 'true', 'results.language': 'Hebrew',  # Hebrew-tagged releases first
+    'results.size_filter': '1', 'results.size.speed': '25',           # skip files too heavy to start fast
+    'results.include.unknown.size': 'true', 'filter.undesirables': 'true',
+}
+
+
+def patch_pov(path):
+    with open(path, encoding='utf-8') as f:
+        s = f.read()
+    for sid, val in POV_SETTINGS.items():
+        rx = re.compile(r'<setting id="%s"[^>]*?(?:/>|>[^<]*</setting>)' % re.escape(sid))
+        line = '<setting id="%s">%s</setting>' % (sid, val)
+        s = rx.sub(line, s) if rx.search(s) else s.replace('</settings>', '    %s\n</settings>' % line)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(s)
 
@@ -129,6 +153,7 @@ def main():
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     patch_skin_settings(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     patch_guisettings(os.path.join(STAGE, 'userdata', 'guisettings.xml'))
+    patch_pov(os.path.join(STAGE, 'userdata', 'addon_data', 'plugin.video.pov', 'settings.xml'))
     enable_addons(os.path.join(STAGE, 'userdata', 'Database', 'Addons33.db'), OUR_ADDONS)
     with open(os.path.join(STAGE, 'userdata', 'novatv_build.txt'), 'w') as f:
         f.write('NovaTV %s\nbase: %s\nbuilt: %s\n' % (a.version, url, time.ctime()))

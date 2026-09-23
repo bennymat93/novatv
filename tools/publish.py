@@ -21,7 +21,7 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, 'site')
-ADDONS = ['repository.nova', 'plugin.video.nova', 'plugin.program.novawizard']
+ADDONS = ['repository.nova', 'plugin.video.nova', 'plugin.program.novawizard', 'resource.uisounds.nova']
 
 
 def zip_addon(src, dest):

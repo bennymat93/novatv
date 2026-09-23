@@ -59,6 +59,16 @@ STRINGS = {
     'ai_progress': ('כתוביות AI', 'AI subtitles', 'ИИ-субтитры'),
     'ai_noserver': ('שרת כתוביות AI לא זמין', 'AI subtitle server unreachable', 'Сервер ИИ-субтитров недоступен'),
     'movies_he':   ('סרטים', 'Movies', 'Фильмы'),
+    'grp_israel':  ('ישראלי', 'Israeli', 'Израиль'),
+    'grp_news':    ('חדשות', 'News', 'Новости'),
+    'grp_movies':  ('סרטים', 'Movies', 'Кино'),
+    'grp_series':  ('סדרות', 'Series', 'Сериалы'),
+    'grp_kids':    ('ילדים', 'Kids', 'Детские'),
+    'grp_sport':   ('ספורט', 'Sport', 'Спорт'),
+    'grp_documentary': ('תעודה וטבע', 'Documentary', 'Познавательные'),
+    'grp_music':   ('מוזיקה', 'Music', 'Музыка'),
+    'grp_russian': ('רוסית', 'Russian', 'Русские'),
+    'grp_other':   ('אחר', 'Other', 'Другие'),
     'kukhnya':     ('קוכניה (המטבח)', 'Kukhnya (Kitchen)', 'Кухня'),
 }
 _LANG_INDEX = {'he': 0, 'en': 1, 'ru': 2}

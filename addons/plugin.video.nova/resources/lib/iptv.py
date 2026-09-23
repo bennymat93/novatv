@@ -34,6 +34,7 @@ KEYWORDS = [
     ('Documentary', r'docu|discovery|nat.?geo|history|animal|природ|תעוד|viasat'),
     ('Music', r'music|музык|מוזיק|mtv|vh1'),
 ]
+GROUP_KEYS = {'grp_' + b.lower() for b, _ in BLOCKS}
 HEB = re.compile('[֐-׿]')
 CYR = re.compile('[Ѐ-ӿ]')
 
@@ -235,7 +236,12 @@ def _action_item(handle, label, target, ic):
 
 
 def menu(handle, url, folder, end):
-    _action_item(handle, T('channels'), url(a='tv_do', do='channels'), 'DefaultTVShows.png')
+    folder(T('channels'), url(a='tv_list'), 'DefaultTVShows.png')
+    all_id = _rpc('PVR.GetChannelGroupDetails', channelgroupid='alltv').get('result', {}).get('channelgroupdetails', {}).get('channelgroupid')
+    for g in _rpc('PVR.GetChannelGroups', channeltype='tv').get('result', {}).get('channelgroups', []):
+        if g['channelgroupid'] != all_id:
+            folder('   ' + T('grp_' + g['label'].lower()) if ('grp_' + g['label'].lower()) in GROUP_KEYS else '   ' + g['label'],
+                   url(a='tv_list', group=g['channelgroupid']), 'DefaultTVShows.png')
     _action_item(handle, T('guide'), url(a='tv_do', do='guide'), 'DefaultPVRGuide.png')
     if xbmc.getCondVisibility('System.HasAddon(plugin.video.idanplus)'):
         folder(T('israeli_tv'), 'plugin://plugin.video.idanplus/', 'DefaultTVShows.png')
@@ -278,3 +284,39 @@ def edit_sources():
     save('iptv.json', src)
     if src['m3u']:
         merge()
+
+
+def channel_list(handle, group=None):
+    """Yes/HOT-style list: number, logo, what is on now (with progress) and next."""
+    import xbmcplugin
+    props = ['channelnumber', 'icon', 'broadcastnow', 'broadcastnext', 'hidden']
+    r = _rpc('PVR.GetChannels', channelgroupid=int(group) if group else 'alltv', properties=props)
+    for c in sorted(r.get('result', {}).get('channels', []), key=lambda c: c.get('channelnumber') or 0):
+        if c.get('hidden'):
+            continue
+        now, nxt = c.get('broadcastnow') or {}, c.get('broadcastnext') or {}
+        label = '[B]%s[/B]  %s' % (c.get('channelnumber'), c['label'])
+        if now.get('title'):
+            label += '   [COLOR grey]%s[/COLOR]' % now['title']
+        li = xbmcgui.ListItem(label)
+        li.setArt({'icon': c.get('icon') or 'DefaultTVShows.png', 'thumb': c.get('icon') or 'DefaultTVShows.png'})
+        plot = ''
+        if now.get('title'):
+            plot = '[B]%s %s[/B]  (%d%%)\n%s' % (now.get('starttime', '')[11:16], now['title'],
+                                                int(now.get('progresspercentage') or 0), now.get('plot') or '')
+        if nxt.get('title'):
+            plot += '\n\n[COLOR grey]%s %s[/COLOR]' % (nxt.get('starttime', '')[11:16], nxt['title'])
+        tag = li.getVideoInfoTag()
+        tag.setPlot(plot)
+        tag.setTitle(c['label'])
+        li.setProperty('IsPlayable', 'false')
+        target = 'plugin://plugin.video.nova/?a=tv_play&id=%d' % c['channelid']
+        li.addContextMenuItems([(T('add_fav'), 'RunPlugin(plugin://plugin.video.nova/?a=fav_add&kind=channel&id=%d&label=%s&extra=%s)'
+                                 % (c['channelid'], c['label'], 'pvr_channel_%d' % c['channelid']))])
+        xbmcplugin.addDirectoryItem(handle, target, li, False)
+    xbmcplugin.setContent(handle, 'videos')
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+
+
+def play_channel(cid):
+    _rpc('Player.Open', item={'channelid': int(cid)})

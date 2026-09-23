@@ -248,6 +248,10 @@ def favs(kind=None):
                                                                 'tmdb_id': f['id']}), li, False)
         elif kind == 'series':
             folder(f['label'], url(a='seasons', id=f['id']), context=rm)
+        elif kind == 'channel':
+            li = xbmcgui.ListItem(f['label'])
+            li.addContextMenuItems(rm)
+            xbmcplugin.addDirectoryItem(HANDLE, url(a='tv_play', id=f['id']), li, False)
         else:
             li = xbmcgui.ListItem(f['label'])
             li.setProperty('IsPlayable', 'true')
@@ -293,6 +297,8 @@ def router(p):
         'acc': lambda: accounts.action(p['do']),
         'tv_root': lambda: iptv.menu(HANDLE, url, folder, end),
         'tv_do': lambda: iptv.action(p['do']),
+        'tv_list': lambda: iptv.channel_list(HANDLE, p.get('group')),
+        'tv_play': lambda: iptv.play_channel(p['id']),
         'radio_root': lambda: radio.menu(HANDLE, url, folder, end),
         'radio_list': lambda: radio.listing(HANDLE, url, end, **p),
         'noop': lambda: None,
