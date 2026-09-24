@@ -92,6 +92,11 @@ ROWS = [('rd', 'Real-Debrid'), ('trakt', 'Trakt'), ('iptv', 'IPTV (M3U + EPG)'),
 
 
 def screen(handle, url):
+    from . import preset
+    for do, key, ic in (('preset_unlock', 'unlock', 'DefaultUser.png'), ('preset_create', 'create', 'DefaultAddonService.png')):
+        li = xbmcgui.ListItem('[COLOR gold]%s[/COLOR]' % preset.s(key))
+        li.setArt({'icon': ic})
+        xbmcplugin.addDirectoryItem(handle, url(a='acc', do=do), li, False)
     for k, name in ROWS:
         ok, detail = check(k)
         if ok:
@@ -113,6 +118,10 @@ def screen(handle, url):
 
 def action(k):
     d = xbmcgui.Dialog()
+    if k.startswith('preset_'):
+        from . import preset
+        (preset.unlock if k == 'preset_unlock' else preset.create)()
+        return xbmc.executebuiltin('Container.Refresh')
     if k in ('rd', 'trakt'):
         xbmc.executebuiltin('RunPlugin(plugin://plugin.video.pov/?mode=myservices)', True)
     elif k == 'iptv':

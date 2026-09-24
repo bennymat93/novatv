@@ -44,12 +44,31 @@ FREE = [
     ('iptv-org IL', 'https://iptv-org.github.io/iptv/countries/il.m3u'),
     ('iptv-org Hebrew', 'https://iptv-org.github.io/iptv/languages/heb.m3u'),
     ('iptv-org Russian', 'https://iptv-org.github.io/iptv/languages/rus.m3u'),
+    ('iptv-org Movies', 'https://iptv-org.github.io/iptv/categories/movies.m3u'),
+    ('iptv-org Kids', 'https://iptv-org.github.io/iptv/categories/kids.m3u'),
+    ('iptv-org Documentary', 'https://iptv-org.github.io/iptv/categories/documentary.m3u'),
+    ('iptv-org News', 'https://iptv-org.github.io/iptv/categories/news.m3u'),
+    ('iptv-org Music', 'https://iptv-org.github.io/iptv/categories/music.m3u'),
+    ('iptv-org English', 'https://iptv-org.github.io/iptv/languages/eng.m3u'),
 ]
+# large lists start switched off (user can enable them in IPTV sources)
+FREE_OFF = {'iptv-org English', 'iptv-org News', 'iptv-org Music'}
+DEAD_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dead_streams.json')
+
+
+def dead_streams():
+    try:
+        with open(DEAD_FILE, encoding='utf-8') as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
 
 
 def sources():
     src = load('iptv.json', {'m3u': [], 'epg': []})
-    src.setdefault('free', {name: True for name, _ in FREE})
+    src.setdefault('free', {})
+    for name, _ in FREE:
+        src['free'].setdefault(name, name not in FREE_OFF)
     return src
 
 
@@ -57,16 +76,25 @@ def all_m3u(src):
     return list(src['m3u']) + [{'name': n, 'url': u} for n, u in FREE if src['free'].get(n, True)]
 
 
-def classify(name, group, attrs):
+def country(attrs):
+    c = attrs.get('tvg-country', '').upper()
+    if not c:
+        m = re.search(r'\.([a-z]{2})(?:@|$)', attrs.get('tvg-id', ''))
+        c = m.group(1).upper() if m else ''
+    return c
+
+
+def classify(name, group, attrs, src=''):
     text = '%s %s' % (name, group)
     low = text.lower()
-    if HEB.search(text) or re.search(r'\b(il|israel|ישראל)\b', low) or attrs.get('tvg-country', '').upper() == 'IL':
+    cc = country(attrs)
+    if HEB.search(text) or re.search(r'\b(il|israel|ישראל)\b', low) or cc == 'IL' or src in ('iptv-org IL', 'iptv-org Hebrew'):
         return 'Israel'
+    if CYR.search(text) or cc in ('RU', 'UA', 'BY', 'KZ') or src == 'iptv-org Russian':
+        return 'Russian'
     for g, rx in KEYWORDS:
         if re.search(rx, low):
             return g
-    if CYR.search(text) or attrs.get('tvg-country', '').upper() in ('RU', 'UA', 'BY', 'KZ'):
-        return 'Russian'
     return 'Other'
 
 
@@ -78,7 +106,9 @@ def parse_m3u(text, source_name):
     for raw in text.splitlines():
         line = raw.strip()
         if line.startswith('#EXTINF'):
-            head, _, name = line.partition(',')
+            # attributes may contain commas (user-agent) -> name is after the comma following the last quoted value
+            m = re.match(r'(#EXTINF[^"]*(?:"[^"]*"[^"]*?)*?),([^"]*)$', line)
+            head, name = (m.group(1), m.group(2)) if m else line.partition(',')[::2]
             cur = {'attrs': dict(ATTR.findall(head)), 'name': name.strip(), 'opts': []}
         elif line.startswith('#EXTVLCOPT') or line.startswith('#KODIPROP'):
             if cur is not None:
@@ -89,6 +119,29 @@ def parse_m3u(text, source_name):
             out.append(cur)
             cur = None
     return out
+
+
+BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+
+
+def with_headers(c):
+    """Many free streams reject Kodi's default user-agent (HTTP 403). Kodi accepts
+    'url|Header=value&...' - add the playlist's own headers, else a browser UA."""
+    u = c['url']
+    if '|' in u or not u.startswith('http'):
+        return u
+    from urllib.parse import quote
+    h = {}
+    for o in c.get('opts', []):
+        k, _, v = o.split(':', 1)[-1].partition('=')
+        h[k.strip().lower()] = v.strip()
+    a = c.get('attrs', {})
+    ua = h.get('http-user-agent') or a.get('http-user-agent') or BROWSER_UA
+    ref = h.get('http-referrer') or a.get('http-referrer')
+    hdr = 'User-Agent=' + quote(ua)
+    if ref:
+        hdr += '&Referer=' + quote(ref)
+    return u + '|' + hdr
 
 
 def norm(name):
@@ -128,18 +181,22 @@ def _merge(notify):
             channels.extend(parse_m3u(data, s['name']))
         except Exception as e:
             errors.append('%s: %s' % (s['name'], e))
+    dead = dead_streams()
+    if dead:
+        channels = [c for c in channels if c.get('url') not in dead]
     # de-duplicate by normalised name: keep HD/first, remember alternates
     best = {}
     for c in channels:
         k = norm(c['name'])
         quality = 2 if re.search(r'4k|uhd|fhd', c['name'], re.I) else 1 if re.search(r'\bhd\b', c['name'], re.I) else 0
         c['q'] = quality
-        c['group'] = classify(c['name'], c['attrs'].get('group-title', ''), c['attrs'])
+        c['group'] = classify(c['name'], c['attrs'].get('group-title', ''), c['attrs'], c.get('src', ''))
         if k not in best or quality > best[k]['q']:
             best[k] = c
     used, lines = set(), ['#EXTM3U']
     ordered = sorted(best.values(), key=lambda c: ([b for b, _ in BLOCKS].index(c['group']), c['name'].lower()))
     nxt = {g: n for g, n in BLOCKS}
+    fixed_nums = {n for _, n in FIXED}
     for c in ordered:
         num = None
         for rx, n in FIXED:
@@ -147,16 +204,24 @@ def _merge(notify):
                 num = n
                 break
         if num is None:
-            num = nxt[c['group']]
-            while num in used or num in [n for _, n in FIXED]:
+            g = c['group']
+            starts = [n for _, n in BLOCKS]
+            end = next((n for n in starts if n > dict(BLOCKS)[g]), 5000)
+            num = nxt[g]
+            while num in used or num in fixed_nums:
                 num += 1
-            nxt[c['group']] = num + 1
+            if num >= end:          # block full -> overflow range, keeps other blocks' numbers stable
+                g = '_overflow'
+                num = nxt.setdefault(g, 5000)
+                while num in used:
+                    num += 1
+            nxt[g] = num + 1
         used.add(num)
         a = c['attrs']
         attrs = ' '.join('%s="%s"' % (k, v) for k, v in a.items() if k not in ('tvg-chno', 'group-title'))
         lines.append('#EXTINF:-1 %s tvg-chno="%d" group-title="%s",%s' % (attrs, num, c['group'], c['name']))
         lines.extend(c['opts'])
-        lines.append(c['url'])
+        lines.append(with_headers(c))
     with open(MERGED_M3U, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
     merge_epg(src['epg'], errors)
