@@ -55,6 +55,10 @@ def main():
     msg = 'v%s: %s%s' % (v, a.notes, TRAILER)
     run('git', 'add', '-A')
     run('git', 'commit', '-q', '-m', msg)
+    run(PY, 'tools/make_guide.py')                     # version history now contains this release
+    shutil.copy(os.path.join(ROOT, 'docs', 'guide.html'), os.path.join(ROOT, 'site', 'guide.html'))
+    run('git', 'add', 'docs')
+    run('git', 'commit', '-q', '-m', 'Guide: regenerate for v%s%s' % (v, TRAILER))
     run('git', 'push', '-q', 'origin', 'main')
     ghp = os.path.join(ROOT, 'work', 'ghp')
     for n in os.listdir(ghp):
