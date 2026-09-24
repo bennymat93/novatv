@@ -39,8 +39,22 @@ HEB = re.compile('[֐-׿]')
 CYR = re.compile('[Ѐ-ӿ]')
 
 
+# free, publicly available channels (iptv-org community index) - each can be switched off
+FREE = [
+    ('iptv-org IL', 'https://iptv-org.github.io/iptv/countries/il.m3u'),
+    ('iptv-org Hebrew', 'https://iptv-org.github.io/iptv/languages/heb.m3u'),
+    ('iptv-org Russian', 'https://iptv-org.github.io/iptv/languages/rus.m3u'),
+]
+
+
 def sources():
-    return load('iptv.json', {'m3u': [], 'epg': []})
+    src = load('iptv.json', {'m3u': [], 'epg': []})
+    src.setdefault('free', {name: True for name, _ in FREE})
+    return src
+
+
+def all_m3u(src):
+    return list(src['m3u']) + [{'name': n, 'url': u} for n, u in FREE if src['free'].get(n, True)]
 
 
 def classify(name, group, attrs):
@@ -108,7 +122,7 @@ def merge(notify=True):
 def _merge(notify):
     src = sources()
     channels, errors = [], []
-    for s in src['m3u']:
+    for s in all_m3u(src):
         try:
             data = _fetch(s['url']).decode('utf-8', 'ignore')
             channels.extend(parse_m3u(data, s['name']))
@@ -269,7 +283,10 @@ def edit_sources():
     src = sources()
     d = xbmcgui.Dialog()
     while True:
-        rows = ['[+] M3U', '[+] EPG'] + ['M3U: %s' % s['name'] for s in src['m3u']] + ['EPG: %s' % u[:60] for u in src['epg']] + ['[✓] ' + T('ok')]
+        free = ['%s %s' % ('[✓]' if src['free'].get(n, True) else '[  ]', n) for n, _ in FREE]
+        own = ['M3U: %s' % x['name'] for x in src['m3u']]
+        epg = ['EPG: %s' % u[:60] for u in src['epg']]
+        rows = ['[+] M3U', '[+] EPG'] + free + own + epg + ['[✓] ' + T('ok')]
         i = d.select(T('iptv_src'), rows)
         if i < 0 or i == len(rows) - 1:
             break
@@ -282,14 +299,16 @@ def edit_sources():
             u = d.input('EPG URL (xml / xml.gz)')
             if u:
                 src['epg'].append(u.strip())
-        elif i < 2 + len(src['m3u']):
-            if d.yesno('NovaTV', T('clear') + '?'):
-                src['m3u'].pop(i - 2)
-        else:
-            if d.yesno('NovaTV', T('clear') + '?'):
-                src['epg'].pop(i - 2 - len(src['m3u']))
+        elif i < 2 + len(free):
+            n = FREE[i - 2][0]
+            src['free'][n] = not src['free'].get(n, True)
+        elif i < 2 + len(free) + len(own):
+            if d.yesno('BN', T('clear') + '?'):
+                src['m3u'].pop(i - 2 - len(free))
+        elif d.yesno('BN', T('clear') + '?'):
+            src['epg'].pop(i - 2 - len(free) - len(own))
     save('iptv.json', src)
-    if src['m3u']:
+    if all_m3u(src):
         merge()
 
 

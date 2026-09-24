@@ -124,8 +124,8 @@ def t_branding():
 
 def t_root():
     items = ls(NOVA)
-    expect(len(items) == 7, '%d root items' % len(items))
-    return '7 items'
+    expect(len(items) == 9, '%d root items' % len(items))
+    return '9 items'
 
 
 def t_movies_lists():
@@ -229,7 +229,8 @@ def t_iptv():
         '#EXTINF:-1 tvg-id="kan11sd",Kan 11\nhttp://127.0.0.1/kan11sd.m3u8\n'
         '#EXTINF:-1,Keshet 12\nhttp://127.0.0.1/k12.m3u8\n#EXTINF:-1,Первый канал\nhttp://127.0.0.1/1tv.m3u8\n'
         '#EXTINF:-1 group-title="Sport",Sport 5\nhttp://127.0.0.1/s5.m3u8\n#EXTINF:-1,Disney Junior\nhttp://127.0.0.1/dj.m3u8\n')
-    json.dump({'m3u': [{'name': 'test', 'url': m3u}], 'epg': []}, open(iptv_json, 'w'))
+    json.dump({'m3u': [{'name': 'test', 'url': m3u}], 'epg': [],
+               'free': {'iptv-org IL': False, 'iptv-org Hebrew': False, 'iptv-org Russian': False}}, open(iptv_json, 'w'))
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=tv_do&do=refresh')
     for _ in range(60):
         time.sleep(3)
@@ -255,9 +256,60 @@ def t_log_errors():
     log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
     ours = [l for l in log.splitlines() if ('NovaTV' in l or 'plugin.video.nova' in l or 'NovaWizard' in l)
             and (' error ' in l.lower() or 'Traceback' in l)
-            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop)', l)]
+            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install)', l)]
     expect(not ours, '%d errors from our add-ons: %s' % (len(ours), ours[:2]))
     return 'no errors from BN add-ons'
+
+
+def t_libraries():
+    items = ls(NOVA + '?a=libs')
+    expect(len(items) == 14, '%d libraries' % len(items))
+    yt = [i for i in items if 'plugin.video.youtube' in i['file']]
+    expect(yt, 'YouTube (pre-installed) opens directly')
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=lib_install&id=plugin.video.ted.talks')
+    for _ in range(60):
+        time.sleep(2)
+        r = rpc('Addons.GetAddonDetails', addonid='plugin.video.ted.talks', properties=['enabled'])
+        if 'result' in r and r['result']['addon']['enabled']:
+            return '14 libraries, TED installed on demand'
+    raise AssertionError('TED did not install')
+
+
+def t_backup():
+    rpc('GUI.ActivateWindow', window='home')
+    time.sleep(3)
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=bk_auto')
+    d = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'backups')
+    for _ in range(45):
+        time.sleep(1)
+        zips = [f for f in os.listdir(d)] if os.path.isdir(d) else []
+        if zips:
+            break
+    expect(zips, 'no backup created')
+    z = zipfile.ZipFile(os.path.join(d, zips[-1]))
+    names = z.namelist()
+    expect('bn_backup.txt' in names, 'marker')
+    expect(any('plugin.video.nova/history.json' in n for n in names), 'history in backup')
+    expect(not any('/backups/' in n for n in names), 'backup contains itself')
+    return '%d files' % len(names)
+
+
+def t_free_channels():
+    iptv_json = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'iptv.json')
+    cfg = json.load(open(iptv_json))
+    cfg['free'] = {k: True for k in cfg['free']}
+    json.dump(cfg, open(iptv_json, 'w'))
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=tv_do&do=refresh')
+    n = 0
+    for _ in range(60):
+        time.sleep(4)
+        r = rpc('PVR.GetChannels', channelgroupid='alltv', properties=['channelnumber'])
+        n = len(r.get('result', {}).get('channels', []))
+        if n >= 300:
+            break
+    expect(n >= 300, 'only %d channels' % n)
+    heb = rpc('PVR.GetChannelGroups', channeltype='tv')['result']['channelgroups']
+    return '%d channels, groups: %s' % (n, ', '.join(g['label'] for g in heb))
 
 
 TESTS = [
@@ -267,6 +319,7 @@ TESTS = [
     ('Title integrity (TMDb ids)', t_title_integrity), ('Kukhnya all seasons', t_kukhnya),
     ('Radio', t_radio), ('Accounts screen', t_accounts), ('Favourites', t_favourites),
     ('History + UI speed', t_history_and_speed), ('IPTV merge / dedupe / numbering', t_iptv),
+    ('Free libraries menu', t_libraries), ('Backup', t_backup), ('Free channels (iptv-org)', t_free_channels),
     ('AI subtitle server', t_ai_server), ('Kodi log clean', t_log_errors),
 ]
 

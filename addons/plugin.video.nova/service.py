@@ -198,10 +198,19 @@ def main():
         except Exception as e:
             log('iptv merge: %s' % e, xbmc.LOGWARNING)
 
+    def backup_job():
+        try:
+            from resources.lib import backup
+            backup.auto_backup()
+        except Exception as e:
+            log('auto backup: %s' % e, xbmc.LOGWARNING)
+    threading.Timer(600, backup_job).start()      # 10 min after start, at most once a week
+
     last_iptv = time.time() - 12 * 3600 + 120      # first refresh 2 minutes after start
     while not mon.abortRequested():
         hours = int(ADDON.getSetting('iptv_refresh_h') or 12)
-        if load('iptv.json', {}).get('m3u') and time.time() - last_iptv > hours * 3600:
+        from resources.lib import iptv as _iptv
+        if _iptv.all_m3u(_iptv.sources()) and time.time() - last_iptv > hours * 3600:
             last_iptv = time.time()
             threading.Thread(target=iptv_job, daemon=True).start()
         if mon.waitForAbort(5):

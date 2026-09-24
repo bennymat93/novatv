@@ -7,7 +7,7 @@ import xbmcgui
 import xbmcplugin
 
 from resources.lib.common import (ADDON, T, tmdb, art, load, save, now_str, MEDIA, ui_lang)
-from resources.lib import accounts, iptv, radio
+from resources.lib import accounts, iptv, radio, backup, libraries
 
 HANDLE = int(sys.argv[1])
 BASE = sys.argv[0]
@@ -51,7 +51,17 @@ def root():
     folder(T('radio'), url(a='radio_root'), icon('radio'))
     folder(T('history'), url(a='history'), icon('history'))
     folder(T('favourites'), url(a='favs'), icon('favourites'))
+    folder(T('libraries'), url(a='libs'), icon('libraries'))
     folder(T('accounts'), url(a='accounts'), icon('accounts'))
+    folder(T('backup_menu'), url(a='bk_menu'), icon('backup'))
+    end(cache=False)
+
+
+def bk_menu():
+    for label, act in ((T('backup'), 'bk_do'), (T('restore'), 'bk_restore')):
+        li = xbmcgui.ListItem(label)
+        li.setArt({'icon': 'DefaultAddonProgram.png'})
+        xbmcplugin.addDirectoryItem(HANDLE, url(a=act), li, False)
     end(cache=False)
 
 
@@ -302,6 +312,12 @@ def router(p):
         'radio_root': lambda: radio.menu(HANDLE, url, folder, end),
         'radio_list': lambda: radio.listing(HANDLE, url, end, **p),
         'noop': lambda: None,
+        'libs': lambda: libraries.menu(HANDLE, url),
+        'lib_install': lambda: libraries.install(p['id']),
+        'bk_menu': bk_menu,
+        'bk_do': backup.backup,
+        'bk_restore': backup.restore,
+        'bk_auto': lambda: backup.auto_backup(every_days=0),
     }
     if a == 'list':
         m, path = p.pop('m'), p.pop('path')
@@ -315,7 +331,7 @@ def router(p):
     simple[a]()
 
 
-ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'noop'}
+ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'noop', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto'}
 
 
 def refresh():
