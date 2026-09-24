@@ -271,7 +271,7 @@ def fav_add(kind, id, label, extra=''):
 def fav_rm(kind, id):
     data = [f for f in load('favourites.json', []) if not (f['kind'] == kind and str(f['id']) == str(id))]
     save('favourites.json', data)
-    xbmc.executebuiltin('Container.Refresh')
+    refresh()
 
 
 # ------------------------------------------------------------------ router
@@ -289,7 +289,7 @@ def router(p):
         'episodes': lambda: episodes(p['id'], p['s']),
         'kukhnya': kukhnya,
         'history': history,
-        'history_clear': lambda: (save('history.json', []), xbmc.executebuiltin('Container.Refresh')),
+        'history_clear': lambda: (save('history.json', []), refresh()),
         'favs': lambda: favs(p.get('kind')),
         'fav_add': lambda: fav_add(**p),
         'fav_rm': lambda: fav_rm(**p),
@@ -306,7 +306,26 @@ def router(p):
     if a == 'list':
         m, path = p.pop('m'), p.pop('path')
         return list_(m, path, **p)
+    if a in ACTIONS:
+        # actions are not folders: close the directory request first, refresh afterwards
+        if HANDLE >= 0:
+            xbmcplugin.endOfDirectory(HANDLE, succeeded=False, updateListing=False, cacheToDisc=False)
+        simple[a]()
+        return
     simple[a]()
+
+
+ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'noop'}
+
+
+def refresh():
+    # never refresh while Kodi is still building a listing (crashes Kodi 21)
+    mon = xbmc.Monitor()
+    for _ in range(40):
+        if not xbmc.getCondVisibility('Container.IsUpdating'):
+            break
+        mon.waitForAbort(0.1)
+    xbmc.executebuiltin('Container.Refresh')
 
 
 if __name__ == '__main__':

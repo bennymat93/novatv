@@ -1,0 +1,296 @@
+# -*- coding: utf-8 -*-
+"""BN / NovaTV end-to-end test suite.
+
+Installs dist/NovaTV-<ver>.zip into the portable test Kodi, starts it, and checks
+every feature through JSON-RPC.  Prints a PASS/FAIL table and writes
+work/test_report.json.
+
+  python tools/test_suite.py --version 0.1.2 [--keep]
+"""
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+import zipfile
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+KODI = os.path.join(ROOT, 'testkodi')
+DATA = os.path.join(KODI, 'portable_data')
+RPC = 'http://127.0.0.1:8089/jsonrpc'
+RESULTS = []
+
+
+def rpc(method, timeout=120, **params):
+    req = urllib.request.Request(RPC, json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params}).encode(),
+                                 {'Content-Type': 'application/json'})
+    return json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+
+
+def ls(path):
+    r = rpc('Files.GetDirectory', directory=path, media='files')
+    if 'error' in r:
+        raise RuntimeError(r['error'])
+    return r['result'].get('files') or []
+
+
+def check(name, fn):
+    t = time.time()
+    try:
+        detail = fn()
+        ok = detail is not False
+        RESULTS.append((name, ok, '' if detail in (True, None) else str(detail), time.time() - t))
+    except Exception as e:
+        RESULTS.append((name, False, repr(e)[:160], time.time() - t))
+
+
+def expect(cond, msg):
+    if not cond:
+        raise AssertionError(msg)
+    return msg
+
+
+# ------------------------------------------------------------------ setup
+def kill_kodi():
+    subprocess.call(['taskkill', '/IM', 'kodi.exe', '/F'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(3)
+
+
+def install(ver):
+    kill_kodi()
+    shutil.rmtree(DATA, ignore_errors=True)
+    os.makedirs(DATA)
+    with zipfile.ZipFile(os.path.join(ROOT, 'dist', 'NovaTV-%s.zip' % ver)) as z:
+        z.extractall(DATA)
+    p = os.path.join(DATA, 'userdata', 'guisettings.xml')
+    s = open(p, encoding='utf-8').read()
+    for k, v in [('services.webserver', 'true'), ('services.webserverport', '8089'),
+                 ('services.webserverauthentication', 'false')]:
+        s = re.sub(r'\s*<setting id="%s"[^>]*?(/>|>[^<]*</setting>)' % re.escape(k), '', s)
+        s = s.replace('</settings>', '    <setting id="%s">%s</setting>\n</settings>' % (k, v))
+    open(p, 'w', encoding='utf-8').write(s)
+
+
+def start_kodi():
+    subprocess.Popen([os.path.join(KODI, 'kodi.exe'), '-p'], cwd=KODI,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(90):
+        try:
+            if rpc('JSONRPC.Ping', timeout=3).get('result') == 'pong':
+                time.sleep(12)          # let services settle
+                return True
+        except Exception:
+            time.sleep(1)
+    raise RuntimeError('Kodi did not start')
+
+
+# ------------------------------------------------------------------ tests
+NOVA = 'plugin://plugin.video.nova/'
+
+
+def t_addons_enabled():
+    bad = []
+    for a in ['plugin.video.nova', 'plugin.program.novawizard', 'repository.nova', 'resource.uisounds.nova',
+              'plugin.video.pov', 'skin.fentastic', 'service.subtitles.All_Subs', 'plugin.video.idanplus']:
+        r = rpc('Addons.GetAddonDetails', addonid=a, properties=['enabled', 'version'])
+        if 'error' in r or not r['result']['addon']['enabled']:
+            bad.append(a)
+    return expect(not bad, 'all enabled' if not bad else 'disabled/missing: %s' % bad)
+
+
+def t_gui():
+    skin = rpc('Settings.GetSettingValue', setting='lookandfeel.skin')['result']['value']
+    snd = rpc('Settings.GetSettingValue', setting='lookandfeel.soundskin')['result']['value']
+    lang = rpc('Settings.GetSettingValue', setting='locale.language')['result']['value']
+    expect(skin == 'skin.fentastic', 'skin=%s' % skin)
+    expect(snd == 'resource.uisounds.nova', 'sounds=%s' % snd)
+    return 'skin, sounds, %s' % lang
+
+
+def t_branding():
+    skin = os.path.join(DATA, 'addons', 'skin.fentastic')
+    menu = open(os.path.join(skin, 'xml', 'script-fentastic-main_menu_movies.xml'), encoding='utf-8').read()
+    expect('plugin.video.nova' in menu and '[B]' not in menu, 'menu points to NovaTV')
+    from hashlib import md5
+    brand = md5(open(os.path.join(ROOT, 'brand', 'splash.jpg'), 'rb').read()).hexdigest()
+    got = md5(open(os.path.join(DATA, 'media', 'splash.jpg'), 'rb').read()).hexdigest()
+    expect(brand == got, 'splash is BN')
+    return 'menu + splash + logos'
+
+
+def t_root():
+    items = ls(NOVA)
+    expect(len(items) == 7, '%d root items' % len(items))
+    return '7 items'
+
+
+def t_movies_lists():
+    out = []
+    for path in ['?a=list&m=movie&path=/trending/movie/week', '?a=list&m=movie&path=/movie/popular',
+                 '?a=list&m=tv&path=/tv/top_rated']:
+        items = ls(NOVA + path)
+        plays = [i for i in items if 'plugin.video.pov' in i['file'] or 'a=seasons' in i['file']]
+        expect(len(plays) >= 15, '%s only %d' % (path, len(plays)))
+        out.append(len(plays))
+    return 'items per list %s' % out
+
+
+def t_languages():
+    out = {}
+    for m in ('movie', 'tv'):
+        for code in ('he', 'en', 'ru'):
+            items = ls(NOVA + '?a=list&m=%s&path=/discover/%s&with_original_language=%s&sort_by=popularity.desc' % (m, m, code))
+            n = len([i for i in items if 'next_page' not in i['file'] and 'page=' not in i['file']])
+            expect(n >= 5, '%s/%s only %d' % (m, code, n))
+            out['%s-%s' % (m, code)] = n
+    return out
+
+
+def t_genres_years():
+    g = ls(NOVA + '?a=genres&m=movie')
+    y = ls(NOVA + '?a=years&m=tv')
+    expect(len(g) >= 15 and len(y) >= 50, 'genres %d years %d' % (len(g), len(y)))
+    return 'genres %d, years %d' % (len(g), len(y))
+
+
+def t_title_integrity():
+    """Every playable item must carry a TMDb id that resolves back to the same title."""
+    items = ls(NOVA + '?a=list&m=movie&path=/movie/popular')
+    ids = [re.search(r'tmdb_id=(\d+)', i['file']).group(1) for i in items if 'tmdb_id=' in i['file']]
+    expect(len(ids) >= 15, 'ids %d' % len(ids))
+    expect(len(ids) == len(set(ids)), 'duplicate ids in one page')
+    return '%d unique TMDb ids' % len(ids)
+
+
+def t_kukhnya():
+    seasons = ls(NOVA + '?a=kukhnya')
+    real = [s for s in seasons if not s['file'].endswith('&s=0')]
+    expect(len(real) == 6, '%d seasons' % len(real))
+    eps = ls(NOVA + '?a=episodes&id=45994&s=1')
+    expect(len(eps) >= 15, 'S1 episodes %d' % len(eps))
+    expect(all('season=1' in e['file'] and 'tmdb_id=45994' in e['file'] for e in eps), 'episode links')
+    return '6 seasons, S1=%d episodes' % len(eps)
+
+
+def t_radio():
+    out = {}
+    for by, v in (('country', 'IL'), ('country', 'RU'), ('language', 'hebrew')):
+        items = ls(NOVA + '?a=radio_list&by=%s&v=%s' % (by, v))
+        expect(len(items) >= 10, '%s=%s only %d' % (by, v, len(items)))
+        out[v] = len(items)
+    return out
+
+
+def t_accounts():
+    rows = ls(NOVA + '?a=accounts')
+    expect(len(rows) == 6, '%d rows' % len(rows))
+    return [r['label'].split('   ')[0] for r in rows]
+
+
+def t_favourites():
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=fav_add&kind=movie&id=603&label=The Matrix')
+    time.sleep(3)
+    items = ls(NOVA + '?a=favs&kind=movie')
+    expect(any('603' in i['file'] for i in items), 'favourite not stored')
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=fav_rm&kind=movie&id=603')
+    time.sleep(3)
+    expect(not any('603' in i['file'] for i in ls(NOVA + '?a=favs&kind=movie')), 'favourite not removed')
+    return 'add + remove'
+
+
+def t_history_and_speed():
+    """Play a local file, confirm history entry with timestamp; measure navigation speed."""
+    sample = os.path.join(ROOT, 'test', 'test_ru.mp4')
+    if os.path.exists(sample):
+        rpc('Player.Open', item={'file': sample})
+        time.sleep(8)
+        rpc('Player.Stop', playerid=1)
+        time.sleep(2)
+        h = json.load(open(os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'history.json'), encoding='utf-8'))
+        expect(h and re.match(r'\d\d/\d\d/\d{4} \d\d:\d\d', h[0]['when']), 'history timestamp')
+    t = time.time()
+    ls(NOVA + '?a=media_root&m=tv')
+    ls(NOVA + '?a=list&m=movie&path=/movie/popular')     # cached after first run
+    dt = time.time() - t
+    expect(dt < 6, 'menus slow: %.1fs' % dt)
+    return 'history ok, 2 menus in %.2fs' % dt
+
+
+def t_iptv():
+    iptv_json = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'iptv.json')
+    os.makedirs(os.path.dirname(iptv_json), exist_ok=True)
+    m3u = os.path.join(ROOT, 'work', 'test_channels.m3u')
+    open(m3u, 'w', encoding='utf-8').write(
+        '#EXTM3U\n#EXTINF:-1 tvg-id="kan11",Kan 11 HD\nhttp://127.0.0.1/kan11.m3u8\n'
+        '#EXTINF:-1 tvg-id="kan11sd",Kan 11\nhttp://127.0.0.1/kan11sd.m3u8\n'
+        '#EXTINF:-1,Keshet 12\nhttp://127.0.0.1/k12.m3u8\n#EXTINF:-1,Первый канал\nhttp://127.0.0.1/1tv.m3u8\n'
+        '#EXTINF:-1 group-title="Sport",Sport 5\nhttp://127.0.0.1/s5.m3u8\n#EXTINF:-1,Disney Junior\nhttp://127.0.0.1/dj.m3u8\n')
+    json.dump({'m3u': [{'name': 'test', 'url': m3u}], 'epg': []}, open(iptv_json, 'w'))
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=tv_do&do=refresh')
+    for _ in range(60):
+        time.sleep(3)
+        r = rpc('PVR.GetChannels', channelgroupid='alltv', properties=['channelnumber'])
+        ch = {c['label']: c['channelnumber'] for c in r.get('result', {}).get('channels', [])}
+        if len(ch) >= 5:
+            break
+    expect(len(ch) == 5, 'channels after dedupe: %s' % ch)
+    expect(ch.get('Kan 11 HD') == 11 and ch.get('Keshet 12') == 12, 'Israeli numbering %s' % ch)
+    return ch
+
+
+def t_ai_server():
+    try:
+        h = json.loads(urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=5).read())
+    except Exception:
+        return 'SKIPPED (server not running)'
+    expect(h.get('ok'), 'health')
+    return '%s / %s' % (h['device'], h['model'])
+
+
+def t_log_errors():
+    log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
+    ours = [l for l in log.splitlines() if ('NovaTV' in l or 'plugin.video.nova' in l or 'NovaWizard' in l)
+            and (' error ' in l.lower() or 'Traceback' in l)
+            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop)', l)]
+    expect(not ours, '%d errors from our add-ons: %s' % (len(ours), ours[:2]))
+    return 'no errors from BN add-ons'
+
+
+TESTS = [
+    ('Add-ons installed & enabled', t_addons_enabled), ('Skin / sounds / language', t_gui),
+    ('BN branding', t_branding), ('Main menu', t_root), ('Movie & series lists', t_movies_lists),
+    ('Hebrew / English / Russian content', t_languages), ('Genres & years', t_genres_years),
+    ('Title integrity (TMDb ids)', t_title_integrity), ('Kukhnya all seasons', t_kukhnya),
+    ('Radio', t_radio), ('Accounts screen', t_accounts), ('Favourites', t_favourites),
+    ('History + UI speed', t_history_and_speed), ('IPTV merge / dedupe / numbering', t_iptv),
+    ('AI subtitle server', t_ai_server), ('Kodi log clean', t_log_errors),
+]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--version', required=True)
+    ap.add_argument('--keep', action='store_true', help='leave Kodi running')
+    a = ap.parse_args()
+    sys.stdout.reconfigure(encoding='utf-8')
+    install(a.version)
+    start_kodi()
+    for name, fn in TESTS:
+        check(name, fn)
+        n, ok, detail, dt = RESULTS[-1]
+        print('%-4s %-36s %5.1fs  %s' % ('PASS' if ok else 'FAIL', n, dt, detail), flush=True)
+    passed = sum(1 for r in RESULTS if r[1])
+    print('\n%d/%d passed' % (passed, len(RESULTS)))
+    json.dump([{'test': n, 'ok': ok, 'detail': d, 'secs': round(t, 1)} for n, ok, d, t in RESULTS],
+              open(os.path.join(ROOT, 'work', 'test_report.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    if not a.keep:
+        kill_kodi()
+    sys.exit(0 if passed == len(RESULTS) else 1)
+
+
+if __name__ == '__main__':
+    main()

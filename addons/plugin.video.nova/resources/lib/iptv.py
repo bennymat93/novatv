@@ -146,7 +146,8 @@ def _merge(notify):
     with open(MERGED_M3U, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
     merge_epg(src['epg'], errors)
-    configure_pvr()
+    if not configure_pvr():
+        errors.append('PVR IPTV Simple Client could not be installed - check internet, then Accounts > IPTV again')
     save('iptv_status.json', {'when': time.time(), 'channels': len(best), 'errors': errors})
     if notify:
         msg = '%d %s' % (len(best), T('channels'))
@@ -185,16 +186,22 @@ def merge_epg(urls, errors):
 
 def install_addon(addon_id, timeout=120):
     """Install from the official repo and confirm Kodi's yes/no prompt ourselves."""
-    xbmc.executebuiltin('InstallAddon(%s)' % addon_id)
     mon = xbmc.Monitor()
-    for _ in range(timeout * 2):
-        if xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id):
-            return True
-        if xbmc.getCondVisibility('Window.IsTopMost(yesnodialog)'):
-            xbmc.executebuiltin('SendClick(yesnodialog,11)')
-        if mon.waitForAbort(0.5):
-            break
-    return False
+    for attempt in range(3):                    # dependency downloads sometimes fail - retry
+        xbmc.executebuiltin('InstallAddon(%s)' % addon_id)
+        for _ in range(timeout * 2 // 3):
+            if xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id):
+                return True
+            if xbmc.getCondVisibility('Window.IsTopMost(yesnodialog)'):
+                xbmc.executebuiltin('SendClick(yesnodialog,11)')
+            if xbmc.getCondVisibility('Window.IsTopMost(okdialog)'):   # "download failed" box
+                xbmc.executebuiltin('Dialog.Close(okdialog)')
+                log('install %s: attempt %d failed, retrying' % (addon_id, attempt + 1), xbmc.LOGWARNING)
+                break
+            if mon.waitForAbort(0.5):
+                return False
+        mon.waitForAbort(3)
+    return xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id)
 
 
 def configure_pvr():
@@ -214,13 +221,13 @@ def configure_pvr():
     # let Kodi number channels in our tvg-chno order
     _rpc('Settings.SetSettingValue', setting='pvrmanager.usebackendchannelnumbers', value=True)
     if not was_installed:
-        install_addon(PVR)          # picks up the settings file on first start
-        return
+        return install_addon(PVR)   # picks up the settings file on first start
     # existing install: a single disable/enable cycle, waiting until the PVR manager settles
     mon = xbmc.Monitor()
     _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
     mon.waitForAbort(4)
     _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
+    return True
 
 
 def _rpc(method, **params):
