@@ -1,0 +1,215 @@
+# BN Stream &mdash; User Guide / מדריך למשתמש
+
+<p dir="ltr">Version 0.1.7 &middot; updated 2026-09-24 &middot; <a href="https://bennymat93.github.io/novatv/guide.html">open the web version</a></p>
+
+<p dir="ltr"><a href="#english">English</a> &middot; <a href="#hebrew">עברית</a></p>
+
+<a id="english"></a>
+
+<div dir="ltr" lang="en">
+
+<h2>Installation</h2>
+
+<h3>Android TV box / phone / tablet</h3>
+<ol>
+<li>Download the app: <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-arm64-v8a.apk">BN Stream 64-bit (arm64)</a> (most boxes and phones from the last years) or <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-armeabi-v7a.apk">BN Stream 32-bit (armv7)</a> (older 32-bit boxes).</li>
+<li>Open the file and allow installing from this source if Android asks.</li>
+<li>Open <b>BN Stream</b>. The first start takes up to a minute while the build is prepared. Everything is ready: skin, languages, menus, channels.</li>
+</ol>
+<p>BN Stream installs next to a regular Kodi and does not touch it. Installing a newer APK over the old one updates the add-ons and keeps your accounts, history and favourites.</p>
+<h3>Windows PC</h3>
+<ol>
+<li>Download <code dir="ltr">BN-Stream-Setup-0.1.7.exe</code> from <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
+<li>Run it. No administrator rights are needed; it installs to <code dir="ltr">%LOCALAPPDATA%\BN Stream</code>.</li>
+<li>Open <b>BN Stream</b> from the desktop or Start menu. It is ready immediately.</li>
+</ol>
+<p>Running a newer setup over an existing installation keeps your personal data.</p>
+<h3>Existing Kodi 21 (any device)</h3>
+<ol>
+<li>Settings &rarr; System &rarr; Add-ons &rarr; enable <b>Unknown sources</b>.</li>
+<li>Settings &rarr; File manager &rarr; Add source &rarr; <code dir="ltr">https://bennymat93.github.io/novatv/</code> &rarr; name it <code dir="ltr">nova</code>.</li>
+<li>Add-ons &rarr; Install from zip file &rarr; <code dir="ltr">nova</code> &rarr; <code dir="ltr">repository.nova-1.0.0.zip</code>.</li>
+<li>Add-ons &rarr; Install from repository &rarr; NovaTV Repository &rarr; Program add-ons &rarr; <b>NovaTV Wizard</b>.</li>
+<li>Open the wizard &rarr; <i>Fresh install</i>. Kodi closes; open it again.</li>
+</ol>
+
+<h2>First steps (5 minutes)</h2>
+
+<ol>
+<li>BN menu &rarr; <b>Accounts &amp; Connections</b> &rarr; <b>Real-Debrid</b>: a code appears on screen; enter it at <code dir="ltr">real-debrid.com/device</code> on your phone. Movies and series play through Real-Debrid.</li>
+<li>Optional: <b>Trakt</b> (same code method) to sync what you watched.</li>
+<li>Optional: <b>IPTV</b> &rarr; add your own M3U / EPG links. Free channels already work without it.</li>
+<li>Optional: <b>AI Subtitle Server</b> &mdash; see the section below.</li>
+</ol>
+<p>Never type passwords into chats or messages; the boxes use on-screen codes only.</p>
+
+<h2>Main menu</h2>
+
+<table>
+<tr><th>Item</th><th>What it does</th></tr>
+<tr><td>Movies / Series</td><td>Search, trending, popular, top rated, genres, languages (Hebrew, English, Russian) and years. Long-press an item for favourites or to choose a source.</td></tr>
+<tr><td>TV</td><td>One numbered channel list with a TV guide (now / next). Kan 11 is on 11 and Keshet 12 on 12.</td></tr>
+<tr><td>Radio</td><td>Israeli, Russian and Hebrew-language stations, plus a world top list.</td></tr>
+<tr><td>History</td><td>What you watched, with date and time.</td></tr>
+<tr><td>Favourites</td><td>Movies and series you saved.</td></tr>
+<tr><td>Free Libraries</td><td>14 official free Kodi add-ons; each installs the first time you open it.</td></tr>
+<tr><td>Accounts &amp; Connections</td><td>Real-Debrid, Trakt, IPTV, AI subtitles, Gemini, TMDb, locked profile.</td></tr>
+<tr><td>Backup &amp; Restore</td><td>Save or restore everything personal.</td></tr>
+</table>
+
+<h2>TV channels</h2>
+
+<p>Free lists from the iptv-org community index: IL, Hebrew, Russian, Movies, Kids, Documentary, News, Music, English. Switched off by default (large): News, Music, English. Turn lists on or off under Accounts &rarr; IPTV.</p>
+<p>Channels that are confirmed dead (HTTP 404) are filtered out automatically. Channels are grouped (Israel, News, Movies, Kids, Sport, Documentary, Music, Russian, Other). Some free channels are geo-blocked or change often; if one does not play, try another.</p>
+
+<h2>AI Hebrew subtitles (PC server)</h2>
+
+<ol>
+<li>On the PC run <code dir="ltr">server\start_server.bat</code>. To start it with Windows run <code dir="ltr">server\install_autostart.bat</code>.</li>
+<li>TV boxes on the same home network find the server automatically. To set it manually: Accounts &rarr; AI Subtitle Server &rarr; <code dir="ltr">http://&lt;PC-IP&gt;:8765</code>.</li>
+<li>Optional: a Gemini key (Accounts &rarr; Gemini) gives better translation; without it a local translator is used.</li>
+</ol>
+<p>Translate a whole series overnight:</p>
+<pre dir="ltr">.venv11\Scripts\python server\nova_subs.py batch &quot;D:\Kukhnya\*.mkv&quot; --title &quot;Кухня&quot;</pre>
+
+<h2>Locked pre-configured profile</h2>
+
+<p>Set up all accounts on one device, then Accounts &rarr; <b>Create locked pre-configured profile</b> and choose a password (8+ characters). The file is encrypted and can be exported to USB or a network folder.</p>
+<p>On another device: Accounts &rarr; <b>Unlock pre-configured profile</b> &rarr; password. Everything is connected and Kodi restarts. After 5 wrong passwords it locks for 10 minutes. A shared file is only as safe as its password.</p>
+
+<h2>Backup & restore</h2>
+
+<p>BN menu &rarr; Backup &amp; Restore &rarr; <b>Back up now</b> &rarr; pick a folder (USB, local or network). The file <code dir="ltr">BN-backup-YYYYMMDD-HHMM.zip</code> contains accounts, history, favourites, IPTV sources and settings. An automatic copy is also kept on the device every week (last 3).</p>
+<p><b>Restore</b>: choose a backup, confirm, Kodi closes; open it again.</p>
+
+<h2>Updates</h2>
+
+<ul>
+<li><b>Android</b>: install the newest APK over the old one.</li>
+<li><b>Windows</b>: run the newest setup.</li>
+<li><b>Any Kodi</b>: BN menu &rarr; NovaTV Wizard &rarr; <i>Update</i> (keeps accounts, history and favourites).</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+
+<table>
+<tr><th>Problem</th><th>Fix</th></tr>
+<tr><td>A movie has no sources</td><td>Check Real-Debrid is connected (Accounts). Long-press &rarr; choose source.</td></tr>
+<tr><td>A TV channel does not play</td><td>Free channels can be offline or geo-blocked; try another one. Accounts &rarr; IPTV &rarr; refresh.</td></tr>
+<tr><td>No TV channels at all</td><td>Accounts &rarr; IPTV &rarr; refresh and wait a minute; large lists take time.</td></tr>
+<tr><td>AI subtitles unavailable</td><td>Make sure the PC server is running and on the same network.</td></tr>
+<tr><td>Everything is broken</td><td>Restore a backup, or NovaTV Wizard &rarr; Fresh install.</td></tr>
+</table>
+
+<h2>Quality check of this version</h2>
+<p>Automated checks: 21/21 passed.</p><table dir="ltr"><tr><td>Add-ons installed &amp; enabled</td><td>&#10003;</td></tr><tr><td>Skin / sounds / language</td><td>&#10003;</td></tr><tr><td>BN branding</td><td>&#10003;</td></tr><tr><td>Main menu</td><td>&#10003;</td></tr><tr><td>Movie &amp; series lists</td><td>&#10003;</td></tr><tr><td>Hebrew / English / Russian content</td><td>&#10003;</td></tr><tr><td>Genres &amp; years</td><td>&#10003;</td></tr><tr><td>Title integrity (TMDb ids)</td><td>&#10003;</td></tr><tr><td>Kukhnya all seasons</td><td>&#10003;</td></tr><tr><td>Radio</td><td>&#10003;</td></tr><tr><td>Accounts screen</td><td>&#10003;</td></tr><tr><td>Favourites</td><td>&#10003;</td></tr><tr><td>History + UI speed</td><td>&#10003;</td></tr><tr><td>IPTV merge / dedupe / numbering</td><td>&#10003;</td></tr><tr><td>Free libraries menu</td><td>&#10003;</td></tr><tr><td>Backup</td><td>&#10003;</td></tr><tr><td>Free channels (iptv-org)</td><td>&#10003;</td></tr><tr><td>Merged playlist integrity</td><td>&#10003;</td></tr><tr><td>Locked profile round-trip</td><td>&#10003;</td></tr><tr><td>AI subtitle server</td><td>&#10003;</td></tr><tr><td>Kodi log clean</td><td>&#10003;</td></tr></table>
+
+<h2>Version history</h2>
+<ul><li><b dir="ltr">0.1.6</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">source audit, 9 free TV lists, dead-stream filter, M3U parser/grouping fixes, stream headers, locked profile</span></li><li><b dir="ltr">0.1.5</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">backup/restore (manual + weekly auto), 14 free official libraries, 700+ free channels (iptv-org), 19-check suite</span></li><li><b dir="ltr">0.1.4</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Stream Android APK tooling, LAN auto-discovery of subtitle server, home screen no longer covered at start</span></li><li><b dir="ltr">0.1.3</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">automated 16-check test suite; fix Kodi crash on refresh during listing; IPTV install retries</span></li><li><b dir="ltr">0.1.2</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Gold Premium branding (splash, skin logos, add-on icons, .ico)</span></li><li><b dir="ltr">0.1.1</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">smart autoplay + next episode, Yes/HOT-style channel list with now/next, sound pack</span></li></ul>
+
+</div>
+
+<a id="hebrew"></a>
+
+<div dir="rtl" lang="he">
+
+<h2>התקנה</h2>
+
+<h3>סטרימר אנדרואיד / טלפון / טאבלט</h3>
+<ol>
+<li>מורידים את האפליקציה: <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-arm64-v8a.apk">BN Stream 64-bit (arm64)</a> (רוב הסטרימרים והטלפונים מהשנים האחרונות) או <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-armeabi-v7a.apk">BN Stream 32-bit (armv7)</a> (סטרימרים ישנים של 32 ביט).</li>
+<li>פותחים את הקובץ, ואם אנדרואיד שואל, מאשרים התקנה מהמקור הזה.</li>
+<li>פותחים את <b>BN Stream</b>. בפתיחה הראשונה ההכנה לוקחת עד דקה. אחר כך הכול מוכן: עיצוב, שפות, תפריטים וערוצים.</li>
+</ol>
+<p>BN Stream מותקנת לצד Kodi רגיל ולא משנה אותו. התקנת APK חדש מעל הישן מעדכנת את התוספים ושומרת חשבונות, היסטוריה ומועדפים.</p>
+<h3>מחשב Windows</h3>
+<ol>
+<li>מורידים את <code dir="ltr">BN-Stream-Setup-0.1.7.exe</code> מ-<a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
+<li>מריצים. לא צריך הרשאות מנהל. ההתקנה נכנסת לתיקייה <code dir="ltr">%LOCALAPPDATA%\BN Stream</code>.</li>
+<li>פותחים את <b>BN Stream</b> מהשולחן או מתפריט התחל. הכול מוכן מיד.</li>
+</ol>
+<p>התקנה של גרסה חדשה מעל קיימת שומרת את הנתונים האישיים.</p>
+<h3>Kodi 21 קיים (בכל מכשיר)</h3>
+<ol>
+<li>הגדרות &larr; מערכת &larr; תוספים &larr; מפעילים <b>מקורות לא ידועים</b>.</li>
+<li>הגדרות &larr; מנהל קבצים &larr; הוספת מקור &larr; <code dir="ltr">https://bennymat93.github.io/novatv/</code> &larr; קוראים לו <code dir="ltr">nova</code>.</li>
+<li>תוספים &larr; התקנה מקובץ zip &larr; <code dir="ltr">nova</code> &larr; <code dir="ltr">repository.nova-1.0.0.zip</code>.</li>
+<li>תוספים &larr; התקנה ממאגר &larr; NovaTV Repository &larr; תוספי תוכנה &larr; <b>NovaTV Wizard</b>.</li>
+<li>פותחים את האשף &larr; <i>התקנה נקייה</i>. Kodi נסגר; פותחים אותו שוב.</li>
+</ol>
+
+<h2>צעדים ראשונים (5 דקות)</h2>
+
+<ol>
+<li>תפריט BN &larr; <b>חשבונות וחיבורים</b> &larr; <b>Real-Debrid</b>: מופיע קוד על המסך, ומזינים אותו בכתובת <code dir="ltr">real-debrid.com/device</code> בטלפון. סרטים וסדרות מתנגנים דרך Real-Debrid.</li>
+<li>לא חובה: <b>Trakt</b> (באותה שיטת קוד), לסנכרון מה שצפיתם.</li>
+<li>לא חובה: <b>IPTV</b> &larr; מוסיפים קישורי M3U / EPG משלכם. הערוצים החינמיים עובדים גם בלי זה.</li>
+<li>לא חובה: <b>שרת כתוביות AI</b> &mdash; ראו בהמשך.</li>
+</ol>
+<p>אף פעם לא מקלידים סיסמאות בצ'אט או בהודעות. במכשירים מתחברים רק עם קוד שמופיע על המסך.</p>
+
+<h2>התפריט הראשי</h2>
+
+<table>
+<tr><th>פריט</th><th>מה הוא עושה</th></tr>
+<tr><td>סרטים / סדרות</td><td>חיפוש, טרנדי, פופולרי, מדורג, ז'אנרים, שפות (עברית, אנגלית, רוסית) ושנים. לחיצה ארוכה על פריט: מועדפים או בחירת מקור.</td></tr>
+<tr><td>טלוויזיה</td><td>רשימת ערוצים אחת ממוספרת עם לוח שידורים (עכשיו / הבא). כאן 11 בערוץ 11, קשת 12 בערוץ 12.</td></tr>
+<tr><td>רדיו</td><td>תחנות מישראל, מרוסיה ובעברית, ורשימת המובילות בעולם.</td></tr>
+<tr><td>היסטוריה</td><td>מה צפיתם, עם תאריך ושעה.</td></tr>
+<tr><td>מועדפים</td><td>סרטים וסדרות ששמרתם.</td></tr>
+<tr><td>ספריות חינמיות</td><td>14 תוספים רשמיים וחינמיים של Kodi. כל אחד מותקן בפעם הראשונה שפותחים אותו.</td></tr>
+<tr><td>חשבונות וחיבורים</td><td>Real-Debrid, Trakt, IPTV, כתוביות AI, Gemini, TMDb ופרופיל נעול.</td></tr>
+<tr><td>גיבוי ושחזור</td><td>שמירה ושחזור של כל הנתונים האישיים.</td></tr>
+</table>
+
+<h2>ערוצי טלוויזיה</h2>
+
+<p>רשימות חינמיות מהמאגר הקהילתי iptv-org: <span dir="ltr">IL, Hebrew, Russian, Movies, Kids, Documentary, News, Music, English</span>. כבויות כברירת מחדל (גדולות): <span dir="ltr">News, Music, English</span>. מדליקים ומכבים רשימות בחשבונות &larr; IPTV.</p>
+<p>ערוצים שמתים בוודאות (HTTP 404) מסוננים אוטומטית. הערוצים מקובצים (ישראל, חדשות, סרטים, ילדים, ספורט, תעודה, מוזיקה, רוסית, אחר). חלק מהערוצים החינמיים חסומים גאוגרפית או משתנים; אם ערוץ לא מתנגן, נסו אחר.</p>
+
+<h2>כתוביות AI בעברית (שרת במחשב)</h2>
+
+<ol>
+<li>במחשב מריצים את <code dir="ltr">server\start_server.bat</code>. כדי שיעלה עם Windows מריצים את <code dir="ltr">server\install_autostart.bat</code>.</li>
+<li>סטרימרים באותה רשת ביתית מוצאים את השרת לבד. הגדרה ידנית: חשבונות &larr; שרת כתוביות AI &larr; <code dir="ltr">http://&lt;PC-IP&gt;:8765</code>.</li>
+<li>לא חובה: מפתח Gemini (חשבונות &larr; Gemini) נותן תרגום טוב יותר. בלעדיו משתמשים במתרגם מקומי.</li>
+</ol>
+<p>תרגום של סדרה שלמה בלילה:</p>
+<pre dir="ltr">.venv11\Scripts\python server\nova_subs.py batch &quot;D:\Kukhnya\*.mkv&quot; --title &quot;Кухня&quot;</pre>
+
+<h2>פרופיל מוגדר מראש נעול</h2>
+
+<p>מגדירים את כל החשבונות במכשיר אחד, ואז חשבונות &larr; <b>צור פרופיל מוגדר מראש (נעול בסיסמה)</b> ובוחרים סיסמה (8 תווים לפחות). הקובץ מוצפן, ואפשר לייצא אותו ל-USB או לתיקיית רשת.</p>
+<p>במכשיר אחר: חשבונות &larr; <b>פתח פרופיל מוגדר מראש</b> &larr; סיסמה. הכול מתחבר ו-Kodi נפתח מחדש. אחרי 5 סיסמאות שגויות הוא ננעל ל-10 דקות. קובץ ששותף מוגן רק כמו הסיסמה שלו.</p>
+
+<h2>גיבוי ושחזור</h2>
+
+<p>תפריט BN &larr; גיבוי ושחזור &larr; <b>גבה עכשיו</b> &larr; בוחרים תיקייה (USB, מקומית או ברשת). הקובץ <code dir="ltr">BN-backup-YYYYMMDD-HHMM.zip</code> כולל חשבונות, היסטוריה, מועדפים, מקורות IPTV והגדרות. בנוסף נשמר במכשיר עותק אוטומטי כל שבוע (שלושת האחרונים).</p>
+<p><b>שחזור</b>: בוחרים גיבוי, מאשרים, Kodi נסגר; פותחים אותו שוב.</p>
+
+<h2>עדכונים</h2>
+
+<ul>
+<li><b>אנדרואיד</b>: מתקינים את ה-APK החדש מעל הישן.</li>
+<li><b>Windows</b>: מריצים את קובץ ההתקנה החדש.</li>
+<li><b>כל Kodi</b>: תפריט BN &larr; NovaTV Wizard &larr; <i>עדכון</i> (שומר חשבונות, היסטוריה ומועדפים).</li>
+</ul>
+
+<h2>פתרון בעיות</h2>
+
+<table>
+<tr><th>בעיה</th><th>פתרון</th></tr>
+<tr><td>לסרט אין מקורות</td><td>בודקים ש-Real-Debrid מחובר (חשבונות). לחיצה ארוכה &larr; בחירת מקור.</td></tr>
+<tr><td>ערוץ לא מתנגן</td><td>ערוצים חינמיים יכולים להיות מושבתים או חסומים גאוגרפית; נסו ערוץ אחר. חשבונות &larr; IPTV &larr; רענון.</td></tr>
+<tr><td>אין ערוצים בכלל</td><td>חשבונות &larr; IPTV &larr; רענון, ומחכים דקה. רשימות גדולות לוקחות זמן.</td></tr>
+<tr><td>כתוביות AI לא זמינות</td><td>בודקים שהשרת במחשב פועל ונמצא באותה רשת.</td></tr>
+<tr><td>הכול לא עובד</td><td>משחזרים גיבוי, או NovaTV Wizard &larr; התקנה נקייה.</td></tr>
+</table>
+
+<h2>בדיקת האיכות של הגרסה</h2>
+<p>בדיקות אוטומטיות: <span dir="ltr">21/21</span> עברו.</p><table dir="ltr"><tr><td>Add-ons installed &amp; enabled</td><td>&#10003;</td></tr><tr><td>Skin / sounds / language</td><td>&#10003;</td></tr><tr><td>BN branding</td><td>&#10003;</td></tr><tr><td>Main menu</td><td>&#10003;</td></tr><tr><td>Movie &amp; series lists</td><td>&#10003;</td></tr><tr><td>Hebrew / English / Russian content</td><td>&#10003;</td></tr><tr><td>Genres &amp; years</td><td>&#10003;</td></tr><tr><td>Title integrity (TMDb ids)</td><td>&#10003;</td></tr><tr><td>Kukhnya all seasons</td><td>&#10003;</td></tr><tr><td>Radio</td><td>&#10003;</td></tr><tr><td>Accounts screen</td><td>&#10003;</td></tr><tr><td>Favourites</td><td>&#10003;</td></tr><tr><td>History + UI speed</td><td>&#10003;</td></tr><tr><td>IPTV merge / dedupe / numbering</td><td>&#10003;</td></tr><tr><td>Free libraries menu</td><td>&#10003;</td></tr><tr><td>Backup</td><td>&#10003;</td></tr><tr><td>Free channels (iptv-org)</td><td>&#10003;</td></tr><tr><td>Merged playlist integrity</td><td>&#10003;</td></tr><tr><td>Locked profile round-trip</td><td>&#10003;</td></tr><tr><td>AI subtitle server</td><td>&#10003;</td></tr><tr><td>Kodi log clean</td><td>&#10003;</td></tr></table>
+
+<h2>היסטוריית גרסאות</h2>
+<ul><li><b dir="ltr">0.1.6</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">source audit, 9 free TV lists, dead-stream filter, M3U parser/grouping fixes, stream headers, locked profile</span></li><li><b dir="ltr">0.1.5</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">backup/restore (manual + weekly auto), 14 free official libraries, 700+ free channels (iptv-org), 19-check suite</span></li><li><b dir="ltr">0.1.4</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Stream Android APK tooling, LAN auto-discovery of subtitle server, home screen no longer covered at start</span></li><li><b dir="ltr">0.1.3</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">automated 16-check test suite; fix Kodi crash on refresh during listing; IPTV install retries</span></li><li><b dir="ltr">0.1.2</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Gold Premium branding (splash, skin logos, add-on icons, .ico)</span></li><li><b dir="ltr">0.1.1</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">smart autoplay + next episode, Yes/HOT-style channel list with now/next, sound pack</span></li></ul>
+
+</div>

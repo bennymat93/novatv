@@ -145,6 +145,15 @@ def _tmdb_auth():
         token = xbmcaddon.Addon('plugin.video.pov').getSetting('tmdb_read_token')
     except Exception:
         token = ''
+    if not token:       # first seconds after install POV is not registered yet: read its shipped default
+        try:
+            import re
+            px = xbmcvfs.translatePath('special://home/addons/plugin.video.pov/resources/settings.xml')
+            with open(px, encoding='utf-8') as f:
+                m = re.search(r'id="tmdb_read_token"[^>]*default="([^"]+)"', f.read())
+            token = m.group(1) if m else ''
+        except Exception:
+            token = ''
     return {}, ({'Authorization': 'Bearer ' + token} if token else {})
 
 

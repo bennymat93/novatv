@@ -6,13 +6,14 @@
  * app name, launcher icons, Android-TV banner, splash, in-app icons -> BN Gold
  * signed with a local BN key (work/apk/bn.keystore, created once)
 
-  python tools/make_apk.py            -> dist/BN-Stream-21.3-arm64-v8a.apk + armeabi-v7a.apk
+  python tools/make_apk.py --version X -> dist/BN-Stream-21.3-arm64-v8a.apk + armeabi-v7a.apk (build X embedded)
 """
 import glob
 import os
 import re
 import shutil
 import subprocess
+import zipfile
 import sys
 
 from PIL import Image
@@ -28,7 +29,7 @@ DENS = {'ldpi': 36, 'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi
 
 
 def run(*a):
-    subprocess.check_call(list(a), cwd=W, stdout=subprocess.DEVNULL)
+    subprocess.check_call(list(a), cwd=W, stdout=subprocess.DEVNULL, stderr=sys.stdout)
 
 
 def banner(w, h):
@@ -55,8 +56,29 @@ def rebrand(dec):
     s = s.replace('package="%s"' % OLD, 'package="%s"' % NEW)
     for suffix in ('file', 'media', 'ytdl'):
         s = s.replace('android:authorities="%s.%s"' % (OLD, suffix), 'android:authorities="%s.%s"' % (NEW, suffix))
-    # activity/receiver class names stay org.xbmc.kodi.* (the code lives there)
+    # libkodi.so looks up its Java classes as <packageName>.<Class>, so the classes must move too
+    s = s.replace('"%s.' % OLD, '"%s.' % NEW).replace('"%s"' % OLD, '"%s"' % NEW)
     open(mf, 'w', encoding='utf-8').write(s)
+    for x in glob.glob(os.path.join(dec, 'res', 'xml', '*.xml')):
+        t = open(x, encoding='utf-8').read()
+        if OLD in t:
+            open(x, 'w', encoding='utf-8').write(t.replace(OLD + '.', NEW + '.'))
+    assert len(OLD) == len(NEW)          # native libs: same-length in-place patch of the compiled-in package
+    for so in glob.glob(os.path.join(dec, 'lib', '*', 'libkodi.so')):
+        b = open(so, 'rb').read()
+        open(so, 'wb').write(b.replace(OLD.encode() + bytes(1), NEW.encode() + bytes(1)))
+    osl, nsl = OLD.replace('.', '/'), NEW.replace('.', '/')
+    for sm in glob.glob(os.path.join(dec, 'smali*')):
+        src_dir = os.path.join(sm, *OLD.split('.'))
+        if os.path.isdir(src_dir):
+            dst_dir = os.path.join(sm, *NEW.split('.'))
+            os.makedirs(os.path.dirname(dst_dir), exist_ok=True)
+            shutil.move(src_dir, dst_dir)
+    for p in glob.glob(os.path.join(dec, 'smali*', '**', '*.smali'), recursive=True):
+        t = open(p, encoding='utf-8').read()
+        t2 = t.replace('L%s/' % osl, 'L%s/' % nsl).replace('"%s/' % osl, '"%s/' % nsl).replace('"%s.' % OLD, '"%s.' % NEW)
+        if t2 != t:
+            open(p, 'w', encoding='utf-8').write(t2)
     yml = os.path.join(dec, 'apktool.yml')
     y = open(yml, encoding='utf-8').read()
     y = re.sub(r'renameManifestPackage: .*', 'renameManifestPackage: null', y)
@@ -68,8 +90,7 @@ def rebrand(dec):
         t2 = re.sub(r'"%s\.(file|media|ytdl)"' % re.escape(OLD), lambda m: '"%s.%s"' % (NEW, m.group(1)), t)
         t2 = t2.replace('"content://%s.' % OLD, '"content://%s.' % NEW)                  # search provider URI
         t2 = t2.replace('"ComponentInfo{%s/' % OLD, '"ComponentInfo{%s/' % NEW)          # own component id
-        if p.endswith('XBMCBroadcastReceiver.smali'):                                   # launch-on-boot: launch *us*
-            t2 = t2.replace('const-string v0, "%s"' % OLD, 'const-string v0, "%s"' % NEW)
+        t2 = re.sub(r'(const-string(?:/jumbo)? [vp]\d+, ".*)$', lambda m: m.group(1).replace(OLD, NEW), t2, flags=re.M)   # package name inside any string
         if t2 != t:
             open(p, 'w', encoding='utf-8').write(t2)
             n += 1
@@ -105,12 +126,31 @@ def keystore():
     return ks
 
 
-def build(src, arch):
+def embed_build(dec, build_zip):
+    """Ready on first start: BnSetup unpacks assets/bn_build.zip into Kodi's home before Kodi starts."""
+    pkg = os.path.join(dec, 'smali', *NEW.split('.'))
+    shutil.copy(os.path.join(ROOT, 'android', 'smali', 'BnSetup.smali'), pkg)
+    fc = os.path.join(pkg, 'Splash$FillCache.smali')
+    t = open(fc, encoding='utf-8').read()
+    hook = ('    iget-object v0, p0, L{p}/Splash$FillCache;->this$0:L{p}/Splash;\n\n'
+            '    invoke-static {{v0}}, L{p}/BnSetup;->prepare(Landroid/content/Context;)V\n').format(p=NEW.replace('.', '/'))
+    head = '.method protected doInBackground()Ljava/lang/Integer;\n    .locals 12\n'
+    assert head in t, 'FillCache.doInBackground not found'
+    open(fc, 'w', encoding='utf-8').write(t.replace(head, head + '\n' + hook, 1))
+    shutil.copy(build_zip, os.path.join(dec, 'assets', 'bn_build.zip'))
+    with zipfile.ZipFile(build_zip) as z:
+        mark = z.read('userdata/novatv_build.txt')
+    open(os.path.join(dec, 'assets', 'bn_build.txt'), 'wb').write(mark)
+    print('   build embedded:', os.path.basename(build_zip), mark.decode('utf-8', 'ignore').strip()[:40])
+
+
+def build(src, arch, build_zip):
     dec = os.path.join(W, 'dec_' + arch)
     shutil.rmtree(dec, ignore_errors=True)
     print('decode', src)
     run(JAVA, '-jar', 'apktool.jar', 'd', '-f', src, '-o', dec)
     rebrand(dec)
+    embed_build(dec, build_zip)
     out = os.path.join(W, 'bn_%s_unsigned.apk' % arch)
     print('build', arch)
     run(JAVA, '-jar', 'apktool.jar', 'b', dec, '-o', out)
@@ -125,5 +165,10 @@ def build(src, arch):
 
 
 if __name__ == '__main__':
-    build('kodi64.apk', 'arm64-v8a')
-    build('kodi32.apk', 'armeabi-v7a')
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--version', required=True, help='BN build version to embed (dist/NovaTV-<version>.zip)')
+    v = ap.parse_args().version
+    bz = os.path.join(ROOT, 'dist', 'NovaTV-%s.zip' % v)
+    build('kodi64.apk', 'arm64-v8a', bz)
+    build('kodi32.apk', 'armeabi-v7a', bz)

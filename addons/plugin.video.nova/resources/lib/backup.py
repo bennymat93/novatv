@@ -35,7 +35,8 @@ def _members():
 
 def make_zip(path):
     n = 0
-    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as z:
+    part = path + '.part'                   # only a complete file gets the real name
+    with zipfile.ZipFile(part, 'w', zipfile.ZIP_DEFLATED) as z:
         z.writestr('bn_backup.txt', 'BN Stream backup %s\n' % time.ctime())
         for full, arc in _members():
             try:
@@ -43,6 +44,7 @@ def make_zip(path):
                 n += 1
             except Exception as e:
                 log('backup skip %s: %s' % (arc, e), xbmc.LOGWARNING)
+    os.replace(part, path)
     return n
 
 

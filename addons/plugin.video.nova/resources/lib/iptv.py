@@ -301,12 +301,40 @@ def configure_pvr():
     _rpc('Settings.SetSettingValue', setting='pvrmanager.usebackendchannelnumbers', value=True)
     if not was_installed:
         return install_addon(PVR)   # picks up the settings file on first start
-    # existing install: a single disable/enable cycle, waiting until the PVR manager settles
+    # existing install: restart the client, but never overlap restarts (that aborts a big channel load)
     mon = xbmc.Monitor()
-    _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
-    mon.waitForAbort(4)
-    _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
-    return True
+    for attempt in range(4):
+        _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
+        for _ in range(20):                     # wait until the add-on is off and the PVR manager stopped
+            if mon.waitForAbort(1) or (not _addon_enabled() and not _pvr_available()):
+                break
+        mon.waitForAbort(2)
+        for _ in range(5):                      # Kodi sometimes drops an enable right after a disable
+            _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
+            if mon.waitForAbort(2) or _addon_enabled():
+                break
+        for _ in range(45):                     # 5000+ channels take a while on slow boxes
+            if mon.waitForAbort(1) or _pvr_available():
+                return True
+        log('PVR did not come up (attempt %d) - restarting IPTV client' % (attempt + 1))
+    return False
+
+
+def _jsonrpc(method, **params):
+    try:
+        return json.loads(xbmc.executeJSONRPC(json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params})))
+    except Exception:
+        return {}
+
+
+def _addon_enabled():
+    return bool(_jsonrpc('Addons.GetAddonDetails', addonid=PVR, properties=['enabled']).get('result', {}).get('addon', {}).get('enabled'))
+
+
+def _pvr_available():
+    if not _jsonrpc('PVR.GetProperties', properties=['available']).get('result', {}).get('available'):
+        return False
+    return bool(_jsonrpc('PVR.GetChannelGroups', channeltype='tv').get('result', {}).get('channelgroups'))
 
 
 def _rpc(method, **params):

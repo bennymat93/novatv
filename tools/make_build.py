@@ -148,7 +148,13 @@ def enable_addons(db, ids):
     for a in ids:
         c.execute('insert or replace into installed (addonID, enabled, installDate, origin, disabledReason) '
                   'values (?, 1, ?, ?, 0)', (a, now, 'repository.nova' if a != 'repository.nova' else ''))
+    # drop the cached repository listings: they were fetched on Windows and point binary add-ons
+    # (pvr.iptvsimple, inputstream.*) at Windows packages - Android then fails to install them.
+    # Kodi re-reads every repository for its own platform on first start.
+    for t in ('addons', 'addonlinkrepo', 'repo', 'package'):
+        c.execute('delete from %s' % t)
     c.commit()
+    c.execute('vacuum')
     c.close()
 
 

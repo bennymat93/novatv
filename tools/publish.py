@@ -96,7 +96,12 @@ def main():
         '<h2>BN Stream app (Android)</h2>\n'
         '<a href="https://github.com/%s/novatv/releases/latest/download/BN-Stream-21.3-arm64-v8a.apk">BN Stream 64-bit (arm64)</a><br>\n'
         '<a href="https://github.com/%s/novatv/releases/latest/download/BN-Stream-21.3-armeabi-v7a.apk">BN Stream 32-bit (armv7)</a>\n'
-        '</body></html>\n' % (user, repo_zip, repo_zip, user, user))
+        '<h2>BN Stream for Windows</h2>\n'
+        '<a href="https://github.com/%s/novatv/releases/latest/download/BN-Stream-Setup-%s.exe">BN-Stream-Setup-%s.exe</a>\n'
+        '<h2>User guide / &#1502;&#1491;&#1512;&#1497;&#1498;</h2>\n<a href="guide.html">guide.html</a>\n'
+        '</body></html>\n' % (user, repo_zip, repo_zip, user, user, user, a.version, a.version))
+    subprocess.check_call([sys.executable, os.path.join(ROOT, 'tools', 'make_guide.py')])
+    shutil.copy(os.path.join(ROOT, 'brand', 'bn.ico'), SITE)
     print('site ready:', SITE)
 
 

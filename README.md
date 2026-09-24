@@ -2,7 +2,13 @@
 
 Main menu: **Movies · Series · TV Channels · Radio · NovaTV** (history, favourites, accounts).
 
-## Install on Kodi 21 (Android TV / Windows / phone / tablet)
+**User guide (English + Hebrew):** https://bennymat93.github.io/novatv/guide.html · [docs/GUIDE.md](docs/GUIDE.md)
+
+## Ready-to-use apps (no setup needed)
+* **Android TV / phone:** [BN Stream 64-bit](https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-arm64-v8a.apk) · [32-bit](https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-armeabi-v7a.apk). The build is inside the APK and unpacked on first start.
+* **Windows:** `BN-Stream-Setup-<version>.exe` from [Releases](https://github.com/bennymat93/novatv/releases/latest): Kodi + build, per-user install.
+
+## Install on an existing Kodi 21 (Android TV / Windows / phone / tablet)
 1. Settings → System → Add-ons → enable **Unknown sources**.
 2. Settings → File manager → Add source → `https://bennymat93.github.io/novatv/` → name it `nova`.
 3. Add-ons → Install from zip file → `nova` → `repository.nova-1.0.0.zip`.
@@ -18,5 +24,10 @@ Main menu: **Movies · Series · TV Channels · Radio · NovaTV** (history, favo
   `.venv11\Scripts\python server\nova_subs.py batch "D:\Kukhnya\*.mkv" --title "Кухня"`
 
 ## Develop
+* `python tools/release.py --version X --notes "..."` – **one command per release**: build, 21-check test suite, guide, APKs (build embedded), Windows installer (+ tests on the installed copy), push, gh-pages, GitHub release.
+* `python tools/make_guide.py` – regenerate `docs/guide.html` + `docs/GUIDE.md` (also runs inside publish/release).
+* `python tools/make_apk.py --version X` / `python tools/make_windows.py --version X` – single artifacts.
+* `android/BnSetup.java` – first-start build installer inside the APK (`android/smali/BnSetup.smali` is its compiled form).
+* `docs/audit/` – source audit CSVs (cloud vs. Israeli network).
 * `python tools/make_build.py --version X` – build zip (base: Kodi-POV-IL FENtastic).
 * `python tools/publish.py --gh-user bennymat93 --version X` – regenerate `site/` for GitHub Pages.

@@ -66,6 +66,10 @@ def install(ver):
     os.makedirs(DATA)
     with zipfile.ZipFile(os.path.join(ROOT, 'dist', 'NovaTV-%s.zip' % ver)) as z:
         z.extractall(DATA)
+    enable_rpc()
+
+
+def enable_rpc():
     p = os.path.join(DATA, 'userdata', 'guisettings.xml')
     s = open(p, encoding='utf-8').read()
     for k, v in [('services.webserver', 'true'), ('services.webserverport', '8089'),
@@ -195,8 +199,11 @@ def t_accounts():
 
 def t_favourites():
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=fav_add&kind=movie&id=603&label=The Matrix')
-    time.sleep(3)
-    items = ls(NOVA + '?a=favs&kind=movie')
+    for _ in range(15):
+        time.sleep(1)
+        items = ls(NOVA + '?a=favs&kind=movie')
+        if any('603' in i['file'] for i in items):
+            break
     expect(any('603' in i['file'] for i in items), 'favourite not stored')
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=fav_rm&kind=movie&id=603')
     time.sleep(3)
@@ -283,13 +290,16 @@ def t_libraries():
 
 
 def t_backup():
+    for _ in range(3):                      # a dialog left open by the previous test blocks ExecuteAddon
+        rpc('Input.ExecuteAction', action='close')
+        time.sleep(1)
     rpc('GUI.ActivateWindow', window='home')
     time.sleep(3)
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=bk_auto')
     d = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'backups')
     for _ in range(45):
         time.sleep(1)
-        zips = [f for f in os.listdir(d)] if os.path.isdir(d) else []
+        zips = [f for f in os.listdir(d) if f.endswith('.zip')] if os.path.isdir(d) else []
         if zips:
             break
     expect(zips, 'no backup created')
@@ -315,7 +325,12 @@ def t_free_channels():
         if n >= 300:
             break
     expect(n >= 300, 'only %d channels' % n)
-    heb = rpc('PVR.GetChannelGroups', channeltype='tv')['result']['channelgroups']
+    for _ in range(30):
+        heb = rpc('PVR.GetChannelGroups', channeltype='tv').get('result', {}).get('channelgroups')
+        if heb:
+            break
+        time.sleep(2)
+    expect(heb, 'no channel groups')
     return '%d channels, groups: %s' % (n, ', '.join(g['label'] for g in heb))
 
 
@@ -427,9 +442,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--version', required=True)
     ap.add_argument('--keep', action='store_true', help='leave Kodi running')
+    ap.add_argument('--installed', help='test an already installed copy (e.g. from the Windows installer) instead of testkodi')
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding='utf-8')
-    install(a.version)
+    global KODI, DATA
+    if a.installed:
+        KODI, DATA = a.installed, os.path.join(a.installed, 'portable_data')
+        kill_kodi()
+        enable_rpc()
+    else:
+        install(a.version)
     start_kodi()
     for name, fn in TESTS:
         check(name, fn)
