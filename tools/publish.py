@@ -92,7 +92,11 @@ def main():
         '<!DOCTYPE html><html><head><meta charset="utf-8"><title>NovaTV</title></head><body>\n'
         '<h1>NovaTV</h1>\n<p>Kodi: Settings &rarr; File manager &rarr; Add source &rarr; '
         '<code>https://%s.github.io/novatv/</code> &rarr; Add-ons &rarr; Install from zip file.</p>\n'
-        '<a href="%s">%s</a><br>\n<a href="build.json">build.json</a>\n</body></html>\n' % (user, repo_zip, repo_zip))
+        '<a href="%s">%s</a><br>\n<a href="build.json">build.json</a>\n'
+        '<h2>BN Stream app (Android)</h2>\n'
+        '<a href="https://github.com/%s/novatv/releases/latest/download/BN-Stream-21.3-arm64-v8a.apk">BN Stream 64-bit (arm64)</a><br>\n'
+        '<a href="https://github.com/%s/novatv/releases/latest/download/BN-Stream-21.3-armeabi-v7a.apk">BN Stream 32-bit (armv7)</a>\n'
+        '</body></html>\n' % (user, repo_zip, repo_zip, user, user))
     print('site ready:', SITE)
 
 

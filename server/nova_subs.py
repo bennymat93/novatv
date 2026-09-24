@@ -355,8 +355,24 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, JOBS[jid].info())
 
 
+DISCOVERY_PORT = 8766
+
+
+def discovery_responder(http_port):
+    """Answer 'NOVASUBS?' broadcasts from Kodi boxes on the LAN with our HTTP port."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('', DISCOVERY_PORT))
+    while True:
+        data, addr = s.recvfrom(64)
+        if data.strip() == b'NOVASUBS?':
+            s.sendto(b'NOVASUBS %d' % http_port, addr)
+
+
 def serve(port):
     threading.Thread(target=model, daemon=True).start()     # warm up the model
+    threading.Thread(target=discovery_responder, args=(port,), daemon=True).start()
     log('NovaTV subtitle server on port %d' % port)
     ThreadingHTTPServer(('0.0.0.0', port), Handler).serve_forever()
 

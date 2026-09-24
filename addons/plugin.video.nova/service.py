@@ -96,6 +96,7 @@ class Player(xbmc.Player):
             log('AI subs: not a network stream (%s)' % path[:60])
             return
         import requests
+        discover_server()                       # re-find the PC if its address changed
         base = ADDON.getSetting('sub_server').rstrip('/')
         tag = self.getVideoInfoTag()
         job = {'url': path, 'title': tag.getTVShowTitle() or tag.getTitle(), 'season': tag.getSeason(),
@@ -152,8 +153,38 @@ class Player(xbmc.Player):
                 return
 
 
+def discover_server():
+    """Find the PC subtitle server on the LAN (UDP broadcast) if the saved address is dead."""
+    import socket
+    import requests
+    base = ADDON.getSetting('sub_server').rstrip('/')
+    try:
+        requests.get(base + '/health', timeout=2)
+        return
+    except Exception:
+        pass
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.settimeout(2)
+    try:
+        for _ in range(3):
+            s.sendto(b'NOVASUBS?', ('255.255.255.255', 8766))
+            try:
+                data, addr = s.recvfrom(64)
+            except socket.timeout:
+                continue
+            if data.startswith(b'NOVASUBS '):
+                url = 'http://%s:%s' % (addr[0], data.split()[1].decode())
+                ADDON.setSetting('sub_server', url)
+                log('subtitle server discovered at %s' % url)
+                return
+    finally:
+        s.close()
+
+
 def main():
     mon = xbmc.Monitor()
+    threading.Thread(target=discover_server, daemon=True).start()
     player = Player()
     if ADDON.getSettingBool('open_on_start'):
         xbmc.sleep(2500)

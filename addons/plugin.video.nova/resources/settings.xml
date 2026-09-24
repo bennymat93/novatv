@@ -3,7 +3,7 @@
   <category label="General">
     <setting id="tmdb_key" label="TMDb API key (v3, optional)" type="text" default=""/>
     <setting id="content_lang" label="Metadata language" type="enum" values="auto|he-IL|en-US|ru-RU" default="0"/>
-    <setting id="open_on_start" label="Open NovaTV on Kodi start" type="bool" default="true"/>
+    <setting id="open_on_start" label="Open NovaTV on Kodi start" type="bool" default="false"/>
     <setting id="ui_sounds" label="Navigation sounds" type="bool" default="true"/>
   </category>
   <category label="Subtitles">
