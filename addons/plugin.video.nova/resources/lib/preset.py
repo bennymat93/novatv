@@ -53,12 +53,14 @@ def _keys(pw, salt):
 
 
 def _stream(key, nonce, data):
-    out = bytearray(len(data))
-    for i in range(0, len(data), 32):
-        block = hmac.new(key, nonce + (i // 32).to_bytes(8, 'big'), hashlib.sha256).digest()
-        chunk = data[i:i + 32]
-        out[i:i + len(chunk)] = bytes(a ^ b for a, b in zip(chunk, block))
-    return bytes(out)
+    base = hmac.new(key, nonce, hashlib.sha256)
+    ks = bytearray()
+    for i in range((len(data) + 31) // 32):
+        h = base.copy()
+        h.update(i.to_bytes(8, 'big'))
+        ks += h.digest()
+    n = len(data)
+    return (int.from_bytes(data, 'big') ^ int.from_bytes(bytes(ks[:n]), 'big')).to_bytes(n, 'big')
 
 
 def encrypt(pw, plain):

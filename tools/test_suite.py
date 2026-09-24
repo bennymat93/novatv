@@ -90,6 +90,7 @@ def start_kodi():
 
 # ------------------------------------------------------------------ tests
 NOVA = 'plugin://plugin.video.nova/'
+NOVA_SRC = os.path.join(ROOT, 'addons', 'plugin.video.nova')
 
 
 def t_addons_enabled():
@@ -187,7 +188,8 @@ def t_radio():
 
 def t_accounts():
     rows = ls(NOVA + '?a=accounts')
-    expect(len(rows) == 6, '%d rows' % len(rows))
+    expect(len(rows) == 8, '%d rows' % len(rows))
+    expect(sum('preset_' in r['file'] for r in rows) == 2, 'locked-profile rows missing')
     return [r['label'].split('   ')[0] for r in rows]
 
 
@@ -220,6 +222,11 @@ def t_history_and_speed():
     return 'history ok, 2 menus in %.2fs' % dt
 
 
+def free_list_names():
+    src = open(os.path.join(NOVA_SRC, 'resources', 'lib', 'iptv.py'), encoding='utf-8').read()
+    return re.findall(r"\('(iptv-org [^']+)', 'https://", src)
+
+
 def t_iptv():
     iptv_json = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'iptv.json')
     os.makedirs(os.path.dirname(iptv_json), exist_ok=True)
@@ -230,7 +237,7 @@ def t_iptv():
         '#EXTINF:-1,Keshet 12\nhttp://127.0.0.1/k12.m3u8\n#EXTINF:-1,Первый канал\nhttp://127.0.0.1/1tv.m3u8\n'
         '#EXTINF:-1 group-title="Sport",Sport 5\nhttp://127.0.0.1/s5.m3u8\n#EXTINF:-1,Disney Junior\nhttp://127.0.0.1/dj.m3u8\n')
     json.dump({'m3u': [{'name': 'test', 'url': m3u}], 'epg': [],
-               'free': {'iptv-org IL': False, 'iptv-org Hebrew': False, 'iptv-org Russian': False}}, open(iptv_json, 'w'))
+               'free': {n: False for n in free_list_names()}}, open(iptv_json, 'w'))
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=tv_do&do=refresh')
     for _ in range(60):
         time.sleep(3)
@@ -312,6 +319,97 @@ def t_free_channels():
     return '%d channels, groups: %s' % (n, ', '.join(g['label'] for g in heb))
 
 
+def t_m3u_integrity():
+    """Merged playlist (all free lists on): unique numbers, stream headers, dead streams removed."""
+    path = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'nova_channels.m3u')
+    lines = open(path, encoding='utf-8').read().splitlines()
+    nums = [int(m) for l in lines for m in re.findall(r'tvg-chno="(\d+)"', l)]
+    expect(nums and len(nums) == len(set(nums)), '%d duplicate channel numbers' % (len(nums) - len(set(nums))))
+    urls = [l for l in lines if l and not l.startswith('#')]
+    expect(len(urls) == len(nums), '%d urls for %d channels' % (len(urls), len(nums)))
+    bare = [u for u in urls if u.startswith('http') and '|User-Agent=' not in u]
+    expect(not bare, '%d http streams without User-Agent, e.g. %s' % (len(bare), bare[:1]))
+    dead = set(json.load(open(os.path.join(NOVA_SRC, 'resources', 'dead_streams.json'), encoding='utf-8')))
+    left = [u for u in urls if u.split('|')[0] in dead]
+    expect(not left, '%d dead streams still listed' % len(left))
+    names = [l.rsplit(',', 1)[-1] for l in lines if l.startswith('#EXTINF')]
+    broken = [n for n in names if '="' in n or not n.strip()]
+    expect(not broken, 'broken channel names: %s' % broken[:2])
+    return '%d channels, numbers unique, UA on %d http streams, %d dead filtered' % (len(nums), sum(u.startswith('http') for u in urls), len(dead))
+
+
+def t_preset():
+    """Locked profile: create -> encrypted file -> unlock with right password restores data; wrong one fails."""
+    import types, tempfile, io as _io, zipfile as _zf
+    tmp = tempfile.mkdtemp(prefix='nvp_')
+    src_ud, dst_ud = os.path.join(tmp, 'src'), os.path.join(tmp, 'dst')
+    secret = os.path.join('addon_data', 'plugin.video.nova', 'accounts.json')
+    os.makedirs(os.path.join(src_ud, os.path.dirname(secret)))
+    open(os.path.join(src_ud, secret), 'w').write('{"rd_token": "TEST-TOKEN"}')
+    answers = []
+
+    class Dialog:
+        def input(self, *a, **k): return answers.pop(0)
+        def yesno(self, *a, **k): return False
+        def ok(self, *a, **k): Dialog.last = a[-1]
+        def notification(self, *a, **k): pass
+        def browse(self, *a, **k): return ''
+    stubs = {'xbmcgui': types.SimpleNamespace(Dialog=Dialog, ALPHANUM_HIDE_INPUT=2),
+             'xbmcvfs': types.SimpleNamespace(translatePath=lambda p: tmp + os.sep, copy=shutil.copy)}
+    prof = os.path.join(tmp, 'profile')
+    os.makedirs(prof)
+    store = {}
+    pkg = types.ModuleType('nvlib'); pkg.__path__ = []
+    common = types.SimpleNamespace(PROFILE=prof, ui_lang=lambda: 'en', load=lambda n, d: store.get(n, d),
+                                   save=lambda n, v: store.__setitem__(n, v))
+
+    def make_zip(path):
+        with _zf.ZipFile(path, 'w') as z:
+            z.writestr('bn_backup.txt', 'x')
+            z.write(os.path.join(src_ud, secret), secret)
+    bk = types.SimpleNamespace(make_zip=make_zip, USERDATA=dst_ud)
+    saved = {k: sys.modules.get(k) for k in list(stubs) + ['nvlib', 'nvlib.common', 'nvlib.backup', 'nvlib.preset']}
+    sys.modules.update(stubs); sys.modules.update({'nvlib': pkg, 'nvlib.common': common, 'nvlib.backup': bk})
+    pkg.common, pkg.backup = common, bk
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('nvlib.preset', os.path.join(NOVA_SRC, 'resources', 'lib', 'preset.py'))
+        preset = importlib.util.module_from_spec(spec); sys.modules['nvlib.preset'] = preset
+        spec.loader.exec_module(preset)
+        exited = []
+        preset.os = types.SimpleNamespace(**{k: getattr(os, k) for k in dir(os) if not k.startswith('__')})
+        preset.os._exit = exited.append
+        answers[:] = ['short', ]
+        preset.create()
+        expect(not os.path.exists(preset.LOCAL), 'short password accepted')
+        answers[:] = ['Correct-Horse-1', 'Correct-Horse-1']
+        preset.create()
+        blob = open(preset.LOCAL, 'rb').read()
+        expect(blob[:4] == b'NVP1' and b'TEST-TOKEN' not in blob, 'profile file not encrypted')
+        answers[:] = ['wrong-password']
+        preset.unlock()
+        expect(not os.path.exists(os.path.join(dst_ud, secret)) and store['preset_guard.json']['fails'] == 1, 'wrong password accepted')
+        tampered = bytearray(blob); tampered[-1] ^= 1
+        expect(preset.decrypt('Correct-Horse-1', bytes(tampered)) is None, 'tampered file accepted')
+        answers[:] = ['Correct-Horse-1']
+        preset.unlock()
+        got = open(os.path.join(dst_ud, secret)).read()
+        expect('TEST-TOKEN' in got and exited == [1], 'restore failed')
+        expect(store['preset_guard.json']['fails'] == 0, 'fail counter not reset')
+        for _ in range(5):
+            answers[:] = ['nope']
+            preset.unlock()
+        answers[:] = ['Correct-Horse-1']
+        exited.clear(); preset.unlock()
+        expect(not exited, 'lockout after 5 wrong tries not enforced')
+        return 'encrypt, wrong pw rejected, tamper detected, restore ok, 5-try lockout'
+    finally:
+        for k, v in saved.items():
+            if v is None: sys.modules.pop(k, None)
+            else: sys.modules[k] = v
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 TESTS = [
     ('Add-ons installed & enabled', t_addons_enabled), ('Skin / sounds / language', t_gui),
     ('BN branding', t_branding), ('Main menu', t_root), ('Movie & series lists', t_movies_lists),
@@ -320,6 +418,7 @@ TESTS = [
     ('Radio', t_radio), ('Accounts screen', t_accounts), ('Favourites', t_favourites),
     ('History + UI speed', t_history_and_speed), ('IPTV merge / dedupe / numbering', t_iptv),
     ('Free libraries menu', t_libraries), ('Backup', t_backup), ('Free channels (iptv-org)', t_free_channels),
+    ('Merged playlist integrity', t_m3u_integrity), ('Locked profile round-trip', t_preset),
     ('AI subtitle server', t_ai_server), ('Kodi log clean', t_log_errors),
 ]
 

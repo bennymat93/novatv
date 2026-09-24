@@ -14,7 +14,7 @@ USERDATA = xbmcvfs.translatePath('special://profile/')
 ADDON_DATA = ['plugin.video.nova', 'plugin.video.pov', 'pvr.iptvsimple', 'service.subtitles.All_Subs',
               'service.subtitles.all_subs_plus', 'plugin.video.youtube', 'skin.fentastic', 'script.module.magneto']
 FILES = ['favourites.xml', 'sources.xml', 'passwords.xml', 'mediasources.xml']
-SKIP = ('cache', 'cache.db', 'Thumbnails', 'temp', 'packages', '.tmp')
+SKIP = ('cache', 'cache.db', 'Thumbnails', 'temp', 'packages', '.tmp', 'preset.nvp', 'preset_guard.json')
 AUTO_DIR = os.path.join(PROFILE, 'backups')
 
 
