@@ -1,6 +1,6 @@
 # BN Stream &mdash; User Guide / מדריך למשתמש
 
-<p dir="ltr">Version 0.1.7 &middot; updated 2026-09-24 &middot; <a href="https://bennymat93.github.io/novatv/guide.html">open the web version</a></p>
+<p dir="ltr">Version 0.1.8 &middot; updated 2026-09-25 &middot; <a href="https://bennymat93.github.io/novatv/guide.html">open the web version</a></p>
 
 <p dir="ltr"><a href="#english">English</a> &middot; <a href="#hebrew">עברית</a></p>
 
@@ -19,7 +19,7 @@
 <p>BN Stream installs next to a regular Kodi and does not touch it. Installing a newer APK over the old one updates the add-ons and keeps your accounts, history and favourites.</p>
 <h3>Windows PC</h3>
 <ol>
-<li>Download <code dir="ltr">BN-Stream-Setup-0.1.7.exe</code> from <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
+<li>Download <code dir="ltr">BN-Stream-Setup-0.1.8.exe</code> from <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
 <li>Run it. No administrator rights are needed; it installs to <code dir="ltr">%LOCALAPPDATA%\BN Stream</code>.</li>
 <li>Open <b>BN Stream</b> from the desktop or Start menu. It is ready immediately.</li>
 </ol>
@@ -47,15 +47,27 @@
 
 <table>
 <tr><th>Item</th><th>What it does</th></tr>
+<tr><td>Search all sources</td><td>One search across every source at once: movies &amp; series, Israeli broadcasters, YouTube, free libraries, live channels and radio.</td></tr>
 <tr><td>Movies / Series</td><td>Search, trending, popular, top rated, genres, languages (Hebrew, English, Russian) and years. Long-press an item for favourites or to choose a source.</td></tr>
 <tr><td>TV</td><td>One numbered channel list with a TV guide (now / next). Kan 11 is on 11 and Keshet 12 on 12.</td></tr>
 <tr><td>Radio</td><td>Israeli, Russian and Hebrew-language stations, plus a world top list.</td></tr>
 <tr><td>History</td><td>What you watched, with date and time.</td></tr>
 <tr><td>Favourites</td><td>Movies and series you saved.</td></tr>
-<tr><td>Free Libraries</td><td>14 official free Kodi add-ons; each installs the first time you open it.</td></tr>
+<tr><td>Central library</td><td>11 video sources by category (Israel, Russian, movies, documentaries, news, kids, sport...), all opened inside BN.</td></tr>
 <tr><td>Accounts &amp; Connections</td><td>Real-Debrid, Trakt, IPTV, AI subtitles, Gemini, TMDb, locked profile.</td></tr>
 <tr><td>Backup &amp; Restore</td><td>Save or restore everything personal.</td></tr>
 </table>
+
+<h2>One place for everything</h2>
+
+<p>BN is the only app you use. Every other video add-on (POV, Idan+, YouTube, Internet Archive, Dailymotion, Vimeo and the free libraries) is managed inside BN and works as one big library.</p>
+<ul>
+<li><b>Search all sources</b> (first item in the BN menu, and the search button on the home screen): one query runs on every source at the same time, and the results come back in one list, grouped by source.</li>
+<li><b>Playing a movie or episode:</b> BN first asks POV (Real-Debrid). If POV finds nothing, BN automatically searches all other sources for the same title and shows what it found.</li>
+<li><b>Central library:</b> every source by category. <b>Russian</b> has the official channels of Mosfilm, Soyuzmultfilm, Smeshariki, Belarusfilm and Kinopoisk, plus Soviet films from the Internet Archive.</li>
+<li><b>Sources &amp; add-ons</b> (in the central library): switch each source on or off, open its settings, or install all stable sources at once.</li>
+</ul>
+<p>Only sources that passed the automatic stability check are shown; the check runs again before every version.</p>
 
 <h2>TV channels</h2>
 
@@ -102,7 +114,7 @@
 </table>
 
 <h2>Quality check of this version</h2>
-<p>Automated checks: 21/21 passed.</p><table dir="ltr"><tr><td>Add-ons installed &amp; enabled</td><td>&#10003;</td></tr><tr><td>Skin / sounds / language</td><td>&#10003;</td></tr><tr><td>BN branding</td><td>&#10003;</td></tr><tr><td>Main menu</td><td>&#10003;</td></tr><tr><td>Movie &amp; series lists</td><td>&#10003;</td></tr><tr><td>Hebrew / English / Russian content</td><td>&#10003;</td></tr><tr><td>Genres &amp; years</td><td>&#10003;</td></tr><tr><td>Title integrity (TMDb ids)</td><td>&#10003;</td></tr><tr><td>Kukhnya all seasons</td><td>&#10003;</td></tr><tr><td>Radio</td><td>&#10003;</td></tr><tr><td>Accounts screen</td><td>&#10003;</td></tr><tr><td>Favourites</td><td>&#10003;</td></tr><tr><td>History + UI speed</td><td>&#10003;</td></tr><tr><td>IPTV merge / dedupe / numbering</td><td>&#10003;</td></tr><tr><td>Free libraries menu</td><td>&#10003;</td></tr><tr><td>Backup</td><td>&#10003;</td></tr><tr><td>Free channels (iptv-org)</td><td>&#10003;</td></tr><tr><td>Merged playlist integrity</td><td>&#10003;</td></tr><tr><td>Locked profile round-trip</td><td>&#10003;</td></tr><tr><td>AI subtitle server</td><td>&#10003;</td></tr><tr><td>Kodi log clean</td><td>&#10003;</td></tr></table>
+<p>Automated checks: 24/24 passed.</p><table dir="ltr"><tr><td>Add-ons installed &amp; enabled</td><td>&#10003;</td></tr><tr><td>Skin / sounds / language</td><td>&#10003;</td></tr><tr><td>BN branding</td><td>&#10003;</td></tr><tr><td>Main menu</td><td>&#10003;</td></tr><tr><td>Movie &amp; series lists</td><td>&#10003;</td></tr><tr><td>Hebrew / English / Russian content</td><td>&#10003;</td></tr><tr><td>Genres &amp; years</td><td>&#10003;</td></tr><tr><td>Title integrity (TMDb ids)</td><td>&#10003;</td></tr><tr><td>Kukhnya all seasons</td><td>&#10003;</td></tr><tr><td>Radio</td><td>&#10003;</td></tr><tr><td>Accounts screen</td><td>&#10003;</td></tr><tr><td>Favourites</td><td>&#10003;</td></tr><tr><td>History + UI speed</td><td>&#10003;</td></tr><tr><td>IPTV merge / dedupe / numbering</td><td>&#10003;</td></tr><tr><td>Free libraries menu</td><td>&#10003;</td></tr><tr><td>Backup</td><td>&#10003;</td></tr><tr><td>Free channels (iptv-org)</td><td>&#10003;</td></tr><tr><td>Merged playlist integrity</td><td>&#10003;</td></tr><tr><td>Locked profile round-trip</td><td>&#10003;</td></tr><tr><td>Search all sources (hub)</td><td>&#10003;</td></tr><tr><td>Central library + Russian</td><td>&#10003;</td></tr><tr><td>POV -&gt; other sources fallback</td><td>&#10003;</td></tr><tr><td>AI subtitle server</td><td>&#10003;</td></tr><tr><td>Kodi log clean</td><td>&#10003;</td></tr></table>
 
 <h2>Version history</h2>
 <ul><li><b dir="ltr">0.1.7</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">Android app ready on first start (build embedded, launch crash fixed), Windows installer (Kodi + build), bilingual user guide (EN/HE, auto-generated), IPTV restart watchdog, Android binary add-ons fixed (no Windows repo cache in build), TMDb token fallback, atomic backups, dead-stream list from Israel (187), 21-check suite</span></li><li><b dir="ltr">0.1.6</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">source audit, 9 free TV lists, dead-stream filter, M3U parser/grouping fixes, stream headers, locked profile</span></li><li><b dir="ltr">0.1.5</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">backup/restore (manual + weekly auto), 14 free official libraries, 700+ free channels (iptv-org), 19-check suite</span></li><li><b dir="ltr">0.1.4</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Stream Android APK tooling, LAN auto-discovery of subtitle server, home screen no longer covered at start</span></li><li><b dir="ltr">0.1.3</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">automated 16-check test suite; fix Kodi crash on refresh during listing; IPTV install retries</span></li><li><b dir="ltr">0.1.2</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Gold Premium branding (splash, skin logos, add-on icons, .ico)</span></li><li><b dir="ltr">0.1.1</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">smart autoplay + next episode, Yes/HOT-style channel list with now/next, sound pack</span></li></ul>
@@ -124,7 +136,7 @@
 <p>BN Stream מותקנת לצד Kodi רגיל ולא משנה אותו. התקנת APK חדש מעל הישן מעדכנת את התוספים ושומרת חשבונות, היסטוריה ומועדפים.</p>
 <h3>מחשב Windows</h3>
 <ol>
-<li>מורידים את <code dir="ltr">BN-Stream-Setup-0.1.7.exe</code> מ-<a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
+<li>מורידים את <code dir="ltr">BN-Stream-Setup-0.1.8.exe</code> מ-<a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
 <li>מריצים. לא צריך הרשאות מנהל. ההתקנה נכנסת לתיקייה <code dir="ltr">%LOCALAPPDATA%\BN Stream</code>.</li>
 <li>פותחים את <b>BN Stream</b> מהשולחן או מתפריט התחל. הכול מוכן מיד.</li>
 </ol>
@@ -152,15 +164,27 @@
 
 <table>
 <tr><th>פריט</th><th>מה הוא עושה</th></tr>
+<tr><td>חיפוש בכל המקורות</td><td>חיפוש אחד בכל המקורות בבת אחת: סרטים וסדרות, השידורים הישראליים, YouTube, הספריות החינמיות, ערוצים חיים ורדיו.</td></tr>
 <tr><td>סרטים / סדרות</td><td>חיפוש, טרנדי, פופולרי, מדורג, ז'אנרים, שפות (עברית, אנגלית, רוסית) ושנים. לחיצה ארוכה על פריט: מועדפים או בחירת מקור.</td></tr>
 <tr><td>טלוויזיה</td><td>רשימת ערוצים אחת ממוספרת עם לוח שידורים (עכשיו / הבא). כאן 11 בערוץ 11, קשת 12 בערוץ 12.</td></tr>
 <tr><td>רדיו</td><td>תחנות מישראל, מרוסיה ובעברית, ורשימת המובילות בעולם.</td></tr>
 <tr><td>היסטוריה</td><td>מה צפיתם, עם תאריך ושעה.</td></tr>
 <tr><td>מועדפים</td><td>סרטים וסדרות ששמרתם.</td></tr>
-<tr><td>ספריות חינמיות</td><td>14 תוספים רשמיים וחינמיים של Kodi. כל אחד מותקן בפעם הראשונה שפותחים אותו.</td></tr>
+<tr><td>הספרייה המרכזית</td><td>11 מקורות וידאו לפי נושא (ישראל, ברוסית, סרטים, תעודה, חדשות, ילדים, ספורט ועוד), וכולם נפתחים בתוך BN.</td></tr>
 <tr><td>חשבונות וחיבורים</td><td>Real-Debrid, Trakt, IPTV, כתוביות AI, Gemini, TMDb ופרופיל נעול.</td></tr>
 <tr><td>גיבוי ושחזור</td><td>שמירה ושחזור של כל הנתונים האישיים.</td></tr>
 </table>
+
+<h2>מקום אחד לכל התוכן</h2>
+
+<p>BN היא האפליקציה היחידה שצריך. כל שאר תוספי הווידאו (POV, עידן+, YouTube, ארכיון האינטרנט, Dailymotion, Vimeo והספריות החינמיות) מנוהלים בתוך BN ועובדים כספרייה אחת גדולה.</p>
+<ul>
+<li><b>חיפוש בכל המקורות</b> (הפריט הראשון בתפריט BN, וגם כפתור החיפוש במסך הבית): חיפוש אחד רץ בכל המקורות בבת אחת, והתוצאות חוזרות ברשימה אחת מחולקת לפי מקור.</li>
+<li><b>ניגון סרט או פרק:</b> BN פונה קודם ל-POV (Real-Debrid). אם POV לא מוצא כלום, BN מחפש אוטומטית את אותו שם בכל שאר המקורות ומציג מה שנמצא.</li>
+<li><b>הספרייה המרכזית:</b> כל המקורות לפי נושא. ב<b>ברוסית</b> נמצאים הערוצים הרשמיים של מוספילם, סויוזמולטפילם, סמשריקי, בלרוספילם וקינופויסק, וגם סרטים סובייטיים מארכיון האינטרנט.</li>
+<li><b>מקורות ותוספים</b> (בתוך הספרייה המרכזית): הפעלה וכיבוי של כל מקור, פתיחת ההגדרות שלו, או התקנה של כל המקורות היציבים בבת אחת.</li>
+</ul>
+<p>מוצגים רק מקורות שעברו את בדיקת היציבות האוטומטית, והבדיקה רצה שוב לפני כל גרסה.</p>
 
 <h2>ערוצי טלוויזיה</h2>
 
@@ -207,7 +231,7 @@
 </table>
 
 <h2>בדיקת האיכות של הגרסה</h2>
-<p>בדיקות אוטומטיות: <span dir="ltr">21/21</span> עברו.</p><table dir="ltr"><tr><td>Add-ons installed &amp; enabled</td><td>&#10003;</td></tr><tr><td>Skin / sounds / language</td><td>&#10003;</td></tr><tr><td>BN branding</td><td>&#10003;</td></tr><tr><td>Main menu</td><td>&#10003;</td></tr><tr><td>Movie &amp; series lists</td><td>&#10003;</td></tr><tr><td>Hebrew / English / Russian content</td><td>&#10003;</td></tr><tr><td>Genres &amp; years</td><td>&#10003;</td></tr><tr><td>Title integrity (TMDb ids)</td><td>&#10003;</td></tr><tr><td>Kukhnya all seasons</td><td>&#10003;</td></tr><tr><td>Radio</td><td>&#10003;</td></tr><tr><td>Accounts screen</td><td>&#10003;</td></tr><tr><td>Favourites</td><td>&#10003;</td></tr><tr><td>History + UI speed</td><td>&#10003;</td></tr><tr><td>IPTV merge / dedupe / numbering</td><td>&#10003;</td></tr><tr><td>Free libraries menu</td><td>&#10003;</td></tr><tr><td>Backup</td><td>&#10003;</td></tr><tr><td>Free channels (iptv-org)</td><td>&#10003;</td></tr><tr><td>Merged playlist integrity</td><td>&#10003;</td></tr><tr><td>Locked profile round-trip</td><td>&#10003;</td></tr><tr><td>AI subtitle server</td><td>&#10003;</td></tr><tr><td>Kodi log clean</td><td>&#10003;</td></tr></table>
+<p>בדיקות אוטומטיות: <span dir="ltr">24/24</span> עברו.</p><table dir="ltr"><tr><td>Add-ons installed &amp; enabled</td><td>&#10003;</td></tr><tr><td>Skin / sounds / language</td><td>&#10003;</td></tr><tr><td>BN branding</td><td>&#10003;</td></tr><tr><td>Main menu</td><td>&#10003;</td></tr><tr><td>Movie &amp; series lists</td><td>&#10003;</td></tr><tr><td>Hebrew / English / Russian content</td><td>&#10003;</td></tr><tr><td>Genres &amp; years</td><td>&#10003;</td></tr><tr><td>Title integrity (TMDb ids)</td><td>&#10003;</td></tr><tr><td>Kukhnya all seasons</td><td>&#10003;</td></tr><tr><td>Radio</td><td>&#10003;</td></tr><tr><td>Accounts screen</td><td>&#10003;</td></tr><tr><td>Favourites</td><td>&#10003;</td></tr><tr><td>History + UI speed</td><td>&#10003;</td></tr><tr><td>IPTV merge / dedupe / numbering</td><td>&#10003;</td></tr><tr><td>Free libraries menu</td><td>&#10003;</td></tr><tr><td>Backup</td><td>&#10003;</td></tr><tr><td>Free channels (iptv-org)</td><td>&#10003;</td></tr><tr><td>Merged playlist integrity</td><td>&#10003;</td></tr><tr><td>Locked profile round-trip</td><td>&#10003;</td></tr><tr><td>Search all sources (hub)</td><td>&#10003;</td></tr><tr><td>Central library + Russian</td><td>&#10003;</td></tr><tr><td>POV -&gt; other sources fallback</td><td>&#10003;</td></tr><tr><td>AI subtitle server</td><td>&#10003;</td></tr><tr><td>Kodi log clean</td><td>&#10003;</td></tr></table>
 
 <h2>היסטוריית גרסאות</h2>
 <ul><li><b dir="ltr">0.1.7</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">Android app ready on first start (build embedded, launch crash fixed), Windows installer (Kodi + build), bilingual user guide (EN/HE, auto-generated), IPTV restart watchdog, Android binary add-ons fixed (no Windows repo cache in build), TMDb token fallback, atomic backups, dead-stream list from Israel (187), 21-check suite</span></li><li><b dir="ltr">0.1.6</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">source audit, 9 free TV lists, dead-stream filter, M3U parser/grouping fixes, stream headers, locked profile</span></li><li><b dir="ltr">0.1.5</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">backup/restore (manual + weekly auto), 14 free official libraries, 700+ free channels (iptv-org), 19-check suite</span></li><li><b dir="ltr">0.1.4</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Stream Android APK tooling, LAN auto-discovery of subtitle server, home screen no longer covered at start</span></li><li><b dir="ltr">0.1.3</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">automated 16-check test suite; fix Kodi crash on refresh during listing; IPTV install retries</span></li><li><b dir="ltr">0.1.2</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">BN Gold Premium branding (splash, skin logos, add-on icons, .ico)</span></li><li><b dir="ltr">0.1.1</b> <span dir="ltr">(2026-09-24)</span>: <span dir="ltr">smart autoplay + next episode, Yes/HOT-style channel list with now/next, sound pack</span></li></ul>

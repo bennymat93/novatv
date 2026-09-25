@@ -1,0 +1,40 @@
+﻿id,addon,category,searchable,menu,search,play,stable,checked
+pov,plugin.video.pov,movies,,,,"core, tested separately",yes (core),
+idanplus,plugin.video.idanplus,israel,yes,9,18,no playback,yes (core),2026-09-25
+youtube,plugin.video.youtube,video,yes,13,27,ok,yes (core),2026-09-25
+archive,plugin.video.archive.org,movies,yes,3,30,ok,yes (core),2026-09-25
+pluto,plugin.video.plutotv,movies,,5,,nothing playable found,no,2026-09-25
+popcornflix,plugin.video.popcornflix,movies,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+shoutfactory,plugin.video.shoutfactorytv,movies,,2,,nothing playable found,no,2026-09-25
+contv,plugin.video.contv,movies,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+imdbtrailers,plugin.video.imdb.trailers,movies,yes,fail: timeout/TimeoutError,fail: timeout/TimeoutError,nothing playable found,no,2026-09-25
+dailymotion,plugin.video.dailymotion_com,video,yes,fail: timeout/TimeoutError,fail: timeout/TimeoutError,nothing playable found,no,2026-09-25
+vimeo,plugin.video.vimeo,video,yes,6,19,no playback,no,2026-09-25
+twitch,plugin.video.twitch,video,,fail: timeout/TimeoutError,,nothing playable found,no,2026-09-25
+lbry,plugin.video.lbry,video,yes,4,20,no playback,no,2026-09-25
+peertube,plugin.video.pt,video,,1000,,nothing playable found,no,2026-09-25
+ted,plugin.video.ted.talks,docs,yes,4,fail: Invalid params.,no playback,no,2026-09-25
+docheaven,plugin.video.documentaryheaven,docs,,5,,ok,yes,2026-09-25
+filmsforaction,plugin.video.filmsforaction,docs,,2,,ok,yes,2026-09-25
+nasa,plugin.video.nasa,docs,,2,,no playback,no,2026-09-25
+esa,plugin.video.esa,docs,,5,,ok,yes,2026-09-25
+eso,plugin.video.eso,docs,,fail: timeout/TimeoutError,,nothing playable found,no,2026-09-25
+arte,plugin.video.arteplussept,docs,,,,,no,2026-09-25
+ccc,plugin.video.media-ccc-de,docs,,7,,ok,yes,2026-09-25
+fosdem,plugin.video.fosdem,docs,,15,,ok,yes,2026-09-25
+nhk,plugin.video.nhklive,news,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+cbcnews,plugin.video.cbcnews,news,,fail: timeout/TimeoutError,,nothing playable found,no,2026-09-25
+wsj,plugin.video.wsj,news,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+foxnews,plugin.video.fox.news,news,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+npr,plugin.video.npr,music,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+pbskids,plugin.video.pbskids,kids,,68,,no playback,no,2026-09-25
+tvokids,plugin.video.tvokids,kids,,2,,no playback,no,2026-09-25
+redbull,plugin.video.redbull.tv,sport,,6,,ok,yes,2026-09-25
+f1,plugin.video.formula1,sport,,4,,ok,yes,2026-09-25
+motorsport,plugin.video.motorsporthub,sport,,9,,ok,yes,2026-09-25
+eventvods,plugin.video.eventvods,sport,,7,,nothing playable found,no,2026-09-25
+buzzr,plugin.video.buzzr,live,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+comet,plugin.video.comettv,live,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+dabl,plugin.video.dabl,live,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+courttv,plugin.video.courttv,live,,fail: Invalid params.,,nothing playable found,no,2026-09-25
+metv,plugin.video.metv,live,,0,,nothing playable found,no,2026-09-25

@@ -137,7 +137,17 @@ def embed_build(dec, build_zip):
     head = '.method protected doInBackground()Ljava/lang/Integer;\n    .locals 12\n'
     assert head in t, 'FillCache.doInBackground not found'
     open(fc, 'w', encoding='utf-8').write(t.replace(head, head + '\n' + hook, 1))
-    shutil.copy(build_zip, os.path.join(dec, 'assets', 'bn_build.zip'))
+    # binary add-ons inside the build are Windows builds: leave them out, Kodi on the box installs
+    # the Android build of each one from the official repository (NovaTV service, first start)
+    with zipfile.ZipFile(build_zip) as zi:
+        names = zi.namelist()
+        binary = {n.split('/')[1] for n in names if n.startswith('addons/') and n.endswith(('.dll', '.so', '.dylib'))}
+        with zipfile.ZipFile(os.path.join(dec, 'assets', 'bn_build.zip'), 'w', zipfile.ZIP_STORED) as zo:
+            for n in names:
+                if n.startswith('addons/') and n.split('/')[1] in binary:
+                    continue
+                zo.writestr(zi.getinfo(n), zi.read(n))
+    print('   binary add-ons left out for Android:', ', '.join(sorted(binary)) or '-')
     with zipfile.ZipFile(build_zip) as z:
         mark = z.read('userdata/novatv_build.txt')
     open(os.path.join(dec, 'assets', 'bn_build.txt'), 'wb').write(mark)

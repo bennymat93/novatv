@@ -4,6 +4,12 @@ Main menu: **Movies · Series · TV Channels · Radio · NovaTV** (history, favo
 
 **User guide (English + Hebrew):** https://bennymat93.github.io/novatv/guide.html · [docs/GUIDE.md](docs/GUIDE.md)
 
+## One place for everything (0.1.8)
+BN (NovaTV) is the only add-on you open. POV, Idan+, YouTube, Internet Archive and the other stable official add-ons live inside it:
+**Search all sources** queries them all at once, playing a title tries POV first and then every other source, and the
+**central library** shows every source by category (incl. official Russian studio channels). Only add-ons that pass
+`tools/provider_audit.py` (menu, search, real playback) are shown – see [docs/audit/providers.csv](docs/audit/providers.csv).
+
 ## Ready-to-use apps (no setup needed)
 * **Android TV / phone:** [BN Stream 64-bit](https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-arm64-v8a.apk) · [32-bit](https://github.com/bennymat93/novatv/releases/latest/download/BN-Stream-21.3-armeabi-v7a.apk). The build is inside the APK and unpacked on first start.
 * **Windows:** `BN-Stream-Setup-<version>.exe` from [Releases](https://github.com/bennymat93/novatv/releases/latest): Kodi + build, per-user install.

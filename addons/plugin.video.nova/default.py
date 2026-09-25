@@ -7,7 +7,7 @@ import xbmcgui
 import xbmcplugin
 
 from resources.lib.common import (ADDON, T, tmdb, art, load, save, now_str, MEDIA, ui_lang)
-from resources.lib import accounts, iptv, radio, backup, libraries
+from resources.lib import accounts, iptv, radio, backup, libraries, providers
 
 HANDLE = int(sys.argv[1])
 BASE = sys.argv[0]
@@ -45,13 +45,14 @@ def end(content='', cache=True):
 
 # ------------------------------------------------------------------ root
 def root():
+    folder('[B]%s[/B]' % providers.s('hub_search'), url(a='hub_search'), icon('search'))
     folder(T('movies'), url(a='media_root', m='movie'), icon('movies'))
     folder(T('series'), url(a='media_root', m='tv'), icon('series'))
     folder(T('tv'), url(a='tv_root'), icon('tv'))
     folder(T('radio'), url(a='radio_root'), icon('radio'))
     folder(T('history'), url(a='history'), icon('history'))
     folder(T('favourites'), url(a='favs'), icon('favourites'))
-    folder(T('libraries'), url(a='libs'), icon('libraries'))
+    folder(providers.s('library'), url(a='libs'), icon('libraries'))
     folder(T('accounts'), url(a='accounts'), icon('accounts'))
     folder(T('backup_menu'), url(a='bk_menu'), icon('backup'))
     end(cache=False)
@@ -130,9 +131,13 @@ def media_item(m, it):
     if m == 'movie':
         tag.setMediaType('movie')
         li.setProperty('IsPlayable', 'true')
-        target = POV + urlencode({'mode': 'play_media', 'mediatype': 'movie', 'tmdb_id': it['id']})
+        li.setProperty('IsPlayable', 'false')
+        orig = it.get('original_title') or ''
+        target = url(a='play', m='movie', id=it['id'], q=('%s %s' % (title, year)).strip(),
+                     alt=('%s %s' % (orig, year)).strip() if orig and orig != title else '')
         manual = POV + urlencode({'mode': 'play_media', 'mediatype': 'movie', 'tmdb_id': it['id'], 'autoplay': 'false'})
         ctx.append((T('choose_src'), 'PlayMedia(%s)' % manual))
+        ctx.append((providers.s('hub_search'), 'Container.Update(%s)' % url(a='hub_search', q=title)))
         li.addContextMenuItems(ctx)
         xbmcplugin.addDirectoryItem(HANDLE, target, li, False)
     else:
@@ -153,6 +158,24 @@ def list_(m, path, page='1', **filters):
         folder('[B]%s >>[/B]' % T('next_page'), url(a='list', m=m, path=path, page=int(page) + 1, **filters),
                icon('next'))
     end('movies' if m == 'movie' else 'tvshows')
+
+
+def hub_search(q=''):
+    if not q:
+        q = xbmcgui.Dialog().input(providers.s('hub_search'))
+    if not q:
+        return end()
+    xbmcplugin.setPluginCategory(HANDLE, q)
+    providers.hub_results(HANDLE, q, media_item)
+    end('videos', cache=False)
+
+
+def play(m, id, q, alt='', s=None, e=None):
+    if m == 'movie':
+        pov = POV + urlencode({'mode': 'play_media', 'mediatype': 'movie', 'tmdb_id': id})
+    else:
+        pov = POV + urlencode({'mode': 'play_media', 'mediatype': 'episode', 'tmdb_id': id, 'season': s, 'episode': e})
+    providers.play_with_fallback(pov, q, alt)
 
 
 def search(m):
@@ -202,12 +225,16 @@ def episodes(tv_id, s):
         if e.get('runtime'):
             tag.setDuration(int(e['runtime']) * 60)
         tag.setUniqueIDs({'tmdb': str(tv_id)}, 'tmdb')
-        li.setProperty('IsPlayable', 'true')
+        li.setProperty('IsPlayable', 'false')
         params = {'mode': 'play_media', 'mediatype': 'episode', 'tmdb_id': tv_id, 'season': s,
                   'episode': e['episode_number']}
         manual = dict(params, autoplay='false')
-        li.addContextMenuItems([(T('choose_src'), 'PlayMedia(%s)' % (POV + urlencode(manual)))])
-        xbmcplugin.addDirectoryItem(HANDLE, POV + urlencode(params), li, False)
+        li.addContextMenuItems([(T('choose_src'), 'PlayMedia(%s)' % (POV + urlencode(manual))),
+                                (providers.s('hub_search'), 'Container.Update(%s)' % url(a='hub_search', q=show.get('name') or ''))])
+        target = url(a='play', m='episode', id=tv_id, s=s, e=e['episode_number'],
+                     q='%s %s' % (show.get('name') or '', e.get('name') or ''),
+                     alt=show.get('original_name') if show.get('original_name') != show.get('name') else '')
+        xbmcplugin.addDirectoryItem(HANDLE, target, li, False)
     end('episodes', cache=False)
 
 
@@ -229,10 +256,13 @@ def history():
         li = xbmcgui.ListItem('[COLOR grey]%s[/COLOR]  %s' % (h['when'], h['label']))
         li.setArt({'thumb': h.get('thumb', ''), 'fanart': h.get('fanart', '')})
         li.getVideoInfoTag().setPlot('%s: %s\n%s' % (T('watched_at'), h['when'], h.get('plot', '')))
-        playable = bool(h.get('play'))
-        if playable:
-            li.setProperty('IsPlayable', 'true')
-        xbmcplugin.addDirectoryItem(HANDLE, h.get('play') or url(a='noop'), li, False)
+        target = h.get('play') or url(a='noop')
+        if target.startswith('plugin://plugin.video.pov/'):       # entries saved before 0.1.8
+            q = dict(parse_qsl(target.split('?', 1)[1]))
+            target = url(a='play', m=q.get('mediatype', 'movie'), id=q.get('tmdb_id', ''), q=h['label'],
+                         **({'s': q['season'], 'e': q['episode']} if q.get('season') else {}))
+        li.setProperty('IsPlayable', 'false' if target.startswith(BASE) else 'true')
+        xbmcplugin.addDirectoryItem(HANDLE, target, li, False)
     if items:
         folder('[COLOR red]%s[/COLOR]' % T('clear'), url(a='history_clear'))
     end(cache=False)
@@ -252,10 +282,9 @@ def favs(kind=None):
         rm = [(T('rem_fav'), 'RunPlugin(%s)' % url(a='fav_rm', kind=kind, id=f['id']))]
         if kind == 'movie':
             li = xbmcgui.ListItem(f['label'])
-            li.setProperty('IsPlayable', 'true')
+            li.setProperty('IsPlayable', 'false')
             li.addContextMenuItems(rm)
-            xbmcplugin.addDirectoryItem(HANDLE, POV + urlencode({'mode': 'play_media', 'mediatype': 'movie',
-                                                                'tmdb_id': f['id']}), li, False)
+            xbmcplugin.addDirectoryItem(HANDLE, url(a='play', m='movie', id=f['id'], q=f['label']), li, False)
         elif kind == 'series':
             folder(f['label'], url(a='seasons', id=f['id']), context=rm)
         elif kind == 'channel':
@@ -312,7 +341,18 @@ def router(p):
         'radio_root': lambda: radio.menu(HANDLE, url, folder, end),
         'radio_list': lambda: radio.listing(HANDLE, url, end, **p),
         'noop': lambda: None,
-        'libs': lambda: libraries.menu(HANDLE, url),
+        'libs': lambda: providers.library(HANDLE, url),
+        'lib_cat': lambda: providers.library_cat(HANDLE, url, p['cat']),
+        'lib_open': lambda: providers.open_provider(HANDLE, p['id'], p.get('q', '')),
+        'sources': lambda: providers.sources_screen(HANDLE, url),
+        'prov_toggle': lambda: (providers.toggle(p['id']), refresh()),
+        'prov_install_all': lambda: (providers.install_all(), refresh()),
+        'hub_search': lambda: hub_search(p.get('q', '')),
+        'yt_channel': lambda: providers.yt_channel(HANDLE, url, p['id'], p.get('token', '')),
+        'yt_search': lambda: providers.yt_search(HANDLE, p['q']),
+        'ia_search': lambda: providers.ia_search(HANDLE, p['q']),
+        'ia_item': lambda: providers.ia_item(HANDLE, p['id']),
+        'play': lambda: play(**p),
         'lib_install': lambda: libraries.install(p['id']),
         'bk_menu': bk_menu,
         'bk_do': backup.backup,
@@ -331,7 +371,8 @@ def router(p):
     simple[a]()
 
 
-ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'noop', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto'}
+ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'noop', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto',
+           'play', 'prov_toggle', 'prov_install_all'}
 
 
 def refresh():

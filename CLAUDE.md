@@ -9,21 +9,33 @@ User preferences: Python, standard library only unless asked; answer tersely; ta
   - `iptv.py` – merges free + user M3U/EPG into one numbered list for pvr.iptvsimple
   - `accounts.py` – Accounts screen (RD, Trakt, IPTV, subtitle server, Gemini, TMDb) + locked profile rows
   - `preset.py` – password-locked pre-configured profile (NEW in 0.1.6)
-  - `libraries.py` – 14 free official Kodi add-ons; `radio.py` – radio-browser; `backup.py`
-- Movies/series come from POV (`plugin.video.pov`) + Real-Debrid.
+  - `providers.py` – **hub (0.1.8)**: registry of every video add-on (PROVIDERS), parallel "search all sources",
+    central library by category, sources screen (on/off, settings, install all), POV-first play with fallback
+    to all other sources (`play_with_fallback`; POV signals "no results" via a one-line hook that the service
+    re-applies after POV auto-updates), Russian studio channels.
+  - `yt.py` – YouTube lists without API keys (youtubei web endpoint); playback via plugin.video.youtube.
+    YouTube 7.x refuses search/channels without personal keys. `ia.py` – Internet Archive via its API
+    (the add-on's page scraper no longer plays).
+  - `libraries.py` – on-demand install helper; `radio.py` – radio-browser; `backup.py`
+- Movies/series: TMDb lists in NovaTV -> `?a=play` -> POV + Real-Debrid first, then every other source.
+- Kodi only talks to NovaTV: skin search button -> `?a=hub_search`; other add-ons are opened inside NovaTV (`lib_open`).
 - `server/nova_subs.py` – AI subtitle server (Windows, port 8765)
 - `tools/` – make_build.py, publish.py, test_suite.py (portable Kodi in `testkodi/`), source_audit.py (NEW)
 
 ## Release commands
 ```
 python tools/make_build.py --version X
-python tools/test_suite.py --version X [--installed DIR]   # 21 checks via JSON-RPC
+python tools/test_suite.py --version X [--installed DIR]   # 24 checks via JSON-RPC
 python tools/release.py --version X --notes "..."          # everything, see Status
 python tools/publish.py --gh-user bennymat93 --version X
 python tools/source_audit.py --out work/audit.json [--dead addons/plugin.video.nova/resources/dead_streams.json]
+python tools/provider_audit.py --version X [--only id,id]   # installs every provider in testkodi: menu, search (<12s), a video really plays
 ```
+Provider stability lives in `addons/plugin.video.nova/resources/providers_status.json` (written by provider_audit.py);
+make_build.py bundles only stable providers (+ deps from the official omega repo) and skips add-ons without Windows+Android support.
+Core providers (pov, idanplus, youtube, archive) are never hidden. Delete the status file and re-audit when adding providers.
 
-## Status (2026-09-24, v0.1.7)
+## Status (2026-09-25, v0.1.8)
 Handoff steps 1-4 done. Release flow: `python tools/release.py --version X --notes "..."` (bump the version for every significant change;
 it rebuilds zip, guide, both APKs and the Windows installer, tests testkodi AND the installed Windows copy, pushes main + gh-pages, creates the GitHub release).
 - APK: package org.bn.stream. Java classes moved to org/bn/stream and libkodi.so's compiled-in "org.xbmc.kodi" patched in place (same length);
@@ -53,6 +65,14 @@ it rebuilds zip, guide, both APKs and the Windows installer, tests testkodi AND 
 | Official libraries (Omega repo) | 14 | 14 | – | – | 0 |
 | APIs (TMDB, RD, Trakt, Gemini, Pages, POV) | 6 | 6 | – | – | 0 |
 Re-probe of the 403s: 915 fixed by browser UA, 27 by playlist headers, 227 still 403 (geo).
+
+## 0.1.8 findings (real bugs fixed)
+- Base build set YouTube `kodion.http.listen=0.0.0.0` -> link-local IP -> HTTP 403 on every YouTube stream. Now 127.0.0.1 (make_build PRESETS).
+- YouTube first-run wizard blocked background calls: preset `kodion.setup_wizard=false`, `forced_runs=1767970800`.
+- Android: inputstream.adaptive in the build was the Windows DLL -> ignored. make_apk leaves binary add-ons out; service installs the Android build.
+- Kodi auto-updates POV (6.08 -> 6.09) and removes build-time patches: hooks must be self-healing at runtime.
+- 25 of 39 official add-ons failed the audit (broken site APIs, geo: Pluto not in Israel, t1mlib family "Invalid params", lbry '#', TED SSL).
+- No Russian-language add-ons exist in the official repo; third-party Russian add-ons are unlicensed (excluded). Russian = official studio YouTube channels + Archive.
 
 ## Decisions / boundaries
 - Do NOT add Anonymous TV wizard sources (Telemedia, Novix, etc.) – they stream unlicensed content. Grow only licensed/free sources (iptv-org, official Kodi add-ons, FAST channels, Real-Debrid via POV).

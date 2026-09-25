@@ -8,6 +8,7 @@
 import os
 import threading
 import time
+from urllib.parse import urlencode
 
 import xbmc
 import xbmcgui
@@ -55,12 +56,12 @@ class Player(xbmc.Player):
         if show and e > 0:
             label = '%s  S%02dE%02d  %s' % (show, s, e, tag.getTitle())
             key = 'tv:%s:%s:%s' % (tmdb_id or show, s, e)
-            play = ('plugin://plugin.video.pov/?mode=play_media&mediatype=episode&tmdb_id=%s&season=%s&episode=%s'
-                    % (tmdb_id, s, e)) if tmdb_id else ''
+            play = ('plugin://plugin.video.nova/?' + urlencode({'a': 'play', 'm': 'episode', 'id': tmdb_id, 's': s, 'e': e,
+                                                                'q': '%s %s' % (show, tag.getTitle())})) if tmdb_id else ''
         else:
             label = tag.getTitle() or xbmc.getInfoLabel('Player.Title')
             key = 'movie:%s' % (tmdb_id or label)
-            play = ('plugin://plugin.video.pov/?mode=play_media&mediatype=movie&tmdb_id=%s' % tmdb_id) if tmdb_id else ''
+            play = ('plugin://plugin.video.nova/?' + urlencode({'a': 'play', 'm': 'movie', 'id': tmdb_id, 'q': label})) if tmdb_id else ''
         entry = {'key': key, 'label': label, 'when': now_str(), 'ts': time.time(), 'play': play,
                  'plot': tag.getPlot(), 'thumb': xbmc.getInfoLabel('Player.Art(thumb)'),
                  'fanart': xbmc.getInfoLabel('Player.Art(fanart)')}
@@ -167,19 +168,25 @@ def discover_server():
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     s.settimeout(2)
     try:
-        for _ in range(3):
-            s.sendto(b'NOVASUBS?', ('255.255.255.255', 8766))
-            try:
-                data, addr = s.recvfrom(64)
-            except socket.timeout:
-                continue
-            if data.startswith(b'NOVASUBS '):
-                url = 'http://%s:%s' % (addr[0], data.split()[1].decode())
-                ADDON.setSetting('sub_server', url)
-                log('subtitle server discovered at %s' % url)
-                return
+        _discover_loop(s)
+    except OSError as e:
+        log('subtitle server discovery: %s' % e)
     finally:
         s.close()
+
+
+def _discover_loop(s):
+    for _ in range(3):
+        s.sendto(b'NOVASUBS?', ('255.255.255.255', 8766))
+        try:
+            data, addr = s.recvfrom(64)
+        except OSError:              # socket.timeout included: no server answered this round
+            continue
+        if data.startswith(b'NOVASUBS '):
+            url = 'http://%s:%s' % (addr[0], data.split()[1].decode())
+            ADDON.setSetting('sub_server', url)
+            log('subtitle server discovered at %s' % url)
+            return
 
 
 def main():
@@ -206,8 +213,28 @@ def main():
             log('auto backup: %s' % e, xbmc.LOGWARNING)
     threading.Timer(600, backup_job).start()      # 10 min after start, at most once a week
 
+    def binary_job():
+        # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not
+        # shipped inside the Android app: install the right build for this device from the Kodi repository
+        try:
+            from resources.lib.iptv import install_addon
+            for aid in ('inputstream.adaptive',):
+                if not xbmc.getCondVisibility('System.HasAddon(%s)' % aid):
+                    log('installing %s for this platform: %s' % (aid, install_addon(aid)))
+        except Exception as e:
+            log('binary add-ons: %s' % e, xbmc.LOGWARNING)
+    threading.Timer(45, binary_job).start()
+
+    def pov_hook_job():
+        from resources.lib import providers
+        providers.ensure_pov_hook()
+
     last_iptv = time.time() - 12 * 3600 + 120      # first refresh 2 minutes after start
+    last_hook = 0
     while not mon.abortRequested():
+        if time.time() - last_hook > 1800:             # POV may have auto-updated: keep NovaTV's fallback hook
+            last_hook = time.time()
+            threading.Thread(target=pov_hook_job, daemon=True).start()
         hours = int(ADDON.getSetting('iptv_refresh_h') or 12)
         from resources.lib import iptv as _iptv
         if _iptv.all_m3u(_iptv.sources()) and time.time() - last_iptv > hours * 3600:

@@ -129,8 +129,9 @@ def t_branding():
 
 def t_root():
     items = ls(NOVA)
-    expect(len(items) == 9, '%d root items' % len(items))
-    return '9 items'
+    expect(len(items) == 10, '%d root items' % len(items))
+    expect('a=hub_search' in items[0]['file'], 'first item is search-all')
+    return '10 items, search-all first'
 
 
 def t_movies_lists():
@@ -138,7 +139,7 @@ def t_movies_lists():
     for path in ['?a=list&m=movie&path=/trending/movie/week', '?a=list&m=movie&path=/movie/popular',
                  '?a=list&m=tv&path=/tv/top_rated']:
         items = ls(NOVA + path)
-        plays = [i for i in items if 'plugin.video.pov' in i['file'] or 'a=seasons' in i['file']]
+        plays = [i for i in items if 'a=play&' in i['file'] or 'a=seasons' in i['file']]   # NovaTV plays (POV first)
         expect(len(plays) >= 15, '%s only %d' % (path, len(plays)))
         out.append(len(plays))
     return 'items per list %s' % out
@@ -165,7 +166,7 @@ def t_genres_years():
 def t_title_integrity():
     """Every playable item must carry a TMDb id that resolves back to the same title."""
     items = ls(NOVA + '?a=list&m=movie&path=/movie/popular')
-    ids = [re.search(r'tmdb_id=(\d+)', i['file']).group(1) for i in items if 'tmdb_id=' in i['file']]
+    ids = [re.search(r'[?&]id=(\d+)', i['file']).group(1) for i in items if 'a=play&' in i['file']]
     expect(len(ids) >= 15, 'ids %d' % len(ids))
     expect(len(ids) == len(set(ids)), 'duplicate ids in one page')
     return '%d unique TMDb ids' % len(ids)
@@ -177,7 +178,7 @@ def t_kukhnya():
     expect(len(real) == 6, '%d seasons' % len(real))
     eps = ls(NOVA + '?a=episodes&id=45994&s=1')
     expect(len(eps) >= 15, 'S1 episodes %d' % len(eps))
-    expect(all('season=1' in e['file'] and 'tmdb_id=45994' in e['file'] for e in eps), 'episode links')
+    expect(all('a=play&' in e['file'] and 'id=45994' in e['file'] and '&s=1&' in e['file'] for e in eps), 'episode links')
     return '6 seasons, S1=%d episodes' % len(eps)
 
 
@@ -270,23 +271,24 @@ def t_log_errors():
     log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
     ours = [l for l in log.splitlines() if ('NovaTV' in l or 'plugin.video.nova' in l or 'NovaWizard' in l)
             and (' error ' in l.lower() or 'Traceback' in l)
-            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install)', l)]
+            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install|play|prov_toggle|prov_install_all)', l)]
     expect(not ours, '%d errors from our add-ons: %s' % (len(ours), ours[:2]))
     return 'no errors from BN add-ons'
 
 
 def t_libraries():
-    items = ls(NOVA + '?a=libs')
-    expect(len(items) == 14, '%d libraries' % len(items))
-    yt = [i for i in items if 'plugin.video.youtube' in i['file']]
-    expect(yt, 'YouTube (pre-installed) opens directly')
+    docs = ls(NOVA + '?a=lib_cat&cat=docs')
+    expect(any('id=esa' in i['file'] for i in docs), 'ESA missing from documentaries')
+    expect(not any('id=ted' in i['file'] for i in docs), 'unstable TED still listed')
+    inside = ls(NOVA + '?a=lib_open&id=esa')              # provider menu shown inside NovaTV
+    expect(len(inside) >= 3, 'ESA menu inside NovaTV: %d items' % len(inside))
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=lib_install&id=plugin.video.ted.talks')
     for _ in range(60):
         time.sleep(2)
         r = rpc('Addons.GetAddonDetails', addonid='plugin.video.ted.talks', properties=['enabled'])
         if 'result' in r and r['result']['addon']['enabled']:
-            return '14 libraries, TED installed on demand'
-    raise AssertionError('TED did not install')
+            return 'ESA menu inside NovaTV (%d items), unstable TED hidden, on-demand install works' % len(inside)
+    raise AssertionError('on-demand install failed')
 
 
 def t_backup():
@@ -295,7 +297,7 @@ def t_backup():
         time.sleep(1)
     rpc('GUI.ActivateWindow', window='home')
     time.sleep(3)
-    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=bk_auto')
+    rpc('Files.GetDirectory', directory=NOVA + '?a=bk_auto', media='files')   # runs the action even behind a dialog
     d = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'backups')
     for _ in range(45):
         time.sleep(1)
@@ -425,6 +427,73 @@ def t_preset():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def t_hub_search():
+    """one query -> results from several add-ons at once, all inside NovaTV"""
+    t = time.time()
+    items = ls(NOVA + '?a=hub_search&q=Chaplin')
+    heads = [re.sub(r'\[/?[A-Z]+[^\]]*\]', '', i['label']) for i in items if 'a=noop' in i['file']]
+    expect(len(heads) >= 3, 'only %d source sections: %s' % (len(heads), heads))
+    names = ' '.join(heads)
+    expect('YouTube' in names and 'Internet Archive' in names, 'sections: %s' % heads)
+    expect(any('video_id=' in i['file'] for i in items) and any('a=ia_item' in i['file'] for i in items), 'no playable rows')
+    return '%d sections in %.0fs: %s' % (len(heads), time.time() - t, ', '.join(h.split(' (')[0] for h in heads)[:150])
+
+
+def t_central_library():
+    cats = ls(NOVA + '?a=libs')
+    expect(len(cats) >= 5, '%d categories' % len(cats))
+    ru = ls(NOVA + '?a=lib_cat&cat=russian')
+    expect(any('UCEK3tT7DcfWGWJpNEDBdWog' in i['file'] for i in ru), 'Mosfilm channel missing')
+    src = ls(NOVA + '?a=sources')
+    expect(len(src) >= 30, '%d providers on the sources screen' % len(src))
+    mos = ls(NOVA + '?a=yt_channel&id=UCEK3tT7DcfWGWJpNEDBdWog')
+    expect(len(mos) >= 20, 'Mosfilm channel lists %d items' % len(mos))
+    film = next(i for i in mos if 'video_id=' in i['file'])
+    rpc('Player.Open', item={'file': film['file']})
+    played = 0
+    for _ in range(25):
+        time.sleep(2)
+        pl = rpc('Player.GetActivePlayers').get('result') or []
+        if pl:
+            t = rpc('Player.GetProperties', playerid=pl[0]['playerid'], properties=['time'])['result']['time']
+            played = t['minutes'] * 60 + t['seconds']
+            if played >= 4:
+                rpc('Player.Stop', playerid=pl[0]['playerid'])
+                break
+    expect(played >= 4, 'Mosfilm video did not play')
+    soviet = ls(NOVA + '?a=ia_search&q=%D1%81%D0%BE%D0%B2%D0%B5%D1%82%D1%81%D0%BA%D0%B8%D0%B9%20%D1%84%D0%B8%D0%BB%D1%8C%D0%BC')
+    expect(len(soviet) >= 10, 'Soviet films from the Archive: %d' % len(soviet))
+    eps = ls(soviet[0]['file'])
+    expect(eps and eps[0]['file'].startswith('https://archive.org/download/'), 'Archive item has no video files')
+    return '%d categories, %d providers, Mosfilm %d videos (played %ds), %d Soviet films' % (len(cats), len(src) - 1, len(mos), played, len(soviet))
+
+
+def t_pov_fallback():
+    """POV first; when it has nothing, NovaTV searches every other source and offers the results"""
+    home = open(os.path.join(DATA, 'addons', 'skin.fentastic', 'xml', 'Home.xml'), encoding='utf-8').read()
+    expect(home.count('a=hub_search') >= 3, 'skin search button not routed to NovaTV')
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=play&m=movie&id=13&q=Forrest Gump 1994&alt=')
+    seen = ''
+    for _ in range(120):
+        time.sleep(2)
+        w = rpc('GUI.GetProperties', properties=['currentwindow'])['result']['currentwindow']
+        if w['id'] == 12000:                         # select dialog = merged results of the other sources
+            seen = 'fallback list'
+            break
+        if rpc('Player.GetActivePlayers').get('result'):
+            seen = 'POV played it'
+            break
+    for _ in range(3):
+        rpc('Input.ExecuteAction', action='close')
+        time.sleep(1)
+    for p in rpc('Player.GetActivePlayers').get('result') or []:
+        rpc('Player.Stop', playerid=p['playerid'])
+    expect(seen, 'neither POV playback nor the fallback list appeared')
+    pov = open(os.path.join(DATA, 'addons', 'plugin.video.pov', 'resources', 'lib', 'modules', 'sources.py'), encoding='utf-8').read()
+    expect("set_property('nova.pov_noresults', '1')" in pov, 'POV no-results hook missing (auto-update not healed)')
+    return seen + ', POV hook in place'
+
+
 TESTS = [
     ('Add-ons installed & enabled', t_addons_enabled), ('Skin / sounds / language', t_gui),
     ('BN branding', t_branding), ('Main menu', t_root), ('Movie & series lists', t_movies_lists),
@@ -434,6 +503,8 @@ TESTS = [
     ('History + UI speed', t_history_and_speed), ('IPTV merge / dedupe / numbering', t_iptv),
     ('Free libraries menu', t_libraries), ('Backup', t_backup), ('Free channels (iptv-org)', t_free_channels),
     ('Merged playlist integrity', t_m3u_integrity), ('Locked profile round-trip', t_preset),
+    ('Search all sources (hub)', t_hub_search), ('Central library + Russian', t_central_library),
+    ('POV -> other sources fallback', t_pov_fallback),
     ('AI subtitle server', t_ai_server), ('Kodi log clean', t_log_errors),
 ]
 

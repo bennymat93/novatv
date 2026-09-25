@@ -26,7 +26,11 @@ def facts():
     iptv = open(os.path.join(NOVA, 'resources', 'lib', 'iptv.py'), encoding='utf-8').read()
     free = re.findall(r"\('(iptv-org [^']+)', 'https://", iptv)
     off = re.search(r'FREE_OFF = \{([^}]*)\}', iptv).group(1)
-    libs = re.findall(r"'(plugin\.video\.[\w.]+)'", open(os.path.join(NOVA, 'resources', 'lib', 'libraries.py'), encoding='utf-8').read())
+    libs = re.findall(r"^\s+\('\w+', '(plugin\.video\.[\w.\-]+)'", open(os.path.join(NOVA, 'resources', 'lib', 'providers.py'), encoding='utf-8').read(), re.M)
+    sp = os.path.join(NOVA, 'resources', 'providers_status.json')
+    if os.path.exists(sp):
+        bad = {v['addon'] for v in json.load(open(sp, encoding='utf-8')).values() if not v.get('stable', True)}
+        libs = [x for x in libs if x not in bad]
     tests = []
     rp = os.path.join(ROOT, 'work', 'test_report.json')
     if os.path.exists(rp):
@@ -128,26 +132,45 @@ def sections(f):
     S.append(('menu', 'Main menu', 'התפריט הראשי', '''
 <table>
 <tr><th>Item</th><th>What it does</th></tr>
+<tr><td>Search all sources</td><td>One search across every source at once: movies &amp; series, Israeli broadcasters, YouTube, free libraries, live channels and radio.</td></tr>
 <tr><td>Movies / Series</td><td>Search, trending, popular, top rated, genres, languages (Hebrew, English, Russian) and years. Long-press an item for favourites or to choose a source.</td></tr>
 <tr><td>TV</td><td>One numbered channel list with a TV guide (now / next). Kan 11 is on 11 and Keshet 12 on 12.</td></tr>
 <tr><td>Radio</td><td>Israeli, Russian and Hebrew-language stations, plus a world top list.</td></tr>
 <tr><td>History</td><td>What you watched, with date and time.</td></tr>
 <tr><td>Favourites</td><td>Movies and series you saved.</td></tr>
-<tr><td>Free Libraries</td><td>{nlibs} official free Kodi add-ons; each installs the first time you open it.</td></tr>
+<tr><td>Central library</td><td>{nlibs} video sources by category (Israel, Russian, movies, documentaries, news, kids, sport...), all opened inside BN.</td></tr>
 <tr><td>Accounts &amp; Connections</td><td>Real-Debrid, Trakt, IPTV, AI subtitles, Gemini, TMDb, locked profile.</td></tr>
 <tr><td>Backup &amp; Restore</td><td>Save or restore everything personal.</td></tr>
 </table>'''.format(nlibs=len(f['libs'])), '''
 <table>
 <tr><th>פריט</th><th>מה הוא עושה</th></tr>
+<tr><td>חיפוש בכל המקורות</td><td>חיפוש אחד בכל המקורות בבת אחת: סרטים וסדרות, השידורים הישראליים, YouTube, הספריות החינמיות, ערוצים חיים ורדיו.</td></tr>
 <tr><td>סרטים / סדרות</td><td>חיפוש, טרנדי, פופולרי, מדורג, ז'אנרים, שפות (עברית, אנגלית, רוסית) ושנים. לחיצה ארוכה על פריט: מועדפים או בחירת מקור.</td></tr>
 <tr><td>טלוויזיה</td><td>רשימת ערוצים אחת ממוספרת עם לוח שידורים (עכשיו / הבא). כאן 11 בערוץ 11, קשת 12 בערוץ 12.</td></tr>
 <tr><td>רדיו</td><td>תחנות מישראל, מרוסיה ובעברית, ורשימת המובילות בעולם.</td></tr>
 <tr><td>היסטוריה</td><td>מה צפיתם, עם תאריך ושעה.</td></tr>
 <tr><td>מועדפים</td><td>סרטים וסדרות ששמרתם.</td></tr>
-<tr><td>ספריות חינמיות</td><td>{nlibs} תוספים רשמיים וחינמיים של Kodi. כל אחד מותקן בפעם הראשונה שפותחים אותו.</td></tr>
+<tr><td>הספרייה המרכזית</td><td>{nlibs} מקורות וידאו לפי נושא (ישראל, ברוסית, סרטים, תעודה, חדשות, ילדים, ספורט ועוד), וכולם נפתחים בתוך BN.</td></tr>
 <tr><td>חשבונות וחיבורים</td><td>Real-Debrid, Trakt, IPTV, כתוביות AI, Gemini, TMDb ופרופיל נעול.</td></tr>
 <tr><td>גיבוי ושחזור</td><td>שמירה ושחזור של כל הנתונים האישיים.</td></tr>
 </table>'''.format(nlibs=len(f['libs']))))
+    S.append(('hub', 'One place for everything', 'מקום אחד לכל התוכן', '''
+<p>BN is the only app you use. Every other video add-on (POV, Idan+, YouTube, Internet Archive, Dailymotion, Vimeo and the free libraries) is managed inside BN and works as one big library.</p>
+<ul>
+<li><b>Search all sources</b> (first item in the BN menu, and the search button on the home screen): one query runs on every source at the same time, and the results come back in one list, grouped by source.</li>
+<li><b>Playing a movie or episode:</b> BN first asks POV (Real-Debrid). If POV finds nothing, BN automatically searches all other sources for the same title and shows what it found.</li>
+<li><b>Central library:</b> every source by category. <b>Russian</b> has the official channels of Mosfilm, Soyuzmultfilm, Smeshariki, Belarusfilm and Kinopoisk, plus Soviet films from the Internet Archive.</li>
+<li><b>Sources &amp; add-ons</b> (in the central library): switch each source on or off, open its settings, or install all stable sources at once.</li>
+</ul>
+<p>Only sources that passed the automatic stability check are shown; the check runs again before every version.</p>''', '''
+<p>BN היא האפליקציה היחידה שצריך. כל שאר תוספי הווידאו (POV, עידן+, YouTube, ארכיון האינטרנט, Dailymotion, Vimeo והספריות החינמיות) מנוהלים בתוך BN ועובדים כספרייה אחת גדולה.</p>
+<ul>
+<li><b>חיפוש בכל המקורות</b> (הפריט הראשון בתפריט BN, וגם כפתור החיפוש במסך הבית): חיפוש אחד רץ בכל המקורות בבת אחת, והתוצאות חוזרות ברשימה אחת מחולקת לפי מקור.</li>
+<li><b>ניגון סרט או פרק:</b> BN פונה קודם ל-POV (Real-Debrid). אם POV לא מוצא כלום, BN מחפש אוטומטית את אותו שם בכל שאר המקורות ומציג מה שנמצא.</li>
+<li><b>הספרייה המרכזית:</b> כל המקורות לפי נושא. ב<b>ברוסית</b> נמצאים הערוצים הרשמיים של מוספילם, סויוזמולטפילם, סמשריקי, בלרוספילם וקינופויסק, וגם סרטים סובייטיים מארכיון האינטרנט.</li>
+<li><b>מקורות ותוספים</b> (בתוך הספרייה המרכזית): הפעלה וכיבוי של כל מקור, פתיחת ההגדרות שלו, או התקנה של כל המקורות היציבים בבת אחת.</li>
+</ul>
+<p>מוצגים רק מקורות שעברו את בדיקת היציבות האוטומטית, והבדיקה רצה שוב לפני כל גרסה.</p>'''))
     S.append(('tv', 'TV channels', 'ערוצי טלוויזיה', '''
 <p>Free lists from the iptv-org community index: {free}. Switched off by default (large): {off}. Turn lists on or off under Accounts &rarr; IPTV.</p>
 <p>Channels that are confirmed dead (HTTP 404) are filtered out automatically. Channels are grouped (Israel, News, Movies, Kids, Sport, Documentary, Music, Russian, Other). Some free channels are geo-blocked or change often; if one does not play, try another.</p>'''.format(free=html.escape(free_en), off=html.escape(off_en)), '''

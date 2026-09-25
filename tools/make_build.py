@@ -8,6 +8,7 @@ Movies / Series / TV Channels / Radio / NovaTV -> enable everything in Addons33.
   python tools/make_build.py [--version 0.1.0] [--gh-user USER]
 """
 import argparse
+import json
 import os
 import re
 import shutil
@@ -124,6 +125,104 @@ def patch_pov(path):
 
 BRAND = os.path.join(ROOT, 'brand')
 
+OMEGA = 'https://mirrors.kodi.tv/addons/omega'
+PROVIDERS_PY = os.path.join(ROOT, 'addons', 'plugin.video.nova', 'resources', 'lib', 'providers.py')
+STATUS_JSON = os.path.join(ROOT, 'addons', 'plugin.video.nova', 'resources', 'providers_status.json')
+ON_DEMAND = {'plugin.video.plutotv'}      # pulls service.iptv.manager, which would take over our IPTV Simple set-up
+
+
+def patch_pov_hub(stage):
+    """POV tells NovaTV when it found nothing, so NovaTV can search every other source."""
+    p = os.path.join(stage, 'addons', 'plugin.video.pov', 'resources', 'lib', 'modules', 'sources.py')
+    s = open(p, encoding='utf-8').read()
+    old = '\tdef _no_results(self):\n\t\thide_busy_dialog()\n'
+    assert old in s, 'POV _no_results changed'
+    s = s.replace(old, old + "\t\tset_property('nova.pov_noresults', '1')\n", 1)
+    open(p, 'w', encoding='utf-8').write(s)
+
+
+def patch_skin_search(skin):
+    """the home-screen search button searches every source through NovaTV"""
+    p = os.path.join(skin, 'xml', 'Home.xml')
+    s = open(p, encoding='utf-8').read()
+    hub = 'ActivateWindow(Videos,plugin://plugin.video.nova/?a=hub_search,return)'
+    n = 0
+    for old in ('ActivateWindow(1107)', 'RunScript(script.fentastic.helper,mode=search_input)',
+                'RunScript(script.fentastic.helper,mode=open_search_window)'):
+        n += s.count('value="%s"' % old)
+        s = s.replace('value="%s"' % old, 'value="%s"' % hub)
+    assert n >= 3, 'skin search buttons not found'
+    open(p, 'w', encoding='utf-8').write(s)
+
+
+PRESETS = {   # first-run prompts would block the hub's background searches
+    'plugin.video.youtube': {'kodion.setup_wizard': 'false', 'kodion.setup_wizard.forced_runs': '1767970800',
+                             'kodion.http.listen': '127.0.0.1'},   # 0.0.0.0 picks a link-local IP -> 403 on streams
+    'plugin.video.archive.org': {'context': 'video'},
+}
+
+
+def preset_settings(stage):
+    for aid, vals in PRESETS.items():
+        d = os.path.join(stage, 'userdata', 'addon_data', aid)
+        os.makedirs(d, exist_ok=True)
+        p = os.path.join(d, 'settings.xml')
+        s = open(p, encoding='utf-8').read() if os.path.exists(p) else '<settings version="2">\n</settings>\n'
+        for sid, val in vals.items():
+            rx = re.compile(r'<setting id="%s"[^>]*?(?:/>|>[^<]*</setting>)' % re.escape(sid))
+            line = '<setting id="%s">%s</setting>' % (sid, val)
+            s = rx.sub(line, s) if rx.search(s) else s.replace('</settings>', '    %s\n</settings>' % line)
+        open(p, 'w', encoding='utf-8').write(s)
+
+
+def provider_addons():
+    ids = re.findall(r"^\s+\('[\w]+', '(plugin\.video\.[\w.\-]+)'", open(PROVIDERS_PY, encoding='utf-8').read(), re.M)
+    st = json.load(open(STATUS_JSON, encoding='utf-8')) if os.path.exists(STATUS_JSON) else {}
+    bad = {v['addon'] for v in st.values() if not v.get('stable', True)}
+    return [i for i in ids if i not in bad and i not in ON_DEMAND]
+
+
+def add_providers(stage):
+    """pre-install the stable providers + their dependencies from the official Kodi repository"""
+    import gzip
+    import xml.etree.ElementTree as ET
+    cache = os.path.join(WORK, 'omega')
+    os.makedirs(os.path.join(cache, 'zips'), exist_ok=True)
+    idx = os.path.join(cache, 'addons.xml')
+    if not os.path.exists(idx) or time.time() - os.path.getmtime(idx) > 86400:
+        open(idx, 'wb').write(gzip.decompress(urllib.request.urlopen(OMEGA + '/addons.xml.gz').read()))
+    repo = {a.get('id'): a for a in ET.parse(idx).getroot().findall('addon')}
+    have = set(os.listdir(os.path.join(stage, 'addons')))
+    added, todo = [], list(provider_addons())
+    while todo:
+        aid = todo.pop()
+        if aid in have or aid.startswith('xbmc.') or aid.startswith('kodi.'):
+            continue
+        a = repo.get(aid)
+        if a is None:
+            print('   not in repo:', aid)
+            continue
+        meta = a.find("extension[@point='xbmc.addon.metadata']")
+        plat = ((meta.findtext('platform') if meta is not None else '') or 'all').split()
+        if 'all' not in plat and not ({'windows', 'windx', 'win64'} & set(plat) and {'android'} & set(plat)):
+            print('   skipped (platforms %s): %s' % (','.join(plat), aid))
+            continue
+        ext = a.find("extension[@point='kodi.inputstream']")
+        if ext is not None or a.find("extension[@point='xbmc.pvrclient']") is not None:
+            continue            # binary add-ons are platform specific: Kodi installs them itself
+        z = fetch('%s/%s/%s-%s.zip' % (OMEGA, aid, aid, a.get('version')),
+                  os.path.join(cache, 'zips', '%s-%s.zip' % (aid, a.get('version'))))
+        with zipfile.ZipFile(z) as zf:
+            zf.extractall(os.path.join(stage, 'addons'))
+        have.add(aid)
+        added.append(aid)
+        req = a.find('requires')
+        for r in (req if req is not None else []):
+            if r.get('optional') != 'true':
+                todo.append(r.get('addon'))
+    print('   providers + dependencies added:', len(added))
+    return added
+
 
 def apply_brand(stage):
     """BN logo everywhere: splash, skin logos, our add-on icons/fanart."""
@@ -175,11 +274,15 @@ def main():
         shutil.copytree(os.path.join(ROOT, 'addons', ad), dst,
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    patch_skin_search(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    patch_pov_hub(STAGE)
+    extra = add_providers(STAGE)
+    preset_settings(STAGE)
     apply_brand(STAGE)
     patch_skin_settings(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     patch_guisettings(os.path.join(STAGE, 'userdata', 'guisettings.xml'))
     patch_pov(os.path.join(STAGE, 'userdata', 'addon_data', 'plugin.video.pov', 'settings.xml'))
-    enable_addons(os.path.join(STAGE, 'userdata', 'Database', 'Addons33.db'), OUR_ADDONS)
+    enable_addons(os.path.join(STAGE, 'userdata', 'Database', 'Addons33.db'), OUR_ADDONS + extra)
     with open(os.path.join(STAGE, 'userdata', 'novatv_build.txt'), 'w') as f:
         f.write('NovaTV %s\nbase: %s\nbuilt: %s\n' % (a.version, url, time.ctime()))
     os.makedirs(DIST, exist_ok=True)
