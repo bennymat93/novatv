@@ -7,7 +7,7 @@ import xbmcgui
 import xbmcplugin
 
 from resources.lib.common import (ADDON, T, tmdb, art, load, save, now_str, MEDIA, ui_lang)
-from resources.lib import accounts, iptv, radio, backup, libraries, providers
+from resources.lib import accounts, iptv, radio, backup, libraries, providers, status
 
 HANDLE = int(sys.argv[1])
 BASE = sys.argv[0]
@@ -37,10 +37,74 @@ def folder(label, target, ic=None, plot='', fanart=None, context=None):
     xbmcplugin.addDirectoryItem(HANDLE, target, li, True)
 
 
+BN_VIEW = 60          # BN Details view: backdrop + full info of the focused title (skin View_60_BN.xml)
+
+
 def end(content='', cache=True):
     if content:
         xbmcplugin.setContent(HANDLE, content)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=cache)
+    if content in ('movies', 'tvshows', 'seasons', 'episodes', 'videos'):
+        xbmc.executebuiltin('Container.SetViewMode(%d)' % BN_VIEW)
+
+
+def details(m, ids):
+    """full TMDb details for a page of titles, fetched in parallel (cached 6 h by tmdb())"""
+    import threading
+    out = {}
+
+    def one(i):
+        try:
+            if m == 'movie':
+                out[i] = tmdb('/movie/%s' % i, append_to_response='credits,release_dates')
+            else:
+                out[i] = tmdb('/tv/%s' % i, append_to_response='credits,content_ratings')
+        except Exception:
+            pass
+    th = [threading.Thread(target=one, args=(i,), daemon=True) for i in ids]
+    [t.start() for t in th]
+    [t.join(12) for t in th]
+    return out
+
+
+def apply_details(li, tag, m, d):
+    """runtime, genres, tagline, cast, director, age rating, studio on the list item itself"""
+    if not d:
+        return
+    tag.setGenres([g['name'] for g in d.get('genres', [])])
+    if d.get('tagline'):
+        tag.setTagLine(d['tagline'])
+    rt = d.get('runtime') or (d.get('episode_run_time') or [0])[0]
+    if rt:
+        tag.setDuration(int(rt) * 60)
+    cr = d.get('credits') or {}
+    cast = []
+    for c in (cr.get('cast') or [])[:8]:
+        a = xbmc.Actor(c.get('name', ''), c.get('character', ''), c.get('order', 0),
+                       ('https://image.tmdb.org/t/p/w185' + c['profile_path']) if c.get('profile_path') else '')
+        cast.append(a)
+    if cast:
+        tag.setCast(cast)
+    directors = [c['name'] for c in cr.get('crew', []) if c.get('job') == 'Director']
+    if m != 'movie':
+        directors = [c['name'] for c in d.get('created_by', [])]
+    if directors:
+        tag.setDirectors(directors[:2])
+    studios = [c['name'] for c in (d.get('production_companies') or d.get('networks') or [])][:2]
+    if studios:
+        tag.setStudios(studios)
+    mpaa = ''
+    for r in (d.get('release_dates') or {}).get('results', []):
+        if r.get('iso_3166_1') in ('IL', 'US'):
+            mpaa = next((x.get('certification') for x in r.get('release_dates', []) if x.get('certification')), '') or mpaa
+    for r in (d.get('content_ratings') or {}).get('results', []):
+        if r.get('iso_3166_1') in ('IL', 'US') and r.get('rating'):
+            mpaa = r['rating']
+    if mpaa:
+        tag.setMpaa(mpaa)
+    if m != 'movie':
+        li.setProperty('TotalSeasons', str(d.get('number_of_seasons') or ''))
+        li.setProperty('TotalEpisodes', str(d.get('number_of_episodes') or ''))
 
 
 # ------------------------------------------------------------------ root
@@ -55,6 +119,7 @@ def root():
     folder(providers.s('library'), url(a='libs'), icon('libraries'))
     folder(T('accounts'), url(a='accounts'), icon('accounts'))
     folder(T('backup_menu'), url(a='bk_menu'), icon('backup'))
+    folder(status.s('title'), url(a='status'), icon('accounts'))
     end(cache=False)
 
 
@@ -113,7 +178,7 @@ def _fav_ctx(kind, item_id, label, extra=''):
     return [(T('add_fav'), 'RunPlugin(%s)' % url(a='fav_add', kind=kind, id=item_id, label=label, extra=extra))]
 
 
-def media_item(m, it):
+def media_item(m, it, d=None):
     title = it.get('title') or it.get('name') or ''
     year = (it.get('release_date') or it.get('first_air_date') or '')[:4]
     label = '%s (%s)' % (title, year) if year else title
@@ -127,6 +192,8 @@ def media_item(m, it):
     if year:
         tag.setYear(int(year))
     tag.setUniqueIDs({'tmdb': str(it['id'])}, 'tmdb')
+    tag.setPremiered(it.get('release_date') or it.get('first_air_date') or '')
+    apply_details(li, tag, 'movie' if m == 'movie' else 'tv', d)
     ctx = _fav_ctx('movie' if m == 'movie' else 'series', it['id'], label)
     if m == 'movie':
         tag.setMediaType('movie')
@@ -150,10 +217,14 @@ def list_(m, path, page='1', **filters):
     if path.startswith('/discover/'):
         filters.setdefault('vote_count.gte', 15)   # hide stubs / junk entries
     data = tmdb(path, page=page, **filters)
-    for it in data.get('results', []):
-        if it.get('media_type') in ('person',):
-            continue
-        media_item(it.get('media_type') or m, it)
+    rows = [it for it in data.get('results', []) if it.get('media_type') not in ('person',)]
+    full = {}
+    for kind in ('movie', 'tv'):
+        ids = [it['id'] for it in rows if (it.get('media_type') or m) == kind]
+        full.update({(kind, k): v for k, v in details(kind, ids).items()})
+    for it in rows:
+        kind = it.get('media_type') or m
+        media_item(kind, it, full.get((kind, it['id'])))
     if int(page) < min(int(data.get('total_pages', 1)), 500):
         folder('[B]%s >>[/B]' % T('next_page'), url(a='list', m=m, path=path, page=int(page) + 1, **filters),
                icon('next'))
@@ -348,10 +419,12 @@ def router(p):
         'prov_toggle': lambda: (providers.toggle(p['id']), refresh()),
         'prov_install_all': lambda: (providers.install_all(), refresh()),
         'hub_search': lambda: hub_search(p.get('q', '')),
+        'status': lambda: status.listing(HANDLE),
         'yt_channel': lambda: providers.yt_channel(HANDLE, url, p['id'], p.get('token', '')),
         'yt_search': lambda: providers.yt_search(HANDLE, p['q']),
         'ia_search': lambda: providers.ia_search(HANDLE, p['q']),
         'ia_item': lambda: providers.ia_item(HANDLE, p['id']),
+        'ia_play': lambda: providers.ia_play(HANDLE, p['u'], p.get('t', ''), p.get('id', '')),
         'play': lambda: play(**p),
         'lib_install': lambda: libraries.install(p['id']),
         'bk_menu': bk_menu,

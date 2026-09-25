@@ -8,6 +8,8 @@
   </category>
   <category label="Subtitles">
     <setting id="ai_subs" label="AI Hebrew subtitles when none found" type="bool" default="true"/>
+    <setting id="status_on_start" label="Show the system status table when BN starts" type="bool" default="true"/>
+    <setting id="ai_prepare" label="Pause at start until Hebrew subtitles are ready" type="bool" default="true"/>
     <setting id="ai_wait" label="Seconds to wait for human subtitles" type="slider" range="5,5,90" option="int" default="25"/>
     <setting id="sub_server" label="AI subtitle server (http://PC-IP:8765)" type="text" default="http://127.0.0.1:8765"/>
     <setting id="gemini_key" label="Gemini API key (optional)" type="text" option="hidden" default=""/>

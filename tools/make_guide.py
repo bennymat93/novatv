@@ -162,7 +162,13 @@ def sections(f):
 <li><b>Central library:</b> every source by category. <b>Russian</b> has the official channels of Mosfilm, Soyuzmultfilm, Smeshariki, Belarusfilm and Kinopoisk, plus Soviet films from the Internet Archive.</li>
 <li><b>Sources &amp; add-ons</b> (in the central library): switch each source on or off, open its settings, or install all stable sources at once.</li>
 </ul>
-<p>Only sources that passed the automatic stability check are shown; the check runs again before every version.</p>''', '''
+<p>Only sources that passed the automatic stability check are shown; the check runs again before every version.</p>
+<h3>The BN list view</h3>
+<p>Every list of movies, series, episodes and videos opens in the BN view: the backdrop of the title you are on fills the screen, the selected row is marked in gold, and on the left you see everything at once: title, year, rating, runtime, age rating, genres, tagline, the full plot, director and cast.</p>
+<h3>When BN starts</h3>
+<p>Once everything is up, a message says "BN Stream is ready", followed by a status table: every add-on with its version, every service (Real-Debrid, Trakt, IPTV, AI subtitles, Gemini, TMDb) and how much content is available: movies, series, live channels, radio stations, sources. You can open it any time from <b>System status</b> in the BN menu, and turn the start-up table off in the settings.</p>
+<h3>Subtitles before you watch</h3>
+<p>When a movie or episode starts, BN pauses it and checks for Hebrew subtitles. If there are none, it prepares AI subtitles for the first part and then starts playing (at most 4 minutes; pressing Play continues right away).</p>''', '''
 <p>BN היא האפליקציה היחידה שצריך. כל שאר תוספי הווידאו (POV, עידן+, YouTube, ארכיון האינטרנט, Dailymotion, Vimeo והספריות החינמיות) מנוהלים בתוך BN ועובדים כספרייה אחת גדולה.</p>
 <ul>
 <li><b>חיפוש בכל המקורות</b> (הפריט הראשון בתפריט BN, וגם כפתור החיפוש במסך הבית): חיפוש אחד רץ בכל המקורות בבת אחת, והתוצאות חוזרות ברשימה אחת מחולקת לפי מקור.</li>
@@ -170,7 +176,13 @@ def sections(f):
 <li><b>הספרייה המרכזית:</b> כל המקורות לפי נושא. ב<b>ברוסית</b> נמצאים הערוצים הרשמיים של מוספילם, סויוזמולטפילם, סמשריקי, בלרוספילם וקינופויסק, וגם סרטים סובייטיים מארכיון האינטרנט.</li>
 <li><b>מקורות ותוספים</b> (בתוך הספרייה המרכזית): הפעלה וכיבוי של כל מקור, פתיחת ההגדרות שלו, או התקנה של כל המקורות היציבים בבת אחת.</li>
 </ul>
-<p>מוצגים רק מקורות שעברו את בדיקת היציבות האוטומטית, והבדיקה רצה שוב לפני כל גרסה.</p>'''))
+<p>מוצגים רק מקורות שעברו את בדיקת היציבות האוטומטית, והבדיקה רצה שוב לפני כל גרסה.</p>
+<h3>תצוגת הרשימות של BN</h3>
+<p>כל רשימה של סרטים, סדרות, פרקים וסרטונים נפתחת בתצוגת BN. תמונת הרקע של הכותר שעומדים עליו ממלאת את המסך, השורה הנבחרת מסומנת בזהב, ובצד מופיע הכול בבת אחת: שם, שנה, דירוג, אורך, סיווג גיל, ז'אנרים, שורת תיאור, העלילה המלאה, במאי ושחקנים.</p>
+<h3>כש-BN עולה</h3>
+<p>כשהכול מוכן מופיעה ההודעה "BN Stream מוכן לשימוש", ואחריה טבלת מצב: כל תוסף והגרסה שלו, כל שירות (Real-Debrid, Trakt, IPTV, כתוביות AI, Gemini, TMDb), וכמה תוכן זמין: סרטים, סדרות, ערוצים חיים, תחנות רדיו ומקורות. אפשר לפתוח אותה בכל רגע מ<b>מצב המערכת</b> בתפריט BN, ולכבות את הטבלה בעלייה דרך ההגדרות.</p>
+<h3>כתוביות לפני הצפייה</h3>
+<p>כשסרט או פרק מתחיל, BN עוצר אותו לרגע ובודק אם יש כתוביות בעברית. אם אין, הוא מכין כתוביות AI לחלק הראשון ורק אז מתחיל לנגן (עד 4 דקות לכל היותר; לחיצה על Play ממשיכה מיד).</p>'''))
     S.append(('tv', 'TV channels', 'ערוצי טלוויזיה', '''
 <p>Free lists from the iptv-org community index: {free}. Switched off by default (large): {off}. Turn lists on or off under Accounts &rarr; IPTV.</p>
 <p>Channels that are confirmed dead (HTTP 404) are filtered out automatically. Channels are grouped (Israel, News, Movies, Kids, Sport, Documentary, Music, Russian, Other). Some free channels are geo-blocked or change often; if one does not play, try another.</p>'''.format(free=html.escape(free_en), off=html.escape(off_en)), '''

@@ -3,10 +3,13 @@
 import xbmcgui
 import xbmcplugin
 
-from .common import T
+from .common import T, load, save, log
 
-API = 'https://all.api.radio-browser.info/json'
-HEADERS = {'User-Agent': 'NovaTV/0.1'}
+# radio-browser is run by volunteers on several mirrors; "all" is round-robin DNS and sometimes lands on a
+# broken one (HTTP 502). Try each mirror, and fall back to the last good answer.
+SERVERS = ['https://all.api.radio-browser.info', 'https://de1.api.radio-browser.info',
+           'https://de2.api.radio-browser.info', 'https://fi1.api.radio-browser.info', 'https://nl1.api.radio-browser.info']
+HEADERS = {'User-Agent': 'NovaTV/0.2'}
 
 
 def _get(path, **params):
@@ -15,9 +18,20 @@ def _get(path, **params):
     params.setdefault('order', 'votes')
     params.setdefault('reverse', 'true')
     params.setdefault('limit', 300)
-    r = requests.get(API + path, params=params, headers=HEADERS, timeout=15)
-    r.raise_for_status()
-    return r.json()
+    key = 'radio_cache.json'
+    cache = load(key, {})
+    ck = path + '?' + '&'.join('%s=%s' % kv for kv in sorted(params.items()))
+    for base in SERVERS:
+        try:
+            r = requests.get(base + '/json' + path, params=params, headers=HEADERS, timeout=10)
+            r.raise_for_status()
+            data = r.json()
+            cache[ck] = data
+            save(key, cache)
+            return data
+        except Exception as e:
+            log('radio-browser %s: %s' % (base, e))
+    return cache.get(ck, [])
 
 
 def menu(handle, url, folder, end):

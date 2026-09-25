@@ -82,19 +82,65 @@ class Player(xbmc.Player):
                 return True
         return False
 
+    # ------------------------------------------------------------ "subtitles ready before watching"
+    def hold(self):
+        """pause at the start while Hebrew subtitles are prepared (setting ai_prepare)"""
+        if not xbmc.getCondVisibility('Player.Paused'):
+            self.pause()
+        self._held = True
+        self._held_at = time.time()
+        self._bar = xbmcgui.DialogProgressBG()
+        self._bar.create('NovaTV', T('sub_check'))
+
+    def held(self):
+        """still holding? the viewer pressing Play ends the hold"""
+        if getattr(self, '_held', False) and (not xbmc.getCondVisibility('Player.Paused')
+                                              or time.time() - self._held_at > 240):   # never hold longer than 4 min
+            self.release()
+        return getattr(self, '_held', False)
+
+    def release(self):
+        if getattr(self, '_bar', None):
+            try:
+                self._bar.close()
+            except Exception:
+                pass
+            self._bar = None
+        if getattr(self, '_held', False):
+            self._held = False
+            if xbmc.getCondVisibility('Player.Paused'):
+                self.pause()
+
     def subtitle_flow(self, sid):
+        try:
+            self._subtitle_flow(sid)
+        except RuntimeError as e:          # playback ended while we were still reading it: nothing to do
+            log('AI subs: playback ended (%s)' % e)
+        finally:
+            self.release()
+
+    def _subtitle_flow(self, sid):
         mon = xbmc.Monitor()
         wait = int(ADDON.getSetting('ai_wait') or 25)
+        path = self.getPlayingFile() if self.isPlayingVideo() else ''
+        if xbmc.getCondVisibility('PVR.IsPlayingTV | PVR.IsPlayingRadio | VideoPlayer.Content(livetv)'):
+            return                                   # live TV: no end, nothing to transcribe ahead
+        network = path.startswith(('http://', 'https://'))
+        kind = self.getVideoInfoTag().getMediaType()
+        # pause only films and episodes; clips (YouTube, Archive extras) just start
+        if network and kind in ('movie', 'episode') and ADDON.getSettingBool('ai_prepare'):
+            self.hold()
         # give embedded tracks + All_Subs (human Hebrew) the first chance
-        for _ in range(wait * 2):
+        for i in range(wait * 2):
             if mon.waitForAbort(0.5) or sid != self.session:
                 return
             if self.has_hebrew():
                 return
+            if getattr(self, '_bar', None):
+                self._bar.update(int(i * 50 / (wait * 2)), 'NovaTV', T('sub_check'))
         if sid != self.session or not self.isPlayingVideo():
             return
-        path = self.getPlayingFile()
-        if not path.startswith(('http://', 'https://')):
+        if not network:
             log('AI subs: not a network stream (%s)' % path[:60])
             return
         import requests
@@ -142,6 +188,10 @@ class Player(xbmc.Player):
                 last_note = now
             ready = float(st.get('ready_until', 0))
             done = st.get('state') == 'done'
+            if self.held():
+                bar = getattr(self, '_bar', None)
+                if bar:
+                    bar.update(50 + min(49, pct // 2), 'NovaTV', '%s %d%%' % (T('ai_prepare'), pct))
             # (re)load when a meaningful new chunk is ready or when finished
             if ready - loaded_upto >= 120 or (done and ready > loaded_upto):
                 try:
@@ -151,6 +201,8 @@ class Player(xbmc.Player):
                     self.setSubtitles(srt_path)
                     self.showSubtitles(True)
                     loaded_upto = ready
+                    if self.held() and (done or ready >= job['position'] + 120):
+                        self.release()      # the first part is subtitled: start watching
                 except Exception as e:
                     log('AI subs load: %s' % e, xbmc.LOGWARNING)
             if done:
@@ -201,6 +253,29 @@ def main():
         except Exception as e:
             log('binary add-ons: %s' % e, xbmc.LOGWARNING)
     threading.Timer(45, binary_job).start()
+
+    def startup_job():
+        """tell the viewer when everything is up: add-ons, services, how much content"""
+        try:
+            import json as _json
+            start = time.time()
+            while not mon.abortRequested() and time.time() - start < 180:
+                r = _json.loads(xbmc.executeJSONRPC(_json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'PVR.GetChannels',
+                                                                'params': {'channelgroupid': 'alltv'}})))
+                if (r.get('result') or {}).get('channels') and time.time() - start > 20:
+                    break
+                if mon.waitForAbort(5):
+                    return
+            while xbmc.getCondVisibility('System.HasActiveModalDialog') and not mon.abortRequested():
+                if mon.waitForAbort(2):
+                    return
+            from resources.lib import status as _status
+            data = _status.announce()
+            if ADDON.getSettingBool('status_on_start') and not xbmc.getCondVisibility('Player.HasMedia'):
+                _status.show_dialog(data)
+        except Exception as e:
+            log('startup status: %s' % e, xbmc.LOGWARNING)
+    threading.Thread(target=startup_job, daemon=True).start()
 
     def pov_hook_job():
         from resources.lib import providers

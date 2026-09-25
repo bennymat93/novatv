@@ -162,9 +162,14 @@ def _fetch(u):
 def merge(notify=True):
     home = xbmcgui.Window(10000)
     if home.getProperty('NovaTV.iptv_busy') == '1':
+        # another refresh is running (e.g. the automatic one at start): wait for it, then apply the
+        # newest sources - dropping the request would leave the viewer with the old channel list
         if notify:
             xbmcgui.Dialog().notification('NovaTV', '...', xbmcgui.NOTIFICATION_INFO, 2000)
-        return 0, []
+        mon = xbmc.Monitor()
+        for _ in range(600):
+            if home.getProperty('NovaTV.iptv_busy') != '1' or mon.waitForAbort(0.5):
+                break
     home.setProperty('NovaTV.iptv_busy', '1')
     try:
         return _merge(notify)

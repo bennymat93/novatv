@@ -77,17 +77,37 @@ def _continuation(data):
     return next((c.get('token') for c in _walk(data, 'continuationCommand') if c.get('token')), '')
 
 
-def search(q, limit=30):
+def _cached(key, fetch):
+    """one retry, then the last good answer: a single YouTube hiccup must not show an empty list"""
+    import time
     try:
-        return _items(_post('search', {'query': q}))[:limit]
+        from .common import load, save
     except Exception:
-        return []
+        load = save = None
+    for attempt in range(2):
+        try:
+            value = fetch()
+            if value and value[0] if isinstance(value, tuple) else value:
+                if save:
+                    cache = load('yt_cache.json', {})
+                    cache[key] = value
+                    save('yt_cache.json', cache)
+                return value
+        except Exception:
+            pass
+        time.sleep(1)
+    return load('yt_cache.json', {}).get(key) if load else None
+
+
+def search(q, limit=30):
+    res = _cached('s:' + q, lambda: _items(_post('search', {'query': q}))[:limit])
+    return res or []
 
 
 def channel(channel_id, token=''):
     """(videos, next_page_token)"""
-    try:
+    def fetch():
         data = _post('browse', {'continuation': token} if token else {'browseId': channel_id, 'params': VIDEOS_TAB})
         return _items(data), _continuation(data)
-    except Exception:
-        return [], ''
+    res = _cached('c:%s:%s' % (channel_id, token[:40]), fetch)
+    return tuple(res) if res else ([], '')

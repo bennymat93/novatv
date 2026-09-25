@@ -255,15 +255,8 @@ def _live_matches(q):
 
 
 def _radio_matches(q):
-    try:
-        import requests
-        r = requests.get('https://all.api.radio-browser.info/json/stations/search',
-                         params={'name': q, 'limit': 20, 'hidebroken': 'true', 'order': 'clickcount', 'reverse': 'true'},
-                         headers={'User-Agent': 'NovaTV/1.0'}, timeout=10)
-        return r.json()
-    except Exception:
-        return []
-
+    from .radio import _get
+    return _get('/stations/search', name=q, limit=20, order='clickcount')
 
 def _header(handle, text, target='plugin://plugin.video.nova/?a=noop', folder=False):
     li = xbmcgui.ListItem('[COLOR gold][B]%s[/B][/COLOR]' % text)
@@ -516,6 +509,7 @@ def yt_channel(handle, url, cid, token=''):
         xbmcplugin.addDirectoryItem(handle, url(a='yt_channel', id=cid, token=nxt), li, True)
     xbmcplugin.setContent(handle, 'videos')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+    xbmc.executebuiltin('Container.SetViewMode(60)')      # BN Details view
 
 
 def ia_search(handle, q):
@@ -527,6 +521,7 @@ def ia_search(handle, q):
         xbmcplugin.addDirectoryItem(handle, it['file'], li, True)
     xbmcplugin.setContent(handle, 'movies')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+    xbmc.executebuiltin('Container.SetViewMode(60)')      # BN Details view
 
 
 def ia_item(handle, identifier):
@@ -534,12 +529,27 @@ def ia_item(handle, identifier):
     thumb = 'https://archive.org/services/img/%s' % identifier
     for f in ia.files(identifier):
         li = xbmcgui.ListItem(f['title'])
-        li.setArt({'thumb': thumb, 'poster': thumb})
-        li.getVideoInfoTag().setTitle(f['title'])
+        li.setArt({'thumb': thumb, 'poster': thumb, 'fanart': thumb})
+        tag = li.getVideoInfoTag()
+        tag.setTitle(f['title'])
+        tag.setMediaType('movie')
         li.setProperty('IsPlayable', 'true')
-        xbmcplugin.addDirectoryItem(handle, f['url'], li, False)
+        target = 'plugin://plugin.video.nova/?' + urlencode({'a': 'ia_play', 'u': f['url'], 't': f['title'], 'id': identifier})
+        xbmcplugin.addDirectoryItem(handle, target, li, False)
     xbmcplugin.setContent(handle, 'videos')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+    xbmc.executebuiltin('Container.SetViewMode(60)')      # BN Details view
+
+
+def ia_play(handle, u, t, identifier=''):
+    """resolve an Archive film with its details, so the player knows it is a movie (subtitles, history)"""
+    li = xbmcgui.ListItem(t, path=u)
+    thumb = 'https://archive.org/services/img/%s' % identifier if identifier else ''
+    li.setArt({'thumb': thumb, 'poster': thumb})
+    tag = li.getVideoInfoTag()
+    tag.setTitle(t)
+    tag.setMediaType('movie')
+    xbmcplugin.setResolvedUrl(handle, True, li)
 
 
 def yt_search(handle, q):
@@ -547,6 +557,7 @@ def yt_search(handle, q):
     list_rows(handle, yt_rows(yt.search(q)))
     xbmcplugin.setContent(handle, 'videos')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+    xbmc.executebuiltin('Container.SetViewMode(60)')      # BN Details view
 
 
 def sources_screen(handle, url):

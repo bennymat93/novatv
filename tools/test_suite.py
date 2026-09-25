@@ -74,7 +74,8 @@ def fast_ai_settings():
     """tests: wait only 5 s for human subtitles before asking the AI server"""
     p = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'settings.xml')
     s = open(p, encoding='utf-8').read() if os.path.exists(p) else '<settings version="2">\n</settings>\n'
-    for k, v in (('ai_wait', '5'), ('ai_subs', 'true'), ('sub_server', 'http://127.0.0.1:8765')):
+    for k, v in (('ai_wait', '5'), ('ai_subs', 'true'), ('sub_server', 'http://127.0.0.1:8765'),
+                 ('status_on_start', 'false'), ('ai_prepare', 'true')):
         s = re.sub(r'\s*<setting id="%s"[^>]*?(/>|>[^<]*</setting>)' % k, '', s)
         s = s.replace('</settings>', '    <setting id="%s">%s</setting>\n</settings>' % (k, v))
     os.makedirs(os.path.dirname(p), exist_ok=True)
@@ -142,9 +143,10 @@ def t_branding():
 
 def t_root():
     items = ls(NOVA)
-    expect(len(items) == 10, '%d root items' % len(items))
+    expect(len(items) == 11, '%d root items' % len(items))
     expect('a=hub_search' in items[0]['file'], 'first item is search-all')
-    return '10 items, search-all first'
+    expect('a=status' in items[-1]['file'], 'system status item missing')
+    return '11 items, search-all first, system status last'
 
 
 def t_movies_lists():
@@ -405,7 +407,7 @@ def t_free_channels():
     json.dump(cfg, open(iptv_json, 'w'))
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=tv_do&do=refresh')
     n = 0
-    for _ in range(60):
+    for _ in range(105):                     # waits for the automatic refresh at start if it is running
         time.sleep(4)
         r = rpc('PVR.GetChannels', channelgroupid='alltv', properties=['channelnumber'])
         n = len(r.get('result', {}).get('channels', []))
@@ -549,7 +551,7 @@ def t_central_library():
     soviet = ls(NOVA + '?a=ia_search&q=%D1%81%D0%BE%D0%B2%D0%B5%D1%82%D1%81%D0%BA%D0%B8%D0%B9%20%D1%84%D0%B8%D0%BB%D1%8C%D0%BC')
     expect(len(soviet) >= 10, 'Soviet films from the Archive: %d' % len(soviet))
     eps = ls(soviet[0]['file'])
-    expect(eps and eps[0]['file'].startswith('https://archive.org/download/'), 'Archive item has no video files')
+    expect(eps and 'a=ia_play' in eps[0]['file'] and 'archive.org%2Fdownload' in eps[0]['file'], 'Archive item has no video files')
     return '%d categories, %d providers, Mosfilm %d videos (played %ds), %d Soviet films' % (len(cats), len(src) - 1, len(mos), played, len(soviet))
 
 
@@ -579,6 +581,70 @@ def t_pov_fallback():
     return seen + ', POV hook in place'
 
 
+STARTUP_BAD = [r'subtitles\.subs_action', r'burekasKodi', r'kodi7rd/repository', r'invalid include: Custom[23]Widgets',
+               r'Root element <includes> required', r'No <window> root element', r'missing version attribute']
+
+
+def t_startup_clean():
+    """the errors the base build logged at every start are gone"""
+    log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
+    found = [p for p in STARTUP_BAD if re.search(p, log)]
+    expect(not found, 'still in the log: %s' % found)
+    errors = [l for l in log.splitlines() if ' error <general>' in l and 'plugin.video.' not in l and 'CCurlFile' not in l]
+    return '%d known startup problems fixed; %d other error lines' % (len(STARTUP_BAD), len(errors))
+
+
+def t_startup_status():
+    """"BN Stream is ready" + the status table (add-ons, services, content counts)"""
+    for _ in range(60):
+        log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
+        m = re.search(r'startup status: (\d+) problems (.*)', log)
+        if m:
+            break
+        time.sleep(3)
+    expect(m, 'no startup announcement')
+    rows = ls(NOVA + '?a=status')
+    labels = ' '.join(r['label'] for r in rows)
+    expect(len(rows) >= 25, '%d status rows' % len(rows))
+    nums = re.findall(r'\d{1,3}(?:,\d{3})+', labels)
+    expect(len(nums) >= 2, 'content counts missing')
+    return 'announced (%s problems %s), %d rows, counts e.g. %s' % (m.group(1), m.group(2)[:60], len(rows), ', '.join(nums[:3]))
+
+
+def t_subs_before_play():
+    """a film starts paused, gets Hebrew subtitles (human or AI), then plays by itself"""
+    soviet = ls(NOVA + '?a=ia_search&q=%D0%9A%D0%B8%D0%BD-%D0%B4%D0%B7%D0%B0-%D0%B4%D0%B7%D0%B0')
+    film = None
+    for it in soviet[:5]:
+        files = ls(it['file'])
+        if files:
+            film = files[0]
+            break
+    expect(film, 'no Archive film to play')
+    rpc('Player.Open', item={'file': film['file']})
+    paused = resumed = False
+    subs = ''
+    for _ in range(100):
+        time.sleep(3)
+        pl = rpc('Player.GetActivePlayers').get('result') or []
+        if not pl:
+            continue
+        pr = rpc('Player.GetProperties', playerid=pl[0]['playerid'], properties=['speed', 'subtitleenabled', 'currentsubtitle'])['result']
+        if pr['speed'] == 0:
+            paused = True
+        elif paused:
+            resumed = True
+            if pr.get('subtitleenabled'):
+                subs = (pr.get('currentsubtitle') or {}).get('language') or 'on'
+            break
+    for p in rpc('Player.GetActivePlayers').get('result') or []:
+        rpc('Player.Stop', playerid=p['playerid'])
+    expect(paused, 'the film did not wait for subtitles')
+    expect(resumed, 'the film never started after preparing subtitles')
+    expect(subs, 'playback started without subtitles')
+    return 'paused, subtitles ready (%s), resumed: %s' % (subs, film['label'][:40])
+
+
 TESTS = [
     ('Add-ons installed & enabled', t_addons_enabled), ('Skin / sounds / language', t_gui),
     ('BN branding', t_branding), ('Main menu', t_root), ('Movie & series lists', t_movies_lists),
@@ -590,7 +656,9 @@ TESTS = [
     ('Merged playlist integrity', t_m3u_integrity), ('Locked profile round-trip', t_preset),
     ('Search all sources (hub)', t_hub_search), ('Central library + Russian', t_central_library),
     ('POV -> other sources fallback', t_pov_fallback),
-    ('AI subtitle server', t_ai_server), ('AI Hebrew subtitles end-to-end', t_ai_subs_end_to_end), ('Kodi log clean', t_log_errors),
+    ('Startup log clean', t_startup_clean), ('Startup ready message + status', t_startup_status),
+    ('AI subtitle server', t_ai_server), ('AI Hebrew subtitles end-to-end', t_ai_subs_end_to_end),
+    ('Subtitles ready before playing', t_subs_before_play), ('Kodi log clean', t_log_errors),
 ]
 
 

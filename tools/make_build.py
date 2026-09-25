@@ -23,7 +23,8 @@ STAGE = os.path.join(WORK, 'stage')
 DIST = os.path.join(ROOT, 'dist')
 BASE_TXT = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/build.txt'
 
-REMOVE = ['plugin.program.kodipovilwizard', 'service.subtitles.kodipovilai', 'plugin.program.orderfavourites-hebrew',
+REMOVE = ['repository.burekasKodi', 'repository.KodiRealDebridIsrael',   # dead: old schema / HTTP 404 at every start
+          'plugin.program.kodipovilwizard', 'service.subtitles.kodipovilai', 'plugin.program.orderfavourites-hebrew',
           'service.xbmc.versioncheck', 'game.controller.snes', 'plugin.video.otaku', 'context.otaku', 'repository.otaku']
 OUR_ADDONS = ['plugin.video.nova', 'repository.nova', 'plugin.program.novawizard', 'resource.uisounds.nova']
 NOVA = 'plugin://plugin.video.nova/'
@@ -101,6 +102,7 @@ def patch_guisettings(path):
 
 
 POV_SETTINGS = {
+    'subtitles.subs_action': '0',           # base build stored "2" (invalid: Off|Auto) -> 7 warnings per start
     'auto_play_movie': 'true', 'auto_play_episode': 'true',          # calculated link choice, no list
     'autoplay_quality_movie': '720p, 1080p, 4K', 'autoplay_quality_episode': '720p, 1080p, 4K',
     'autoplay_next_episode': 'true', 'autoplay_next_show_window': 'true',
@@ -159,6 +161,7 @@ PRESETS = {   # first-run prompts would block the hub's background searches
     'plugin.video.youtube': {'kodion.setup_wizard': 'false', 'kodion.setup_wizard.forced_runs': '1767970800',
                              'kodion.http.listen': '127.0.0.1'},   # 0.0.0.0 picks a link-local IP -> 403 on streams
     'plugin.video.archive.org': {'context': 'video'},
+    'service.subtitles.All_Subs': {'telegram': 'false'},   # needs a personal Telegram login; opened a blocking dialog
 }
 
 
@@ -173,6 +176,78 @@ def preset_settings(stage):
             line = '<setting id="%s">%s</setting>' % (sid, val)
             s = rx.sub(line, s) if rx.search(s) else s.replace('</settings>', '    %s\n</settings>' % line)
         open(p, 'w', encoding='utf-8').write(s)
+
+
+SKIN_SRC = os.path.join(ROOT, 'brand', 'skin')
+
+
+def fix_startup(stage):
+    """errors/warnings Kodi logged on every start of the base build"""
+    xml = os.path.join(stage, 'addons', 'skin.fentastic', 'xml')
+    for n in ('2', '3'):                      # empty include -> "Skin has invalid include"
+        p = os.path.join(xml, 'script-fentastic-widget_custom%s.xml' % n)
+        s = open(p, encoding='utf-8').read()
+        s = re.sub(r'(<include name="Custom%sWidgets">)\s*(</include>)' % n,
+                   lambda m: m.group(1) + '<control type="group" id="2%s999"><visible>false</visible></control>' % n + m.group(2), s)
+        open(p, 'w', encoding='utf-8').write(s)
+    inc = os.path.join(xml, 'Includes.xml')
+    s = open(inc, encoding='utf-8').read()
+    # windows listed as include files ("Root element <includes> required") and an include file named like a window
+    for w in ('Custom_1118_SetupGuideViewer.xml', 'Custom_1119_ChangelogViewer.xml', 'Custom_1121_SearchResults.xml'):
+        s = re.sub(r'\s*<include file="%s"\s*/>' % re.escape(w), '', s)
+    if os.path.exists(os.path.join(xml, 'Custom_1117_ExtraInfoContent.xml')):
+        os.replace(os.path.join(xml, 'Custom_1117_ExtraInfoContent.xml'), os.path.join(xml, 'Includes_ExtraInfoContent.xml'))
+    s = s.replace('<include file="Custom_1117_ExtraInfoContent.xml"/>', '<include file="Includes_ExtraInfoContent.xml"/>')
+    open(inc, 'w', encoding='utf-8').write(s)
+    # All_Subs crashes a thread per source when a video has no IMDb id (YouTube, Archive, live TV)
+    subs = os.path.join(stage, 'addons', 'service.subtitles.All_Subs', 'resources', 'sources')
+    for d, _, files in os.walk(subs):
+        for fn in files:
+            if fn.endswith('.py'):
+                p = os.path.join(d, fn)
+                t = open(p, encoding='utf-8').read()
+                t2 = re.sub(r'(?<![\w.(])imdb_id\.startswith\(', "(imdb_id or '').startswith(", t)
+                if t2 != t:
+                    open(p, 'w', encoding='utf-8').write(t2)
+    adv = os.path.join(stage, 'userdata', 'advancedsettings.xml')
+    if os.path.exists(adv):
+        a = open(adv, encoding='utf-8').read()
+        if '<advancedsettings>' in a:
+            open(adv, 'w', encoding='utf-8').write(a.replace('<advancedsettings>', '<advancedsettings version="1.0">', 1))
+
+
+def bn_skin(stage):
+    """BN Details view (id 60) + modern background"""
+    skin = os.path.join(stage, 'addons', 'skin.fentastic')
+    xml = os.path.join(skin, 'xml')
+    for f in ('View_60_BN.xml', 'Variables_BN.xml'):
+        shutil.copy(os.path.join(SKIN_SRC, f), xml)
+    shutil.copy(os.path.join(SKIN_SRC, 'bn_modern.jpg'), os.path.join(skin, 'extras', 'backgrounds'))
+    inc = os.path.join(xml, 'Includes.xml')
+    s = open(inc, encoding='utf-8').read()
+    anchor = '<include file="script-fentastic-widget_movies.xml" />'
+    if 'View_60_BN.xml' not in s:
+        s = s.replace(anchor, '<include file="View_60_BN.xml" />\n\t<include file="Variables_BN.xml" />\n\t' + anchor, 1)
+    open(inc, 'w', encoding='utf-8').write(s)
+    for win in ('MyVideoNav.xml', 'MyPrograms.xml'):
+        p = os.path.join(xml, win)
+        if not os.path.exists(p):
+            continue
+        w = open(p, encoding='utf-8').read()
+        w = re.sub(r'<views>([^<]*)</views>',
+                   lambda m: m.group(0) if '60' in m.group(1).split(',') else '<views>60,%s</views>' % m.group(1), w, 1)
+        if '<include>View_60_BN</include>' not in w:
+            w = w.replace('<include>View_50_List</include>', '<include>View_60_BN</include>\n\t\t\t<include>View_50_List</include>', 1)
+        open(p, 'w', encoding='utf-8').write(w)
+    var = os.path.join(xml, 'Variables.xml')
+    v = open(var, encoding='utf-8').read()
+    bg = '<value>special://skin/extras/backgrounds/bn_modern.jpg</value>'
+    v = v.replace('<value>special://skin/media/kodirdil/skin_backgrounds/lightning_bg1.jpg</value>', bg)
+    home = v.index('<variable name="HomeFanartVar">')
+    end = v.index('</variable>', home)
+    if bg not in v[home:end]:
+        v = v[:end] + '\t' + bg + '\n\t' + v[end:]
+    open(var, 'w', encoding='utf-8').write(v)
 
 
 def provider_addons():
@@ -275,6 +350,8 @@ def main():
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     patch_skin_search(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    fix_startup(STAGE)
+    bn_skin(STAGE)
     patch_pov_hub(STAGE)
     extra = add_providers(STAGE)
     preset_settings(STAGE)

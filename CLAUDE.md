@@ -39,7 +39,16 @@ Provider stability lives in `addons/plugin.video.nova/resources/providers_status
 make_build.py bundles only stable providers (+ deps from the official omega repo) and skips add-ons without Windows+Android support.
 Core providers (pov, idanplus, youtube, archive) are never hidden. Delete the status file and re-audit when adding providers.
 
-## Status (2026-09-25, v0.1.9)
+## 0.2.0 UI / startup
+- `brand/skin/View_60_BN.xml` + `Variables_BN.xml` (copied by make_build `bn_skin`): BN Details view id 60; NovaTV `end()` calls
+  Container.SetViewMode(60) for media lists. Lists carry full TMDb details (details() in default.py, parallel, cached).
+  Background `brand/skin/bn_modern.jpg` replaces the lightning background (skin var CustomBackgroundImage + HomeFanartVar fallback).
+- `resources/lib/status.py`: startup "ready" notification + status table (add-ons, services, content counts); menu item "System status".
+- Subtitle flow `ai_prepare`: pauses at start until Hebrew subs (human or first AI chunk) are ready, max 4 min.
+- make_build `fix_startup`: removed dead repos, POV subs_action, empty skin includes, window files listed as includes,
+  advancedsettings version, All_Subs `imdb_id.startswith` None crash.
+
+## Status (2026-09-25, v0.2.0)
 Handoff steps 1-4 done. Release flow: `python tools/release.py --version X --notes "..."` (bump the version for every significant change;
 it rebuilds zip, guide, both APKs and the Windows installer, tests testkodi AND the installed Windows copy, pushes main + gh-pages, creates the GitHub release).
 - APK: package org.bn.stream. Java classes moved to org/bn/stream and libkodi.so's compiled-in "org.xbmc.kodi" patched in place (same length);

@@ -57,6 +57,8 @@ STRINGS = {
     'ai_start':    ('לא נמצאו כתוביות בעברית – מתחיל תרגום AI', 'No Hebrew subtitles found - starting AI subtitles', 'Субтитры на иврите не найдены - запуск ИИ'),
     'ai_ready':    ('כתוביות AI נטענו', 'AI subtitles loaded', 'ИИ-субтитры загружены'),
     'ai_progress': ('כתוביות AI', 'AI subtitles', 'ИИ-субтитры'),
+    'sub_check':   ('בודק כתוביות בעברית...', 'Checking Hebrew subtitles...', 'Проверка субтитров на иврите...'),
+    'ai_prepare':  ('מכין כתוביות AI לפני הצפייה', 'Preparing AI subtitles before playback', 'Готовлю ИИ-субтитры перед просмотром'),
     'ai_noserver': ('שרת כתוביות AI לא זמין', 'AI subtitle server unreachable', 'Сервер ИИ-субтитров недоступен'),
     'movies_he':   ('סרטים', 'Movies', 'Фильмы'),
     'grp_israel':  ('ישראלי', 'Israeli', 'Израиль'),

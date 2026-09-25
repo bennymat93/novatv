@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BN Details view (id 60): everything about the focused title on one screen.
+     Full-screen backdrop of the focused item, gold focus bar, detail panel always visible. -->
+<includes>
+	<include name="View_60_BN">
+		<control type="group">
+			<include>VisibleFadeEffect</include>
+			<control type="image">
+				<left>0</left>
+				<top>0</top>
+				<width>1920</width>
+				<height>1080</height>
+				<aspectratio>scale</aspectratio>
+				<fadetime>350</fadetime>
+				<texture background="true">$VAR[BNBackdrop]</texture>
+				<visible>Control.IsVisible(60)</visible>
+			</control>
+			<control type="image">
+				<left>0</left>
+				<top>0</top>
+				<width>1920</width>
+				<height>1080</height>
+				<texture>colors/white.png</texture>
+				<colordiffuse>8C0A0C12</colordiffuse>
+				<visible>Control.IsVisible(60)</visible>
+			</control>
+			<control type="image">
+				<left>0</left>
+				<top>0</top>
+				<width>1200</width>
+				<height>1080</height>
+				<texture flipx="true">shadows/shadow_mask.png</texture>
+				<colordiffuse>E60A0C12</colordiffuse>
+				<visible>Control.IsVisible(60)</visible>
+			</control>
+			<control type="group">
+				<left>70</left>
+				<top>110</top>
+				<control type="image">
+					<left>0</left>
+					<top>0</top>
+					<width>560</width>
+					<height>200</height>
+					<aspectratio align="left" aligny="bottom">keep</aspectratio>
+					<fadetime>200</fadetime>
+					<texture background="true">$INFO[ListItem.Art(clearlogo)]</texture>
+				</control>
+				<control type="label">
+					<left>0</left>
+					<top>110</top>
+					<width>1000</width>
+					<height>90</height>
+					<font>font45_title</font>
+					<textcolor>FFFFFFFF</textcolor>
+					<label>$INFO[ListItem.Title]</label>
+					<visible>String.IsEmpty(ListItem.Art(clearlogo))</visible>
+				</control>
+				<control type="label">
+					<left>0</left>
+					<top>215</top>
+					<width>1000</width>
+					<height>40</height>
+					<font>font13</font>
+					<textcolor>FFE8BE5A</textcolor>
+					<label>$VAR[BNMetaLine]</label>
+				</control>
+				<control type="label">
+					<left>0</left>
+					<top>260</top>
+					<width>1000</width>
+					<height>36</height>
+					<font>font12</font>
+					<textcolor>FFB8B2A6</textcolor>
+					<label>$INFO[ListItem.Genre]</label>
+				</control>
+				<control type="textbox">
+					<left>0</left>
+					<top>305</top>
+					<width>1000</width>
+					<height>90</height>
+					<font>font13</font>
+					<textcolor>FFD8D2C6</textcolor>
+					<label>$INFO[ListItem.Tagline,[I],[/I]]</label>
+					<visible>!String.IsEmpty(ListItem.Tagline)</visible>
+				</control>
+				<control type="textbox">
+					<left>0</left>
+					<top>400</top>
+					<width>1000</width>
+					<height>420</height>
+					<font>font13</font>
+					<textcolor>FFF2EEE6</textcolor>
+					<autoscroll delay="6000" time="3000" repeat="8000">true</autoscroll>
+					<label>$VAR[BNPlot]</label>
+				</control>
+				<control type="textbox">
+					<left>0</left>
+					<top>840</top>
+					<width>1000</width>
+					<height>90</height>
+					<font>font12</font>
+					<textcolor>FFB8B2A6</textcolor>
+					<label>$INFO[ListItem.Director,[COLOR FFE8BE5A]$LOCALIZE[20339]:[/COLOR] ,[CR]]$INFO[ListItem.Cast,[COLOR FFE8BE5A]$LOCALIZE[206]:[/COLOR] ]</label>
+				</control>
+				<visible>Control.IsVisible(60)</visible>
+			</control>
+			<control type="image">
+				<left>1150</left>
+				<top>90</top>
+				<width>710</width>
+				<height>920</height>
+				<texture border="12">colors/white.png</texture>
+				<colordiffuse>8C0A0C12</colordiffuse>
+				<visible>Control.IsVisible(60)</visible>
+			</control>
+			<control type="list" id="60">
+				<left>1160</left>
+				<top>100</top>
+				<width>690</width>
+				<height>900</height>
+				<onleft>9000</onleft>
+				<onright>60</onright>
+				<pagecontrol>61</pagecontrol>
+				<scrolltime tween="cubic" easing="out">200</scrolltime>
+				<viewtype label="BN">list</viewtype>
+				<itemlayout height="90" width="690">
+					<control type="image">
+						<left>10</left>
+						<top>8</top>
+						<width>50</width>
+						<height>74</height>
+						<aspectratio>scale</aspectratio>
+						<texture background="true">$VAR[BNThumb]</texture>
+					</control>
+					<control type="label">
+						<left>76</left>
+						<top>10</top>
+						<width>600</width>
+						<height>40</height>
+						<font>font13</font>
+						<textcolor>FFE6E2DA</textcolor>
+						<label>$INFO[ListItem.Label]</label>
+					</control>
+					<control type="label">
+						<left>76</left>
+						<top>48</top>
+						<width>600</width>
+						<height>32</height>
+						<font>font10</font>
+						<textcolor>FF8C877D</textcolor>
+						<label>$VAR[BNRowMeta]</label>
+					</control>
+				</itemlayout>
+				<focusedlayout height="90" width="690">
+					<control type="image">
+						<left>0</left>
+						<top>0</top>
+						<width>690</width>
+						<height>90</height>
+						<texture border="10">colors/white.png</texture>
+						<colordiffuse>FFE8BE5A</colordiffuse>
+						<visible>Control.HasFocus(60)</visible>
+					</control>
+					<control type="image">
+						<left>0</left>
+						<top>0</top>
+						<width>690</width>
+						<height>90</height>
+						<texture border="10">colors/white.png</texture>
+						<colordiffuse>40E8BE5A</colordiffuse>
+						<visible>!Control.HasFocus(60)</visible>
+					</control>
+					<control type="image">
+						<left>10</left>
+						<top>8</top>
+						<width>50</width>
+						<height>74</height>
+						<aspectratio>scale</aspectratio>
+						<texture background="true">$VAR[BNThumb]</texture>
+					</control>
+					<control type="label">
+						<left>76</left>
+						<top>10</top>
+						<width>600</width>
+						<height>40</height>
+						<font>font13</font>
+						<textcolor>FF101010</textcolor>
+						<scroll>true</scroll>
+						<label>[B]$INFO[ListItem.Label][/B]</label>
+					</control>
+					<control type="label">
+						<left>76</left>
+						<top>48</top>
+						<width>600</width>
+						<height>32</height>
+						<font>font10</font>
+						<textcolor>FF2A2618</textcolor>
+						<label>$VAR[BNRowMeta]</label>
+					</control>
+				</focusedlayout>
+			</control>
+			<control type="scrollbar" id="61">
+				<left>1864</left>
+				<top>100</top>
+				<width>8</width>
+				<height>900</height>
+				<onleft>60</onleft>
+				<texturesliderbackground colordiffuse="30FFFFFF">colors/white.png</texturesliderbackground>
+				<texturesliderbar colordiffuse="80E8BE5A">colors/white.png</texturesliderbar>
+				<texturesliderbarfocus colordiffuse="FFE8BE5A">colors/white.png</texturesliderbarfocus>
+				<orientation>vertical</orientation>
+				<showonepage>false</showonepage>
+			</control>
+			<control type="label">
+				<left>1160</left>
+				<top>1015</top>
+				<width>690</width>
+				<height>36</height>
+				<align>right</align>
+				<font>font10</font>
+				<textcolor>FF8C877D</textcolor>
+				<label>$INFO[Container(60).CurrentItem]$INFO[Container(60).NumItems, / ]</label>
+				<visible>Control.IsVisible(60)</visible>
+			</control>
+		</control>
+	</include>
+</includes>
