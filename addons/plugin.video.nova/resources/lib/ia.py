@@ -46,4 +46,13 @@ def files(identifier):
         f = best[base][1]
         out.append({'title': base.split('/')[-1], 'url': '%s/download/%s/%s' % (API, identifier, quote(f['name'])),
                     'size': int(f.get('size') or 0)})
+    md = m.get('metadata') or {}
+
+    def text(v):
+        v = v[0] if isinstance(v, list) and v else v
+        return re.sub(r'<[^>]+>', '', v) if isinstance(v, str) else ''
+    meta = {'title': text(md.get('title')), 'plot': text(md.get('description'))[:1500],
+            'year': (text(md.get('year')) or text(md.get('date')))[:4], 'genre': text(md.get('subject'))[:80]}
+    for o in out:
+        o['meta'] = meta
     return out

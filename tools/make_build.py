@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import sqlite3
+import sys
 import time
 import urllib.request
 import zipfile
@@ -96,6 +97,8 @@ def patch_guisettings(path):
     setv('videoplayer.autoplaynextitem', '0,1,2,3,4')      # continuous playback of episodes
     setv('subtitles.languages', 'Hebrew,English,Russian')
     setv('subtitles.charset', 'UTF-8')
+    # a new video starts without subtitles: they are chosen (or generated) for that video, never carried over
+    s = re.sub(r'<showsubtitles>\w+</showsubtitles>', '<showsubtitles>false</showsubtitles>', s)
     setv('locale.keyboardlayouts', 'Hebrew QWERTY|English QWERTY|Russian ЙЦУКЕН')
     with open(path, 'w', encoding='utf-8') as f:
         f.write(s)
@@ -250,6 +253,13 @@ def bn_skin(stage):
     open(var, 'w', encoding='utf-8').write(v)
 
 
+def ai_subs_buttons(stage):
+    """'AI Subtitle Generation' in every player style and in the subtitle window (shared with the service)"""
+    sys.path.insert(0, os.path.join(ROOT, 'addons', 'plugin.video.nova', 'resources', 'lib'))
+    import skinpatch
+    return skinpatch.apply(os.path.join(stage, 'addons', 'skin.fentastic', 'xml'))
+
+
 def provider_addons():
     ids = re.findall(r"^\s+\('[\w]+', '(plugin\.video\.[\w.\-]+)'", open(PROVIDERS_PY, encoding='utf-8').read(), re.M)
     st = json.load(open(STATUS_JSON, encoding='utf-8')) if os.path.exists(STATUS_JSON) else {}
@@ -352,6 +362,7 @@ def main():
     patch_skin_search(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     fix_startup(STAGE)
     bn_skin(STAGE)
+    ai_subs_buttons(STAGE)
     patch_pov_hub(STAGE)
     extra = add_providers(STAGE)
     preset_settings(STAGE)

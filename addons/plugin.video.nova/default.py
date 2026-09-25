@@ -7,7 +7,7 @@ import xbmcgui
 import xbmcplugin
 
 from resources.lib.common import (ADDON, T, tmdb, art, load, save, now_str, MEDIA, ui_lang)
-from resources.lib import accounts, iptv, radio, backup, libraries, providers, status
+from resources.lib import accounts, iptv, radio, backup, libraries, providers, status, sysupdate
 
 HANDLE = int(sys.argv[1])
 BASE = sys.argv[0]
@@ -120,6 +120,8 @@ def root():
     folder(T('accounts'), url(a='accounts'), icon('accounts'))
     folder(T('backup_menu'), url(a='bk_menu'), icon('backup'))
     folder(status.s('title'), url(a='status'), icon('accounts'))
+    folder('[B]%s[/B]' % sysupdate.s('title'), url(a='sysreport'), icon('accounts'),
+           plot=sysupdate.s('running'))
     end(cache=False)
 
 
@@ -420,6 +422,10 @@ def router(p):
         'prov_install_all': lambda: (providers.install_all(), refresh()),
         'hub_search': lambda: hub_search(p.get('q', '')),
         'status': lambda: status.listing(HANDLE),
+        'sysreport': lambda: sysupdate.listing(HANDLE, url),
+        'sysupdate': system_update,
+        'sysfix': lambda: (sysupdate.do_fix(p['id']), refresh()),
+        'ai_subs_now': ai_subs_now,
         'yt_channel': lambda: providers.yt_channel(HANDLE, url, p['id'], p.get('token', '')),
         'yt_search': lambda: providers.yt_search(HANDLE, p['q']),
         'ia_search': lambda: providers.ia_search(HANDLE, p['q']),
@@ -445,7 +451,20 @@ def router(p):
 
 
 ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'noop', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto',
-           'play', 'prov_toggle', 'prov_install_all'}
+           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now'}
+
+
+def system_update():
+    sysupdate.run()
+    xbmc.executebuiltin('Container.Update(%s)' % url(a='sysreport'))
+
+
+def ai_subs_now():
+    """AI Subtitle Generation button (player / subtitle window): the service does the work"""
+    if not xbmc.getCondVisibility('Player.HasVideo'):
+        return xbmcgui.Dialog().notification('NovaTV', T('ai_noplay'), xbmcgui.NOTIFICATION_WARNING, 4000)
+    xbmc.executebuiltin('Dialog.Close(subtitlesearch)')
+    xbmc.executebuiltin('NotifyAll(plugin.video.nova,ai_now)')
 
 
 def refresh():
@@ -469,3 +488,10 @@ if __name__ == '__main__':
             xbmcplugin.endOfDirectory(HANDLE, False)
         except Exception:
             pass
+    finally:
+        # Kodi crashes (access violation in python3.8.dll) when a plugin script ends while its worker threads
+        # (TMDb details, parallel source search) still run: let them finish first - the listing is already shown
+        import threading
+        for th in threading.enumerate():
+            if th is not threading.current_thread() and th.is_alive():
+                th.join(30)

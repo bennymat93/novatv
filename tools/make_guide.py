@@ -168,7 +168,13 @@ def sections(f):
 <h3>When BN starts</h3>
 <p>Once everything is up, a message says "BN Stream is ready", followed by a status table: every add-on with its version, every service (Real-Debrid, Trakt, IPTV, AI subtitles, Gemini, TMDb) and how much content is available: movies, series, live channels, radio stations, sources. You can open it any time from <b>System status</b> in the BN menu, and turn the start-up table off in the settings.</p>
 <h3>Subtitles before you watch</h3>
-<p>When a movie or episode starts, BN pauses it and checks for Hebrew subtitles. If there are none, it prepares AI subtitles for the first part and then starts playing (at most 4 minutes; pressing Play continues right away).</p>''', '''
+<p>When a movie or episode starts, BN pauses it and checks for Hebrew subtitles. If there are none, it prepares AI subtitles for the first part and then starts playing (at most 4 minutes; pressing Play continues right away).</p>
+<h3>AI Subtitle Generation button</h3>
+<p>In the player (next to "Search subtitles") and at the top of the subtitle window there is an <b>AI Subtitle Generation</b> button. It makes Hebrew AI subtitles for the video you are watching and switches to them, even when other subtitles are already on.</p>
+<h3>Every video starts clean</h3>
+<p>When a video ends, its subtitles and player settings are dropped. The next video starts with subtitles off: BN picks that video's own Hebrew subtitles, or you choose or generate new ones. Only "watched" is kept.</p>
+<h3>System Update</h3>
+<p><b>System Update</b> in the BN menu updates everything in one go: add-on repositories and updates, every source add-on, services and connections (Real-Debrid, Trakt, IPTV, AI subtitle server, Gemini, TMDb), TV channels and guide, radio servers and the content cache. At the end a report lists what was updated and every error. Each error has an <b>Auto-Fix</b> line right below it; "Auto-Fix all errors" repairs everything at once. Logins and keys still need you: Auto-Fix opens the right screen.</p>''', '''
 <p>BN היא האפליקציה היחידה שצריך. כל שאר תוספי הווידאו (POV, עידן+, YouTube, ארכיון האינטרנט, Dailymotion, Vimeo והספריות החינמיות) מנוהלים בתוך BN ועובדים כספרייה אחת גדולה.</p>
 <ul>
 <li><b>חיפוש בכל המקורות</b> (הפריט הראשון בתפריט BN, וגם כפתור החיפוש במסך הבית): חיפוש אחד רץ בכל המקורות בבת אחת, והתוצאות חוזרות ברשימה אחת מחולקת לפי מקור.</li>
@@ -182,7 +188,13 @@ def sections(f):
 <h3>כש-BN עולה</h3>
 <p>כשהכול מוכן מופיעה ההודעה "BN Stream מוכן לשימוש", ואחריה טבלת מצב: כל תוסף והגרסה שלו, כל שירות (Real-Debrid, Trakt, IPTV, כתוביות AI, Gemini, TMDb), וכמה תוכן זמין: סרטים, סדרות, ערוצים חיים, תחנות רדיו ומקורות. אפשר לפתוח אותה בכל רגע מ<b>מצב המערכת</b> בתפריט BN, ולכבות את הטבלה בעלייה דרך ההגדרות.</p>
 <h3>כתוביות לפני הצפייה</h3>
-<p>כשסרט או פרק מתחיל, BN עוצר אותו לרגע ובודק אם יש כתוביות בעברית. אם אין, הוא מכין כתוביות AI לחלק הראשון ורק אז מתחיל לנגן (עד 4 דקות לכל היותר; לחיצה על Play ממשיכה מיד).</p>'''))
+<p>כשסרט או פרק מתחיל, BN עוצר אותו לרגע ובודק אם יש כתוביות בעברית. אם אין, הוא מכין כתוביות AI לחלק הראשון ורק אז מתחיל לנגן (עד 4 דקות לכל היותר; לחיצה על Play ממשיכה מיד).</p>
+<h3>כפתור יצירת כתוביות AI</h3>
+<p>בנגן (ליד "חפש כתובית") ובראש חלון הכתוביות יש כפתור <b>יצירת כתוביות AI</b>. הוא יוצר כתוביות AI בעברית לסרטון שמתנגן ועובר אליהן, גם אם כבר מוצגות כתוביות אחרות.</p>
+<h3>כל סרטון מתחיל מחדש</h3>
+<p>כשסרטון מסתיים, הכתוביות והגדרות הנגן שלו נמחקות. הסרטון הבא מתחיל עם כתוביות כבויות: BN בוחר את הכתוביות בעברית של אותו סרטון, או שבוחרים או יוצרים חדשות. נשמר רק הסימון "נצפה".</p>
+<h3>עדכון מערכת</h3>
+<p><b>עדכון מערכת</b> בתפריט BN מעדכן הכול בבת אחת: מאגרי תוספים ועדכונים, כל תוספי המקורות, שירותים וחיבורים (Real-Debrid, Trakt, IPTV, שרת כתוביות AI, Gemini, TMDb), ערוצי טלוויזיה ומדריך שידורים, שרתי רדיו ומטמון התוכן. בסוף מוצג דוח עם מה שעודכן וכל שגיאה. מתחת לכל שגיאה יש שורת <b>תיקון אוטומטי</b>, ו"תקן את כל השגיאות" מתקן הכול בבת אחת. כניסות לחשבונות ומפתחות עדיין דורשים אתכם: התיקון פותח את המסך המתאים.</p>'''))
     S.append(('tv', 'TV channels', 'ערוצי טלוויזיה', '''
 <p>Free lists from the iptv-org community index: {free}. Switched off by default (large): {off}. Turn lists on or off under Accounts &rarr; IPTV.</p>
 <p>Channels that are confirmed dead (HTTP 404) are filtered out automatically. Channels are grouped (Israel, News, Movies, Kids, Sport, Documentary, Music, Russian, Other). Some free channels are geo-blocked or change often; if one does not play, try another.</p>'''.format(free=html.escape(free_en), off=html.escape(off_en)), '''

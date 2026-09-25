@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """NovaTV background service:
  * watch history with date + time for every played item
- * AI Hebrew subtitles when no Hebrew subtitle was found
+ * AI Hebrew subtitles when no Hebrew subtitle was found, or on request (player button)
+ * every new video starts clean (no subtitles / settings carried over; only 'watched' is kept)
  * periodic IPTV merge
  * open NovaTV on start
 """
 import os
+import re
 import threading
 import time
 from urllib.parse import urlencode
@@ -25,26 +27,283 @@ def status(text):
     WIN.setProperty('NovaTV.AISubs', text)
 
 
+def forget_file_settings(path):
+    """Kodi remembers subtitle/audio track, delays, zoom ... per file (MyVideos 'settings' table).
+    Drop them for a played stream so the next start of any video begins clean (history/watched are kept)."""
+    import glob
+    import sqlite3
+    import xbmcvfs
+    dbs = sorted(glob.glob(os.path.join(xbmcvfs.translatePath('special://database/'), 'MyVideos*.db')),
+                 key=lambda f: int(re.sub(r'\D', '', os.path.basename(f)) or 0))
+    if not dbs or not path:
+        return 0
+    con = sqlite3.connect(dbs[-1], timeout=10)
+    try:
+        cur = con.execute("DELETE FROM settings WHERE idFile IN (SELECT files.idFile FROM files JOIN path ON "
+                          "files.idPath = path.idPath WHERE path.strPath || files.strFilename = ? OR files.strFilename = ?)",
+                          (path, path))
+        con.commit()
+        return cur.rowcount
+    finally:
+        con.close()
+
+
+class Flow:
+    """Subtitles for ONE video. A flow never touches a later video: every step checks it still owns the player."""
+
+    def __init__(self, player, forced):
+        self.p = player
+        self.gen = player.gen
+        self.file = player.file
+        self.forced = forced
+        self.cancelled = False
+        self.held = False
+        self.held_at = 0
+        self.bar = None
+
+    def same_video(self):
+        return self.gen == self.p.gen and self.p.active
+
+    def alive(self):
+        return self.same_video() and not self.cancelled
+
+    # ------------------------------------------------------------ "subtitles ready before watching"
+    def hold(self):
+        """pause at the start while Hebrew subtitles are prepared (setting ai_prepare)"""
+        if not xbmc.getCondVisibility('Player.Paused'):
+            self.p.pause()
+        self.held, self.held_at = True, time.time()
+        self.bar = xbmcgui.DialogProgressBG()
+        self.bar.create('NovaTV', T('sub_check'))
+
+    def still_held(self):
+        """the viewer pressing Play ends the hold; never hold longer than 4 min"""
+        if self.held and (not xbmc.getCondVisibility('Player.Paused') or time.time() - self.held_at > 240):
+            self.release()
+        return self.held
+
+    def release(self):
+        if self.bar:
+            try:
+                self.bar.close()
+            except Exception:
+                pass
+            self.bar = None
+        if self.held:
+            self.held = False
+            # only un-pause the video we paused - never the next one
+            if self.same_video() and xbmc.getCondVisibility('Player.Paused'):
+                self.p.pause()
+
+    def run(self):
+        try:
+            self._run()
+        except RuntimeError as e:          # playback ended while we were still reading it: nothing to do
+            log('subtitles: playback ended (%s)' % e)
+        except Exception as e:
+            log('subtitles: %s' % e, xbmc.LOGWARNING)
+        finally:
+            self.release()
+            if self.p.flow is self and not self.alive():
+                status('')
+
+    def _run(self):
+        p, mon = self.p, xbmc.Monitor()
+        if xbmc.getCondVisibility('PVR.IsPlayingTV | PVR.IsPlayingRadio | VideoPlayer.Content(livetv)'):
+            if self.forced:
+                xbmcgui.Dialog().notification('NovaTV', T('ai_nolive'), xbmcgui.NOTIFICATION_WARNING, 4000)
+            return                                   # live TV: no end, nothing to transcribe ahead
+        path = self.file
+        network = path.startswith(('http://', 'https://'))
+        use_ai = self.forced or ADDON.getSettingBool('ai_subs')
+        if not self.forced:
+            kind = p.getVideoInfoTag().getMediaType()
+            # pause only films and episodes; clips (YouTube, Archive extras) just start
+            if use_ai and network and kind in ('movie', 'episode') and ADDON.getSettingBool('ai_prepare'):
+                self.hold()
+            # this video's own Hebrew track or a human Hebrew subtitle (All_Subs) gets the first chance
+            wait = int(ADDON.getSetting('ai_wait') or 25)
+            for i in range(wait * 2):
+                if mon.waitForAbort(0.5) or not self.alive():
+                    return
+                if p.has_hebrew():
+                    return
+                if self.bar:
+                    self.bar.update(int(i * 50 / (wait * 2)), 'NovaTV', T('sub_check'))
+                self.still_held()
+            if not use_ai or not self.alive():
+                return
+        if not network:
+            log('AI subs: not a network stream (%s)' % path[:60])
+            if self.forced:
+                xbmcgui.Dialog().notification('NovaTV', T('ai_nonet'), xbmcgui.NOTIFICATION_WARNING, 5000)
+            return
+        import requests
+        discover_server()                       # re-find the PC if its address changed
+        base = ADDON.getSetting('sub_server').rstrip('/')
+        tag = p.getVideoInfoTag()
+        job = {'url': path, 'title': tag.getTVShowTitle() or tag.getTitle(), 'season': tag.getSeason(),
+               'episode': tag.getEpisode(), 'imdb': tag.getIMDBNumber(), 'tmdb': tag.getUniqueID('tmdb'),
+               'position': p.getTime(), 'gemini_key': ADDON.getSetting('gemini_key')}
+        try:
+            r = requests.post(base + '/jobs', json=job, timeout=10)
+            r.raise_for_status()
+            job_id = r.json()['id']
+        except Exception as e:
+            log('AI subs server: %s' % e, xbmc.LOGWARNING)
+            xbmcgui.Dialog().notification('NovaTV', T('ai_noserver'), xbmcgui.NOTIFICATION_WARNING, 5000)
+            return
+        xbmcgui.Dialog().notification('NovaTV', T('ai_forced') if self.forced else T('ai_start'),
+                                      xbmcgui.NOTIFICATION_INFO, 5000)
+        status('%s 0%%' % T('ai_progress'))
+        loaded_upto, last_note, down_since, warned = -1.0, 0, 0, False
+        srt_path = os.path.join(PROFILE, 'ai_%s.he.srt' % job_id)
+        while self.alive() and not mon.abortRequested():
+            try:
+                r = requests.get('%s/jobs/%s' % (base, job_id), timeout=10)
+                if r.status_code == 404:        # server restarted: hand the job over again (it resumes)
+                    job['position'] = p.getTime() if self.alive() else job['position']
+                    r = requests.post(base + '/jobs', json=job, timeout=10)
+                st = r.json()
+                down_since, warned = 0, False
+            except Exception:
+                down_since = down_since or time.time()
+                if time.time() - down_since > 120 and not warned:
+                    xbmcgui.Dialog().notification('NovaTV', T('ai_noserver'), xbmcgui.NOTIFICATION_WARNING, 5000)
+                    warned = True
+                    discover_server()
+                    base = ADDON.getSetting('sub_server').rstrip('/')
+                if mon.waitForAbort(5):
+                    return
+                continue
+            pct = int(st.get('progress', 0))
+            status('%s %d%%' % (T('ai_progress'), pct))
+            now = time.time()
+            if now - last_note > 60 and st.get('state') != 'done':
+                xbmcgui.Dialog().notification(T('ai_progress'), '%d%% · %s' % (pct, st.get('stage', '')),
+                                              xbmcgui.NOTIFICATION_INFO, 3000, False)
+                last_note = now
+            ready = float(st.get('ready_until', 0))
+            done = st.get('state') == 'done'
+            if self.still_held() and self.bar:
+                self.bar.update(50 + min(49, pct // 2), 'NovaTV', '%s %d%%' % (T('ai_prepare'), pct))
+            # load the first part as soon as it exists, then again for every meaningful new chunk and at the end
+            first = loaded_upto < 0 and ready > 0
+            if first or ready - loaded_upto >= 120 or (done and ready > loaded_upto):
+                try:
+                    data = requests.get('%s/jobs/%s/srt' % (base, job_id), timeout=20).content
+                    if not self.alive():
+                        return
+                    with open(srt_path, 'wb') as f:
+                        f.write(data)
+                    p.setSubtitles(srt_path)      # adds the file and makes it the active track
+                    p.showSubtitles(True)
+                    log('AI subtitles loaded up to %ds (%s)' % (ready, 'button' if self.forced else 'auto'))
+                    loaded_upto = ready
+                    if self.still_held() and (done or ready >= job['position'] + 120):
+                        self.release()      # the first part is subtitled: start watching
+                except Exception as e:
+                    log('AI subs load: %s' % e, xbmc.LOGWARNING)
+            if done:
+                status('')
+                xbmcgui.Dialog().notification('NovaTV', T('ai_ready'), xbmcgui.NOTIFICATION_INFO, 4000)
+                return
+            if st.get('state') == 'error':
+                status('')
+                xbmcgui.Dialog().notification('NovaTV', '%s: %s' % (T('error'), st.get('error', '')[:80]),
+                                              xbmcgui.NOTIFICATION_ERROR, 6000)
+                return
+            if mon.waitForAbort(5):
+                return
+
+
 class Player(xbmc.Player):
+    """Every new video starts clean: no subtitles, pause, job or status left over from the previous one.
+    Only the history ('watched') is carried over."""
+
     def __init__(self):
         super().__init__()
-        self.session = 0
+        self.gen = 0            # bumped on every start/end: flows of an older video stop by themselves
+        self.file = ''
+        self.active = False
+        self.flow = None
+        self.lock = threading.Lock()
+
+    def playing_file(self):
+        try:
+            return self.getPlayingFile() if self.isPlayingVideo() else ''
+        except RuntimeError:
+            return ''
 
     def onAVStarted(self):
-        self.session += 1
-        sid = self.session
+        path = self.playing_file()
+        if not path:
+            return
+        if self.active and path == self.file:
+            return          # the same video announced again (stream switch): keep what the viewer chose
+        self.begin(path)
         try:
             self.record_history()
         except Exception as e:
             log('history: %s' % e, xbmc.LOGWARNING)
-        if self.isPlayingVideo() and ADDON.getSettingBool('ai_subs'):
-            threading.Thread(target=self.subtitle_flow, args=(sid,), daemon=True).start()
+        self.start_flow(forced=False)
+
+    def begin(self, path):
+        with self.lock:
+            if self.flow:
+                self.flow.cancelled = True
+            self.gen += 1
+            self.file, self.active, self.flow = path, True, None
+        status('')
+        try:
+            self.showSubtitles(False)      # subtitles must be chosen (or generated) for THIS video
+        except RuntimeError:
+            pass
+
+    def finish(self):
+        with self.lock:
+            if self.flow:
+                self.flow.cancelled = True
+            self.gen += 1
+            ended, self.file, self.active, self.flow = self.file, '', False, None
+        status('')
+        if ended.startswith(('http://', 'https://')):
+            # Kodi stores the file's settings right after the stop: clear them once it has
+            def later():
+                xbmc.Monitor().waitForAbort(6)
+                try:
+                    n = forget_file_settings(ended)
+                    if n:
+                        log('cleared %d stored player setting(s) of the last video' % n)
+                except Exception as e:
+                    log('player settings reset: %s' % e, xbmc.LOGWARNING)
+            threading.Thread(target=later, daemon=True).start()
 
     def onPlayBackStopped(self):
-        self.session += 1
-        status('')
+        self.finish()
 
     onPlayBackEnded = onPlayBackStopped
+    onPlayBackError = onPlayBackStopped
+
+    def start_flow(self, forced):
+        with self.lock:
+            if self.flow:
+                self.flow.cancelled = True
+            flow = self.flow = Flow(self, forced)
+        threading.Thread(target=flow.run, daemon=True).start()
+
+    def ai_now(self):
+        """'AI subtitles' button: generate Hebrew AI subtitles for this video, even when others exist"""
+        path = self.playing_file()
+        log('AI subtitles requested for %s' % path[:80])
+        if not path:
+            xbmcgui.Dialog().notification('NovaTV', T('ai_noplay'), xbmcgui.NOTIFICATION_WARNING, 4000)
+            return
+        if not (self.active and path == self.file):     # started before the service was running
+            with self.lock:
+                self.gen += 1
+                self.file, self.active = path, True
+        self.start_flow(forced=True)
 
     # ------------------------------------------------------------ history
     def record_history(self):
@@ -72,6 +331,7 @@ class Player(xbmc.Player):
 
     # ------------------------------------------------------------ subtitles
     def has_hebrew(self):
+        """a Hebrew track of the playing video (embedded, or added by All_Subs) -> make it the active one"""
         active = (xbmc.getInfoLabel('VideoPlayer.SubtitlesLanguage') or '').lower()
         if xbmc.getCondVisibility('VideoPlayer.SubtitlesEnabled') and active in HEB_CODES:
             return True
@@ -82,146 +342,32 @@ class Player(xbmc.Player):
                 return True
         return False
 
-    # ------------------------------------------------------------ "subtitles ready before watching"
-    def hold(self):
-        """pause at the start while Hebrew subtitles are prepared (setting ai_prepare)"""
-        if not xbmc.getCondVisibility('Player.Paused'):
-            self.pause()
-        self._held = True
-        self._held_at = time.time()
-        self._bar = xbmcgui.DialogProgressBG()
-        self._bar.create('NovaTV', T('sub_check'))
 
-    def held(self):
-        """still holding? the viewer pressing Play ends the hold"""
-        if getattr(self, '_held', False) and (not xbmc.getCondVisibility('Player.Paused')
-                                              or time.time() - self._held_at > 240):   # never hold longer than 4 min
-            self.release()
-        return getattr(self, '_held', False)
+class Monitor(xbmc.Monitor):
+    """NotifyAll(plugin.video.nova,ai_now) from the player's AI button / NovaTV"""
 
-    def release(self):
-        if getattr(self, '_bar', None):
-            try:
-                self._bar.close()
-            except Exception:
-                pass
-            self._bar = None
-        if getattr(self, '_held', False):
-            self._held = False
-            if xbmc.getCondVisibility('Player.Paused'):
-                self.pause()
+    def __init__(self, player):
+        super().__init__()
+        self.player = player
 
-    def subtitle_flow(self, sid):
-        try:
-            self._subtitle_flow(sid)
-        except RuntimeError as e:          # playback ended while we were still reading it: nothing to do
-            log('AI subs: playback ended (%s)' % e)
-        finally:
-            self.release()
-
-    def _subtitle_flow(self, sid):
-        mon = xbmc.Monitor()
-        wait = int(ADDON.getSetting('ai_wait') or 25)
-        path = self.getPlayingFile() if self.isPlayingVideo() else ''
-        if xbmc.getCondVisibility('PVR.IsPlayingTV | PVR.IsPlayingRadio | VideoPlayer.Content(livetv)'):
-            return                                   # live TV: no end, nothing to transcribe ahead
-        network = path.startswith(('http://', 'https://'))
-        kind = self.getVideoInfoTag().getMediaType()
-        # pause only films and episodes; clips (YouTube, Archive extras) just start
-        if network and kind in ('movie', 'episode') and ADDON.getSettingBool('ai_prepare'):
-            self.hold()
-        # give embedded tracks + All_Subs (human Hebrew) the first chance
-        for i in range(wait * 2):
-            if mon.waitForAbort(0.5) or sid != self.session:
-                return
-            if self.has_hebrew():
-                return
-            if getattr(self, '_bar', None):
-                self._bar.update(int(i * 50 / (wait * 2)), 'NovaTV', T('sub_check'))
-        if sid != self.session or not self.isPlayingVideo():
-            return
-        if not network:
-            log('AI subs: not a network stream (%s)' % path[:60])
-            return
-        import requests
-        discover_server()                       # re-find the PC if its address changed
-        base = ADDON.getSetting('sub_server').rstrip('/')
-        tag = self.getVideoInfoTag()
-        job = {'url': path, 'title': tag.getTVShowTitle() or tag.getTitle(), 'season': tag.getSeason(),
-               'episode': tag.getEpisode(), 'imdb': tag.getIMDBNumber(), 'tmdb': tag.getUniqueID('tmdb'),
-               'position': self.getTime(), 'gemini_key': ADDON.getSetting('gemini_key')}
-        try:
-            r = requests.post(base + '/jobs', json=job, timeout=10)
-            r.raise_for_status()
-            job_id = r.json()['id']
-        except Exception as e:
-            log('AI subs server: %s' % e, xbmc.LOGWARNING)
-            xbmcgui.Dialog().notification('NovaTV', T('ai_noserver'), xbmcgui.NOTIFICATION_WARNING, 5000)
-            return
-        xbmcgui.Dialog().notification('NovaTV', T('ai_start'), xbmcgui.NOTIFICATION_INFO, 5000)
-        loaded_upto, last_note, down_since, warned = 0.0, 0, 0, False
-        srt_path = os.path.join(PROFILE, 'ai_%s.he.srt' % job_id)
-        while sid == self.session and not mon.abortRequested():
-            try:
-                r = requests.get('%s/jobs/%s' % (base, job_id), timeout=10)
-                if r.status_code == 404:        # server restarted: hand the job over again (it resumes)
-                    job['position'] = self.getTime() if self.isPlayingVideo() else job['position']
-                    r = requests.post(base + '/jobs', json=job, timeout=10)
-                st = r.json()
-                down_since, warned = 0, False
-            except Exception:
-                down_since = down_since or time.time()
-                if time.time() - down_since > 120 and not warned:
-                    xbmcgui.Dialog().notification('NovaTV', T('ai_noserver'), xbmcgui.NOTIFICATION_WARNING, 5000)
-                    warned = True
-                    discover_server()
-                    base = ADDON.getSetting('sub_server').rstrip('/')
-                if mon.waitForAbort(5):
-                    return
-                continue
-            pct = int(st.get('progress', 0))
-            status('%s %d%%' % (T('ai_progress'), pct))
-            now = time.time()
-            if now - last_note > 60 and st.get('state') != 'done':
-                xbmcgui.Dialog().notification(T('ai_progress'), '%d%% · %s' % (pct, st.get('stage', '')),
-                                              xbmcgui.NOTIFICATION_INFO, 3000, False)
-                last_note = now
-            ready = float(st.get('ready_until', 0))
-            done = st.get('state') == 'done'
-            if self.held():
-                bar = getattr(self, '_bar', None)
-                if bar:
-                    bar.update(50 + min(49, pct // 2), 'NovaTV', '%s %d%%' % (T('ai_prepare'), pct))
-            # (re)load when a meaningful new chunk is ready or when finished
-            if ready - loaded_upto >= 120 or (done and ready > loaded_upto):
-                try:
-                    data = requests.get('%s/jobs/%s/srt' % (base, job_id), timeout=20).content
-                    with open(srt_path, 'wb') as f:
-                        f.write(data)
-                    self.setSubtitles(srt_path)
-                    self.showSubtitles(True)
-                    loaded_upto = ready
-                    if self.held() and (done or ready >= job['position'] + 120):
-                        self.release()      # the first part is subtitled: start watching
-                except Exception as e:
-                    log('AI subs load: %s' % e, xbmc.LOGWARNING)
-            if done:
-                status('')
-                xbmcgui.Dialog().notification('NovaTV', T('ai_ready'), xbmcgui.NOTIFICATION_INFO, 4000)
-                return
-            if st.get('state') == 'error':
-                status('')
-                xbmcgui.Dialog().notification('NovaTV', '%s: %s' % (T('error'), st.get('error', '')[:80]),
-                                              xbmcgui.NOTIFICATION_ERROR, 6000)
-                return
-            if mon.waitForAbort(5):
-                return
+    def onNotification(self, sender, method, data):
+        if sender == 'plugin.video.nova' and method.endswith('ai_now'):
+            threading.Thread(target=self.player.ai_now, daemon=True).start()
 
 
 def main():
-    mon = xbmc.Monitor()
-    threading.Thread(target=discover_server, daemon=True).start()
     player = Player()
+    mon = Monitor(player)
+    try:        # boxes updated from the repository: add the AI subtitle button to the installed skin once
+        import xbmcvfs
+        from resources.lib import skinpatch
+        skin_xml = xbmcvfs.translatePath('special://home/addons/skin.fentastic/xml')
+        if os.path.isdir(skin_xml) and skinpatch.apply(skin_xml):
+            log('AI subtitle button added to the skin')
+            xbmc.executebuiltin('ReloadSkin()')
+    except Exception as e:
+        log('skin button: %s' % e, xbmc.LOGWARNING)
+    threading.Thread(target=discover_server, daemon=True).start()
     if ADDON.getSettingBool('open_on_start'):
         xbmc.sleep(2500)
         xbmc.executebuiltin('ActivateWindow(Videos,plugin://plugin.video.nova/,return)')
@@ -259,10 +405,13 @@ def main():
         try:
             import json as _json
             start = time.time()
-            while not mon.abortRequested() and time.time() - start < 180:
+            # a first start installs the TV add-on and loads channels (~2-5 min): announce after that,
+            # so the table never shows "0 channels" just because it was too early
+            while not mon.abortRequested() and time.time() - start < 420:
                 r = _json.loads(xbmc.executeJSONRPC(_json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'PVR.GetChannels',
                                                                 'params': {'channelgroupid': 'alltv'}})))
-                if (r.get('result') or {}).get('channels') and time.time() - start > 20:
+                busy = WIN.getProperty('NovaTV.iptv_busy') == '1'
+                if (r.get('result') or {}).get('channels') and not busy and time.time() - start > 20:
                     break
                 if mon.waitForAbort(5):
                     return

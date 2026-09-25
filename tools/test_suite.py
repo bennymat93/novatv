@@ -47,6 +47,14 @@ def check(name, fn):
         RESULTS.append((name, ok, '' if detail in (True, None) else str(detail), time.time() - t))
     except Exception as e:
         RESULTS.append((name, False, repr(e)[:160], time.time() - t))
+    try:
+        rpc('JSONRPC.Ping', timeout=10)
+    except Exception:
+        # Kodi died: record it as its own failure (with the dump), then restart so the rest still gets tested
+        dumps = sorted(glob.glob(os.path.join(DATA, '*.dmp')), key=os.path.getmtime)
+        RESULTS.append(('KODI CRASHED during: ' + name, False, os.path.basename(dumps[-1]) if dumps else 'no dump', 0))
+        kill_kodi()
+        start_kodi()
 
 
 def expect(cond, msg):
@@ -143,10 +151,11 @@ def t_branding():
 
 def t_root():
     items = ls(NOVA)
-    expect(len(items) == 11, '%d root items' % len(items))
+    expect(len(items) == 12, '%d root items' % len(items))
     expect('a=hub_search' in items[0]['file'], 'first item is search-all')
-    expect('a=status' in items[-1]['file'], 'system status item missing')
-    return '11 items, search-all first, system status last'
+    expect('a=status' in items[-2]['file'], 'system status item missing')
+    expect('a=sysreport' in items[-1]['file'], 'System Update item missing')
+    return '12 items, search-all first, system status + System Update last'
 
 
 def t_movies_lists():
@@ -282,8 +291,8 @@ def t_ai_server():
     return '%s / %s, accounts row connected' % (h['device'], h['model'])
 
 
-def t_ai_subs_end_to_end():
-    """a network video without Hebrew subtitles -> Kodi asks the PC server -> Hebrew subtitles appear"""
+def media_server():
+    """serves test/ like a real stream server (byte ranges)"""
     import http.server
     import threading
     folder = os.path.join(ROOT, 'test')
@@ -329,6 +338,12 @@ def t_ai_subs_end_to_end():
                         pass
     httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 8799), Ranged)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd
+
+
+def t_ai_subs_end_to_end():
+    """a network video without Hebrew subtitles -> Kodi asks the PC server -> Hebrew subtitles appear"""
+    httpd = media_server()
     try:
         for f in glob.glob(os.path.join(ROOT, 'server', 'cache', 'u*.json')):
             os.remove(f)                         # force a real transcription, not the cache
@@ -354,11 +369,187 @@ def t_ai_subs_end_to_end():
         httpd.shutdown()
 
 
+def _player():
+    pl = rpc('Player.GetActivePlayers').get('result') or []
+    return pl[0]['playerid'] if pl else None
+
+
+def _stop_all():
+    for p in rpc('Player.GetActivePlayers').get('result') or []:
+        rpc('Player.Stop', playerid=p['playerid'])
+    time.sleep(3)
+
+
+def _wait_playing(secs=60):
+    for _ in range(secs * 2):
+        pid = _player()
+        if pid is not None:
+            t = rpc('Player.GetProperties', playerid=pid, properties=['time'])['result']['time']
+            if t.get('seconds', 0) + t.get('minutes', 0) > 0:
+                return pid
+        time.sleep(0.5)
+    return None
+
+
+def t_subs_reset_between_videos():
+    """video 1 has subtitles on; after it ends, video 2 starts WITHOUT them (nothing carried over)"""
+    httpd = media_server()
+    try:
+        rpc('Player.Open', item={'file': 'http://127.0.0.1:8799/test_ru.mp4'})
+        pid = _wait_playing()
+        expect(pid is not None, 'video 1 did not play')
+        r = rpc('Player.AddSubtitle', playerid=pid, subtitle=os.path.join(ROOT, 'test', 'test_ru.he.srt'))
+        expect('error' not in r, 'AddSubtitle: %s' % r.get('error'))
+        rpc('Player.SetSubtitle', playerid=pid, subtitle='on')
+        time.sleep(2)
+        on1 = rpc('Player.GetProperties', playerid=pid, properties=['subtitleenabled'])['result']['subtitleenabled']
+        expect(on1, 'could not switch subtitles on for video 1')
+        _stop_all()
+        rpc('Player.Open', item={'file': 'http://127.0.0.1:8799/test_ru_long.mp4'})
+        pid = _wait_playing()
+        expect(pid is not None, 'video 2 did not play')
+        time.sleep(1.5)
+        pr = rpc('Player.GetProperties', playerid=pid, properties=['subtitleenabled', 'subtitles'])['result']
+        _stop_all()
+        expect(not pr['subtitleenabled'], 'video 2 started with the subtitles of video 1')
+        expect(not any('test_ru' in (x.get('name') or '') for x in pr.get('subtitles', [])), 'subtitle file of video 1 still loaded')
+        return 'video 1 subtitles on -> video 2 starts clean (%d own tracks, off)' % len(pr.get('subtitles', []))
+    finally:
+        httpd.shutdown()
+
+
+def t_ai_button():
+    """AI Subtitle Generation button: AI Hebrew subtitles replace the subtitles already showing"""
+    httpd = media_server()
+    prof = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova')
+    try:
+        rpc('Player.Open', item={'file': 'http://127.0.0.1:8799/test_ru_long.mp4'})
+        pid = _wait_playing()
+        expect(pid is not None, 'video did not play')
+        time.sleep(8)                           # let the automatic flow settle first
+        for f in glob.glob(os.path.join(prof, 'ai_*.he.srt')):
+            os.remove(f)
+        rpc('Player.AddSubtitle', playerid=pid, subtitle=os.path.join(ROOT, 'test', 'test_ru.he.srt'))
+        rpc('Player.SetSubtitle', playerid=pid, subtitle='on')
+        time.sleep(2)
+        before = rpc('Player.GetProperties', playerid=pid, properties=['currentsubtitle'])['result']['currentsubtitle']
+        expect((before or {}).get('name', '').startswith('test_ru'), 'the human subtitle was not active first: %s' % before)
+        # exactly what the skin button runs: RunPlugin(...?a=ai_subs_now) -> NotifyAll -> service
+        rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=ai_subs_now', wait=False)
+        got, seen = '', []
+        for _ in range(60):
+            time.sleep(1)
+            pr = rpc('Player.GetProperties', playerid=pid, properties=['subtitleenabled', 'subtitles', 'currentsubtitle'])['result']
+            seen.append(pr)
+            cur = (pr.get('currentsubtitle') or {}).get('name') or ''
+            if glob.glob(os.path.join(prof, 'ai_*.he.srt')) and pr['subtitleenabled'] and cur.startswith('ai_'):
+                got = 'active subtitle switched from test_ru (human) to %s' % cur.split(' ')[0]
+                break
+        _stop_all()
+        expect(got, 'the AI button did not load AI subtitles over the existing ones: %s' % seen[-1:])
+        return got
+    finally:
+        httpd.shutdown()
+
+
+
+def t_subs_reset_next_episode():
+    """autoplay of the next item (no stop in between, like the next episode): it starts clean too"""
+    httpd = media_server()
+    try:
+        rpc('Playlist.Clear', playlistid=1)
+        for f in ('test_ru.mp4', 'test_ru_long.mp4'):
+            rpc('Playlist.Add', playlistid=1, item={'file': 'http://127.0.0.1:8799/' + f})
+        rpc('Player.Open', item={'playlistid': 1, 'position': 0})
+        pid = _wait_playing()
+        expect(pid is not None, 'item 1 did not play')
+        rpc('Player.AddSubtitle', playerid=pid, subtitle=os.path.join(ROOT, 'test', 'test_ru.he.srt'))
+        rpc('Player.SetSubtitle', playerid=pid, subtitle='on')
+        time.sleep(2)
+        expect(rpc('Player.GetProperties', playerid=pid, properties=['subtitleenabled'])['result']['subtitleenabled'], 'subtitles not on for item 1')
+        rpc('Player.GoTo', playerid=pid, to='next')
+        pr = None
+        for _ in range(60):
+            time.sleep(0.5)
+            pid = _player()
+            if pid is None:
+                continue
+            it = rpc('Player.GetItem', playerid=pid, properties=['file'])['result']['item']
+            if 'test_ru_long' in (it.get('file') or '') and _wait_playing(20) is not None:
+                time.sleep(1.5)
+                pr = rpc('Player.GetProperties', playerid=pid, properties=['subtitleenabled', 'subtitles'])['result']
+                break
+        _stop_all()
+        rpc('Playlist.Clear', playlistid=1)
+        expect(pr, 'item 2 did not start')
+        expect(not pr['subtitleenabled'], 'item 2 kept the subtitles of item 1')
+        expect(not any('test_ru (' in (x.get('name') or '') for x in pr['subtitles']), 'subtitle file of item 1 still loaded')
+        return 'next item starts clean (subtitles off, previous file gone)'
+    finally:
+        httpd.shutdown()
+
+
+def t_ai_button_idle():
+    """the AI button with nothing playing: a message, no error"""
+    _stop_all()
+    logf = os.path.join(DATA, 'kodi.log')
+    n0 = len(open(logf, encoding='utf-8', errors='ignore').read())
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=ai_subs_now', wait=False)
+    time.sleep(6)
+    new = open(logf, encoding='utf-8', errors='ignore').read()[n0:]
+    expect('Traceback' not in new, 'traceback: %s' % new[new.find('Traceback'):][:200])
+    expect(not rpc('Player.GetActivePlayers')['result'], 'something started playing')
+    return 'no player, no error'
+
+
+def t_system_update():
+    """System Update: every part refreshed, report with Auto-Fix under each error, the fix works"""
+    prof = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova')
+    rep_file = os.path.join(prof, 'sysupdate.json')
+    victim = 'plugin.video.idanplus'
+    rpc('Addons.SetAddonEnabled', addonid=victim, enabled=False)      # a real error for the report to find
+    t0 = time.time()
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=sysupdate', wait=False)
+    rep = None
+    for _ in range(200):
+        time.sleep(3)
+        if os.path.exists(rep_file) and os.path.getmtime(rep_file) > t0:
+            rep = json.load(open(rep_file, encoding='utf-8'))
+            break
+    expect(rep, 'no System Update report')
+    ids = [r['id'] for r in rep['rows']]
+    for need in ('internet', 'repos', 'addon:plugin.video.pov', 'svc:server', 'iptv', 'pvr', 'radio', 'cache'):
+        expect(need in ids, 'report misses %s' % need)
+    bad = {r['id']: r for r in rep['rows'] if r['ok'] is False}
+    expect('addon:' + victim in bad, 'disabled add-on not reported')
+    time.sleep(3)
+    rows = ls(NOVA + '?a=sysreport')
+    labels = [r['label'] for r in rows]
+    fixes = [i for i, l in enumerate(labels) if 'Auto-Fix' in l or 'תיקון אוטומטי' in l]
+    expect(len(fixes) >= len(bad), '%d errors but %d Auto-Fix entries' % (len(bad), len(fixes)))
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=sysfix&id=addon:' + victim, wait=False)
+    en = False
+    for _ in range(40):
+        time.sleep(2)
+        en = rpc('Addons.GetAddonDetails', addonid=victim, properties=['enabled'])['result']['addon']['enabled']
+        if en:
+            break
+    rpc('Addons.SetAddonEnabled', addonid=victim, enabled=True)
+    expect(en, 'Auto-Fix did not re-enable %s' % victim)
+    time.sleep(3)
+    rep2 = json.load(open(rep_file, encoding='utf-8'))
+    fixed = next(r for r in rep2['rows'] if r['id'] == 'addon:' + victim)
+    expect(fixed['ok'], 'report not updated after the fix')
+    repos = next(r for r in rep['rows'] if r['id'] == 'repos')
+    return '%d parts, %d errors (%s), Auto-Fix fixed %s; %s' % (len(rep['rows']), len(bad), ', '.join(sorted(bad))[:80],
+                                                               victim, repos['detail'][:60])
+
+
 def t_log_errors():
     log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
     ours = [l for l in log.splitlines() if ('NovaTV' in l or 'plugin.video.nova' in l or 'NovaWizard' in l)
             and (' error ' in l.lower() or 'Traceback' in l)
-            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install|play|prov_toggle|prov_install_all)', l)]
+            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install|play|prov_toggle|prov_install_all|sysupdate|sysfix|ai_subs_now)', l)]
     expect(not ours, '%d errors from our add-ons: %s' % (len(ours), ours[:2]))
     return 'no errors from BN add-ons'
 
@@ -658,7 +849,10 @@ TESTS = [
     ('POV -> other sources fallback', t_pov_fallback),
     ('Startup log clean', t_startup_clean), ('Startup ready message + status', t_startup_status),
     ('AI subtitle server', t_ai_server), ('AI Hebrew subtitles end-to-end', t_ai_subs_end_to_end),
-    ('Subtitles ready before playing', t_subs_before_play), ('Kodi log clean', t_log_errors),
+    ('Subtitles ready before playing', t_subs_before_play),
+    ('Subtitles reset between videos', t_subs_reset_between_videos), ('AI Subtitle Generation button', t_ai_button),
+    ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
+    ('System Update + Auto-Fix', t_system_update), ('Kodi log clean', t_log_errors),
 ]
 
 
@@ -678,9 +872,10 @@ def main():
         install(a.version)
     start_kodi()
     for name, fn in TESTS:
+        k = len(RESULTS)
         check(name, fn)
-        n, ok, detail, dt = RESULTS[-1]
-        print('%-4s %-36s %5.1fs  %s' % ('PASS' if ok else 'FAIL', n, dt, detail), flush=True)
+        for n, ok, detail, dt in RESULTS[k:]:
+            print('%-4s %-36s %5.1fs  %s' % ('PASS' if ok else 'FAIL', n, dt, detail), flush=True)
     passed = sum(1 for r in RESULTS if r[1])
     print('\n%d/%d passed' % (passed, len(RESULTS)))
     json.dump([{'test': n, 'ok': ok, 'detail': d, 'secs': round(t, 1)} for n, ok, d, t in RESULTS],

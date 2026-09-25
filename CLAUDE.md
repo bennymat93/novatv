@@ -48,6 +48,19 @@ Core providers (pov, idanplus, youtube, archive) are never hidden. Delete the st
 - make_build `fix_startup`: removed dead repos, POV subs_action, empty skin includes, window files listed as includes,
   advancedsettings version, All_Subs `imdb_id.startswith` None crash.
 
+## 0.2.1 playback / subtitles / System Update
+- service.py `Player` + `Flow`: every video start bumps `gen`; a Flow (subtitle job) only acts while it owns that gen, so an
+  old flow can never pause/unpause/load subs into the next video. New video -> subtitles off, status cleared; the flow then
+  picks the video's own Hebrew track (or All_Subs'), else AI. On stop/end/error the MyVideos `settings` row of the stream is
+  deleted (6 s later, after Kodi saved it) so nothing carries over; history (watched) kept. Build default `showsubtitles=false`.
+- AI Subtitle Generation button: `?a=ai_subs_now` -> NotifyAll(plugin.video.nova,ai_now) -> service `Monitor` -> forced Flow
+  (no wait, loads the first AI chunk at once, replaces any active subtitle). Skin buttons from `resources/lib/skinpatch.py`
+  (all 4 OSD styles + DialogSubtitles id 7160), applied by make_build AND by the service at start (ReloadSkin once) for repo updates.
+- `resources/lib/sysupdate.py`: menu "System Update" -> repos/updates, add-ons (missing/disabled/broken), POV hook, skin button,
+  services (accounts.check), IPTV merge, PVR, radio, TMDb cache -> report `sysupdate.json` + listing `?a=sysreport` with an
+  Auto-Fix row under each error (`?a=sysfix&id=<row>`, `*` = all). Logins/keys: Auto-Fix opens the right screen.
+- Tests 29-31: subtitles reset between videos, AI button, System Update + Auto-Fix.
+
 ## Status (2026-09-25, v0.2.0)
 Handoff steps 1-4 done. Release flow: `python tools/release.py --version X --notes "..."` (bump the version for every significant change;
 it rebuilds zip, guide, both APKs and the Windows installer, tests testkodi AND the installed Windows copy, pushes main + gh-pages, creates the GitHub release).

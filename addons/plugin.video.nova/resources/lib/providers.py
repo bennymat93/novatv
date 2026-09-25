@@ -531,8 +531,15 @@ def ia_item(handle, identifier):
         li = xbmcgui.ListItem(f['title'])
         li.setArt({'thumb': thumb, 'poster': thumb, 'fanart': thumb})
         tag = li.getVideoInfoTag()
+        meta = f.get('meta') or {}
         tag.setTitle(f['title'])
         tag.setMediaType('movie')
+        tag.setPlot(meta.get('plot', ''))
+        if meta.get('year', '').isdigit():
+            tag.setYear(int(meta['year']))
+        if meta.get('genre'):
+            tag.setGenres([g.strip() for g in re.split(r'[;,]', meta['genre']) if g.strip()][:3])
+        tag.setTagLine(meta.get('title', '') if meta.get('title') != f['title'] else '')
         li.setProperty('IsPlayable', 'true')
         target = 'plugin://plugin.video.nova/?' + urlencode({'a': 'ia_play', 'u': f['url'], 't': f['title'], 'id': identifier})
         xbmcplugin.addDirectoryItem(handle, target, li, False)
