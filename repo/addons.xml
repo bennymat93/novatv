@@ -14,7 +14,7 @@
     <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
   </extension>
 </addon>
-<addon id="plugin.video.nova" name="NovaTV" version="0.1.9" provider-name="NovaTV">
+<addon id="plugin.video.nova" name="NovaTV" version="0.2.0" provider-name="NovaTV">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" version="2.22.0"/>
