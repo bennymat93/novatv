@@ -72,9 +72,17 @@ def check(k):
             return (r.status_code == 200, 'OK' if r.status_code == 200 else 'HTTP %d' % r.status_code)
         if k == 'server':
             base = ADDON.getSetting('sub_server').rstrip('/')
-            r = requests.get(base + '/health', timeout=4)
-            j = r.json()
-            return True, '%s · %s' % (j.get('device'), j.get('model'))
+            try:
+                j = requests.get(base + '/health', timeout=4).json()
+            except Exception:
+                try:                                  # the PC may have a new address: look for it on the LAN
+                    from .subsnet import discover_server
+                    discover_server()
+                    base = ADDON.getSetting('sub_server').rstrip('/')
+                    j = requests.get(base + '/health', timeout=4).json()
+                except Exception:
+                    return False, '%s - %s' % (base or 'http://PC-IP:8765', {'he': 'השרת לא פועל במחשב', 'ru': 'сервер не запущен на ПК'}.get(ui_lang(), 'server is not running on the PC'))
+            return True, '%s · %s · %s' % (base, j.get('device'), j.get('model'))
         if k == 'iptv':
             st = load('iptv_status.json', {})
             if not load('iptv.json', {}).get('m3u'):
@@ -104,7 +112,7 @@ def screen(handle, url):
         elif ok is None:
             status = '[COLOR grey]○ %s[/COLOR]' % T('missing')
         else:
-            status = '[COLOR red]✖ %s[/COLOR]' % T('error')
+            status = '[COLOR red]● %s[/COLOR]' % T('error')
         li = xbmcgui.ListItem('%s   %s' % (name, status))
         plot = detail or ''
         if not ok:
@@ -137,7 +145,7 @@ def action(k):
             ADDON.setSetting('sub_server', v.strip())
     ok, detail = check(k)
     if ok:
-        d.notification('NovaTV', '%s ✓ %s' % (T('ok'), detail), xbmcgui.NOTIFICATION_INFO, 4000)
+        d.notification('NovaTV', '%s · %s' % (T('ok'), detail), xbmcgui.NOTIFICATION_INFO, 4000)
     elif ok is False:
         d.ok('NovaTV – ' + T('error'), '%s\n\n%s' % (detail, hint(k)))
     xbmc.executebuiltin('Container.Refresh')

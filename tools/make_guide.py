@@ -178,20 +178,22 @@ def sections(f):
 <p>ערוצים שמתים בוודאות (HTTP 404) מסוננים אוטומטית. הערוצים מקובצים (ישראל, חדשות, סרטים, ילדים, ספורט, תעודה, מוזיקה, רוסית, אחר). חלק מהערוצים החינמיים חסומים גאוגרפית או משתנים; אם ערוץ לא מתנגן, נסו אחר.</p>'''.format(free=html.escape(free_en), off=html.escape(off_en))))
     S.append(('subs', 'AI Hebrew subtitles (PC server)', 'כתוביות AI בעברית (שרת במחשב)', '''
 <ol>
-<li>On the PC run {bat}. To start it with Windows run {auto}.</li>
+<li>On the PC run {auto} once. The server starts now and at every Windows sign-in, runs hidden, and restarts itself if it ever stops. Check it with {status}; its log is {log}.</li>
 <li>TV boxes on the same home network find the server automatically. To set it manually: Accounts &rarr; AI Subtitle Server &rarr; {url}.</li>
 <li>Optional: a Gemini key (Accounts &rarr; Gemini) gives better translation; without it a local translator is used.</li>
 </ol>
 <p>Translate a whole series overnight:</p>
 <pre dir="ltr">{batch}</pre>'''.format(bat=c(r'server\start_server.bat'), auto=c(r'server\install_autostart.bat'), url=c('http://<PC-IP>:8765'),
+                       status=c(r'.venv11\Scripts\python server\supervisor.py status'), log=c(r'server\logs\server.log'),
                        batch=html.escape(r'.venv11\Scripts\python server\nova_subs.py batch "D:\Kukhnya\*.mkv" --title "Кухня"')), '''
 <ol>
-<li>במחשב מריצים את {bat}. כדי שיעלה עם Windows מריצים את {auto}.</li>
+<li>במחשב מריצים פעם אחת את {auto}. השרת עולה מיד ובכל כניסה ל-Windows, רץ ברקע, ומפעיל את עצמו מחדש אם נעצר. בודקים שהוא פועל עם {status}, והיומן שלו נמצא ב-{log}.</li>
 <li>סטרימרים באותה רשת ביתית מוצאים את השרת לבד. הגדרה ידנית: חשבונות &larr; שרת כתוביות AI &larr; {url}.</li>
 <li>לא חובה: מפתח Gemini (חשבונות &larr; Gemini) נותן תרגום טוב יותר. בלעדיו משתמשים במתרגם מקומי.</li>
 </ol>
 <p>תרגום של סדרה שלמה בלילה:</p>
 <pre dir="ltr">{batch}</pre>'''.format(bat=c(r'server\start_server.bat'), auto=c(r'server\install_autostart.bat'), url=c('http://<PC-IP>:8765'),
+                       status=c(r'.venv11\Scripts\python server\supervisor.py status'), log=c(r'server\logs\server.log'),
                        batch=html.escape(r'.venv11\Scripts\python server\nova_subs.py batch "D:\Kukhnya\*.mkv" --title "Кухня"'))))
     S.append(('profile', 'Locked pre-configured profile', 'פרופיל מוגדר מראש נעול', '''
 <p>Set up all accounts on one device, then Accounts &rarr; <b>Create locked pre-configured profile</b> and choose a password (8+ characters). The file is encrypted and can be exported to USB or a network folder.</p>

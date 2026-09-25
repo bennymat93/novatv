@@ -208,7 +208,7 @@ def episodes(tv_id, s):
         seen = history.get(key)
         label = '%dx%02d. %s' % (int(s), e['episode_number'], e.get('name') or '')
         if seen:
-            label = '[COLOR limegreen]✓[/COLOR] %s  [COLOR grey](%s %s)[/COLOR]' % (label, T('watched_at'), seen['when'])
+            label = '[COLOR limegreen]●[/COLOR] %s  [COLOR grey](%s %s)[/COLOR]' % (label, T('watched_at'), seen['when'])
         li = xbmcgui.ListItem(label)
         a = art(e)
         a['fanart'] = art(show).get('fanart', '')

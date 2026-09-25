@@ -376,10 +376,10 @@ def edit_sources():
     src = sources()
     d = xbmcgui.Dialog()
     while True:
-        free = ['%s %s' % ('[✓]' if src['free'].get(n, True) else '[  ]', n) for n, _ in FREE]
+        free = ['%s %s' % ('[x]' if src['free'].get(n, True) else '[  ]', n) for n, _ in FREE]
         own = ['M3U: %s' % x['name'] for x in src['m3u']]
         epg = ['EPG: %s' % u[:60] for u in src['epg']]
-        rows = ['[+] M3U', '[+] EPG'] + free + own + epg + ['[✓] ' + T('ok')]
+        rows = ['[+] M3U', '[+] EPG'] + free + own + epg + ['[x] ' + T('ok')]
         i = d.select(T('iptv_src'), rows)
         if i < 0 or i == len(rows) - 1:
             break

@@ -14,6 +14,7 @@ import xbmc
 import xbmcgui
 
 from resources.lib.common import ADDON, T, load, save, now_str, log, PROFILE
+from resources.lib.subsnet import discover_server
 
 HEB_CODES = ('heb', 'he', 'hebrew', 'iw')
 WIN = xbmcgui.Window(10000)
@@ -112,12 +113,23 @@ class Player(xbmc.Player):
             xbmcgui.Dialog().notification('NovaTV', T('ai_noserver'), xbmcgui.NOTIFICATION_WARNING, 5000)
             return
         xbmcgui.Dialog().notification('NovaTV', T('ai_start'), xbmcgui.NOTIFICATION_INFO, 5000)
-        loaded_upto, last_note = 0.0, 0
+        loaded_upto, last_note, down_since, warned = 0.0, 0, 0, False
         srt_path = os.path.join(PROFILE, 'ai_%s.he.srt' % job_id)
         while sid == self.session and not mon.abortRequested():
             try:
-                st = requests.get('%s/jobs/%s' % (base, job_id), timeout=10).json()
+                r = requests.get('%s/jobs/%s' % (base, job_id), timeout=10)
+                if r.status_code == 404:        # server restarted: hand the job over again (it resumes)
+                    job['position'] = self.getTime() if self.isPlayingVideo() else job['position']
+                    r = requests.post(base + '/jobs', json=job, timeout=10)
+                st = r.json()
+                down_since, warned = 0, False
             except Exception:
+                down_since = down_since or time.time()
+                if time.time() - down_since > 120 and not warned:
+                    xbmcgui.Dialog().notification('NovaTV', T('ai_noserver'), xbmcgui.NOTIFICATION_WARNING, 5000)
+                    warned = True
+                    discover_server()
+                    base = ADDON.getSetting('sub_server').rstrip('/')
                 if mon.waitForAbort(5):
                     return
                 continue
@@ -152,41 +164,6 @@ class Player(xbmc.Player):
                 return
             if mon.waitForAbort(5):
                 return
-
-
-def discover_server():
-    """Find the PC subtitle server on the LAN (UDP broadcast) if the saved address is dead."""
-    import socket
-    import requests
-    base = ADDON.getSetting('sub_server').rstrip('/')
-    try:
-        requests.get(base + '/health', timeout=2)
-        return
-    except Exception:
-        pass
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    s.settimeout(2)
-    try:
-        _discover_loop(s)
-    except OSError as e:
-        log('subtitle server discovery: %s' % e)
-    finally:
-        s.close()
-
-
-def _discover_loop(s):
-    for _ in range(3):
-        s.sendto(b'NOVASUBS?', ('255.255.255.255', 8766))
-        try:
-            data, addr = s.recvfrom(64)
-        except OSError:              # socket.timeout included: no server answered this round
-            continue
-        if data.startswith(b'NOVASUBS '):
-            url = 'http://%s:%s' % (addr[0], data.split()[1].decode())
-            ADDON.setSetting('sub_server', url)
-            log('subtitle server discovered at %s' % url)
-            return
 
 
 def main():

@@ -280,7 +280,19 @@ class Job:
             ctx = {'title': self.spec.get('title', ''), 'gemini_key': self.spec.get('gemini_key', ''), 'prev': []}
             lang = None
             done_chunks = set()
+            part = self.cache_file + '.part'           # survive a server restart: resume, don't redo
+            if os.path.exists(part):
+                try:
+                    with open(part, encoding='utf-8') as f:
+                        saved = json.load(f)
+                    self.cues, lang = saved['cues'], saved.get('lang')
+                    done_chunks = set(saved['done'])
+                    log('resume', self.id, '%d/%d chunks' % (len(done_chunks), len(starts)))
+                except Exception:
+                    pass
             for n, st in enumerate(order):
+                if st in done_chunks:
+                    continue
                 self.stage = 'transcribe %s' % ts(st)[:8]
                 audio = audio_chunk(src, st, CHUNK)
                 if not len(audio):
@@ -302,6 +314,8 @@ audio, language=lang, beam_size=5, vad_filter=True,
                         self.cues.append({'start': st + s.start, 'end': st + max(s.end, s.start + 0.8),
                                           'src': s.text.strip(), 'he': h})
                 done_chunks.add(st)
+                with open(part, 'w', encoding='utf-8') as f:
+                    json.dump({'cues': self.cues, 'lang': lang, 'done': sorted(done_chunks)}, f, ensure_ascii=False)
                 c = starts[first]
                 while c in done_chunks:
                     c += CHUNK
@@ -311,6 +325,8 @@ audio, language=lang, beam_size=5, vad_filter=True,
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump({'spec': {k: v for k, v in self.spec.items() if k != 'gemini_key'}, 'lang': lang,
                            'cues': self.cues}, f, ensure_ascii=False)
+            if os.path.exists(part):
+                os.remove(part)
             self.state, self.stage, self.progress, self.ready_until = 'done', 'done', 100, 1e9
         except Exception as e:
             traceback.print_exc()

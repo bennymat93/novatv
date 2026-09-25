@@ -19,13 +19,17 @@ User preferences: Python, standard library only unless asked; answer tersely; ta
   - `libraries.py` – on-demand install helper; `radio.py` – radio-browser; `backup.py`
 - Movies/series: TMDb lists in NovaTV -> `?a=play` -> POV + Real-Debrid first, then every other source.
 - Kodi only talks to NovaTV: skin search button -> `?a=hub_search`; other add-ons are opened inside NovaTV (`lib_open`).
-- `server/nova_subs.py` – AI subtitle server (Windows, port 8765)
+- `server/nova_subs.py` – AI subtitle server (Windows, port 8765, UDP discovery 8766). Jobs save progress per 240 s chunk
+  (`cache/<id>.json.part`) and resume after a restart. `server/supervisor.py` (pythonw, Startup-folder shortcut with
+  absolute paths, installed by `install_autostart.bat` / `supervisor.py install`) restarts the server when it exits or
+  stops answering; log in `server/logs/server.log`. Kodi re-posts a job when the server answers 404 (restarted).
+  0.1.9 root cause: the old autostart shortcut pointed to Desktop\start_server.bat (bat was run from a Desktop copy) -> never started after reboot.
 - `tools/` – make_build.py, publish.py, test_suite.py (portable Kodi in `testkodi/`), source_audit.py (NEW)
 
 ## Release commands
 ```
 python tools/make_build.py --version X
-python tools/test_suite.py --version X [--installed DIR]   # 24 checks via JSON-RPC
+python tools/test_suite.py --version X [--installed DIR]   # 25 checks via JSON-RPC (incl. AI subtitles end-to-end; needs the PC server)
 python tools/release.py --version X --notes "..."          # everything, see Status
 python tools/publish.py --gh-user bennymat93 --version X
 python tools/source_audit.py --out work/audit.json [--dead addons/plugin.video.nova/resources/dead_streams.json]
@@ -35,7 +39,7 @@ Provider stability lives in `addons/plugin.video.nova/resources/providers_status
 make_build.py bundles only stable providers (+ deps from the official omega repo) and skips add-ons without Windows+Android support.
 Core providers (pov, idanplus, youtube, archive) are never hidden. Delete the status file and re-audit when adding providers.
 
-## Status (2026-09-25, v0.1.8)
+## Status (2026-09-25, v0.1.9)
 Handoff steps 1-4 done. Release flow: `python tools/release.py --version X --notes "..."` (bump the version for every significant change;
 it rebuilds zip, guide, both APKs and the Windows installer, tests testkodi AND the installed Windows copy, pushes main + gh-pages, creates the GitHub release).
 - APK: package org.bn.stream. Java classes moved to org/bn/stream and libkodi.so's compiled-in "org.xbmc.kodi" patched in place (same length);

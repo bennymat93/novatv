@@ -8,6 +8,7 @@ work/test_report.json.
   python tools/test_suite.py --version 0.1.2 [--keep]
 """
 import argparse
+import glob
 import json
 import os
 import re
@@ -69,7 +70,19 @@ def install(ver):
     enable_rpc()
 
 
+def fast_ai_settings():
+    """tests: wait only 5 s for human subtitles before asking the AI server"""
+    p = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova', 'settings.xml')
+    s = open(p, encoding='utf-8').read() if os.path.exists(p) else '<settings version="2">\n</settings>\n'
+    for k, v in (('ai_wait', '5'), ('ai_subs', 'true'), ('sub_server', 'http://127.0.0.1:8765')):
+        s = re.sub(r'\s*<setting id="%s"[^>]*?(/>|>[^<]*</setting>)' % k, '', s)
+        s = s.replace('</settings>', '    <setting id="%s">%s</setting>\n</settings>' % (k, v))
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    open(p, 'w', encoding='utf-8').write(s)
+
+
 def enable_rpc():
+    fast_ai_settings()
     p = os.path.join(DATA, 'userdata', 'guisettings.xml')
     s = open(p, encoding='utf-8').read()
     for k, v in [('services.webserver', 'true'), ('services.webserverport', '8089'),
@@ -259,12 +272,84 @@ def t_iptv():
 
 
 def t_ai_server():
-    try:
-        h = json.loads(urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=5).read())
-    except Exception:
-        return 'SKIPPED (server not running)'
+    h = json.loads(urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=5).read())
     expect(h.get('ok'), 'health')
-    return '%s / %s' % (h['device'], h['model'])
+    rows = ls(NOVA + '?a=accounts')
+    row = next(r for r in rows if 'AI Subtitle Server' in r['label'])
+    expect('limegreen' in row['label'], 'accounts screen shows: %s' % row['label'])
+    return '%s / %s, accounts row connected' % (h['device'], h['model'])
+
+
+def t_ai_subs_end_to_end():
+    """a network video without Hebrew subtitles -> Kodi asks the PC server -> Hebrew subtitles appear"""
+    import http.server
+    import threading
+    folder = os.path.join(ROOT, 'test')
+
+    class Ranged(http.server.BaseHTTPRequestHandler):
+        """like a real stream server: byte ranges, so Kodi and ffmpeg can seek"""
+        def log_message(self, *a):
+            pass
+
+        def do_HEAD(self):
+            self.do_GET(body=False)
+
+        def do_GET(self, body=True):
+            path = os.path.join(folder, os.path.basename(self.path.split('?')[0]))
+            if not os.path.isfile(path):
+                return self.send_error(404)
+            size = os.path.getsize(path)
+            start, end = 0, size - 1
+            m = re.match(r'bytes=(\d*)-(\d*)', self.headers.get('Range', ''))
+            if m:
+                start = int(m.group(1) or 0)
+                end = int(m.group(2)) if m.group(2) else size - 1
+                self.send_response(206)
+                self.send_header('Content-Range', 'bytes %d-%d/%d' % (start, end, size))
+            else:
+                self.send_response(200)
+            self.send_header('Accept-Ranges', 'bytes')
+            self.send_header('Content-Type', 'video/mp4')
+            self.send_header('Content-Length', str(end - start + 1))
+            self.end_headers()
+            if body:
+                with open(path, 'rb') as f:
+                    f.seek(start)
+                    left = end - start + 1
+                    try:
+                        while left > 0:
+                            chunk = f.read(min(65536, left))
+                            if not chunk:
+                                break
+                            self.wfile.write(chunk)
+                            left -= len(chunk)
+                    except OSError:
+                        pass
+    httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 8799), Ranged)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        for f in glob.glob(os.path.join(ROOT, 'server', 'cache', 'u*.json')):
+            os.remove(f)                         # force a real transcription, not the cache
+        rpc('Player.Open', item={'file': 'http://127.0.0.1:8799/test_ru_long.mp4'})
+        prof = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova')
+        got = ''
+        for _ in range(100):
+            time.sleep(3)
+            srts = glob.glob(os.path.join(prof, 'ai_*.he.srt'))
+            pl = rpc('Player.GetActivePlayers').get('result') or []
+            if srts and pl:
+                sub = rpc('Player.GetProperties', playerid=pl[0]['playerid'],
+                          properties=['subtitleenabled', 'currentsubtitle'])['result']
+                text = open(srts[0], encoding='utf-8', errors='ignore').read()
+                if sub.get('subtitleenabled') and re.search('[֐-׿]', text):
+                    got = '%d Hebrew lines, subtitles on' % text.count(' --> ')
+                    break
+        for p in rpc('Player.GetActivePlayers').get('result') or []:
+            rpc('Player.Stop', playerid=p['playerid'])
+        expect(got, 'no Hebrew AI subtitles reached the player')
+        return got
+    finally:
+        httpd.shutdown()
 
 
 def t_log_errors():
@@ -505,7 +590,7 @@ TESTS = [
     ('Merged playlist integrity', t_m3u_integrity), ('Locked profile round-trip', t_preset),
     ('Search all sources (hub)', t_hub_search), ('Central library + Russian', t_central_library),
     ('POV -> other sources fallback', t_pov_fallback),
-    ('AI subtitle server', t_ai_server), ('Kodi log clean', t_log_errors),
+    ('AI subtitle server', t_ai_server), ('AI Hebrew subtitles end-to-end', t_ai_subs_end_to_end), ('Kodi log clean', t_log_errors),
 ]
 
 

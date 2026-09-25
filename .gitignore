@@ -9,3 +9,4 @@ server/*.log
 gemini.key
 __pycache__/
 *.pyc
+server/logs/

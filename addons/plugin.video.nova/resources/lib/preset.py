@@ -28,7 +28,7 @@ ITER = 200000
 
 S = {
     'create': ('צור פרופיל מוגדר מראש (נעול בסיסמה)', 'Create locked pre-configured profile', 'Создать защищённый профиль'),
-    'unlock': ('פתח פרופיל מוגדר מראש 🔒', 'Unlock pre-configured profile 🔒', 'Разблокировать готовый профиль 🔒'),
+    'unlock': ('פתח פרופיל מוגדר מראש', 'Unlock pre-configured profile', 'Разблокировать готовый профиль'),
     'pw': ('סיסמה', 'Password', 'Пароль'),
     'pw2': ('הקלד שוב את הסיסמה', 'Repeat password', 'Повторите пароль'),
     'short': ('סיסמה חייבת להכיל לפחות 8 תווים', 'Password must be at least 8 characters', 'Минимум 8 символов'),

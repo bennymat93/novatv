@@ -1,6 +1,6 @@
 @echo off
-rem Starts the NovaTV subtitle server minimised every time you log in to Windows.
-set LNK=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\NovaTV Subtitle Server.lnk
-powershell -NoProfile -Command "$s=(New-Object -ComObject WScript.Shell).CreateShortcut('%LNK%');$s.TargetPath='%~dp0start_server.bat';$s.WorkingDirectory='%~dp0';$s.WindowStyle=7;$s.Save()"
-echo Autostart installed: %LNK%
+rem Starts the NovaTV AI subtitle server now and at every Windows sign-in (hidden, restarts itself if it stops).
+rem Safe to run from anywhere: the shortcut always points to this folder's supervisor.py.
+cd /d "%~dp0"
+"%~dp0..\.venv11\Scripts\python.exe" "%~dp0supervisor.py" install
 pause

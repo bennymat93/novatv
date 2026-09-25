@@ -23,11 +23,13 @@ BN (NovaTV) is the only add-on you open. POV, Idan+, YouTube, Internet Archive a
 6. NovaTV → **Accounts & Connections**: Real-Debrid, Trakt, IPTV (M3U + EPG), AI subtitle server, Gemini (optional).
 
 ## AI subtitle server (PC)
-* `server\start_server.bat` – runs the server (GPU: faster-whisper large-v3-turbo; translation: Gemini → local NLLB-200, no quota).
-* `server\install_autostart.bat` – start it automatically at Windows login.
-* On the TV box: Accounts → AI Subtitle Server → `http://<PC-IP>:8765`.
+* Run `server\install_autostart.bat` once: the server starts now and at every Windows sign-in, hidden, and a supervisor restarts it if it stops (GPU: faster-whisper large-v3-turbo; translation: Gemini -> local NLLB-200).
+* Status: `.venv11\Scripts\python server\supervisor.py status` · log: `server\logs\server.log` · remove: `supervisor.py uninstall`.
+* TV boxes on the same network find the server by themselves; manual: Accounts -> AI Subtitle Server -> `http://<PC-IP>:8765`.
+* `server\start_server.bat` runs it in a console window (for watching the log).
 * Batch a whole series overnight:
-  `.venv11\Scripts\python server\nova_subs.py batch "D:\Kukhnya\*.mkv" --title "Кухня"`
+  `.venv11\Scripts\python server
+ova_subs.py batch "D:\Kukhnya\*.mkv" --title "Кухня"`
 
 ## Develop
 * `python tools/release.py --version X --notes "..."` – **one command per release**: build, 21-check test suite, guide, APKs (build embedded), Windows installer (+ tests on the installed copy), push, gh-pages, GitHub release.
