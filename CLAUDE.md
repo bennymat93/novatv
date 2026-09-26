@@ -77,6 +77,15 @@ Core providers (pov, idanplus, youtube, archive) are never hidden. Delete the st
   own failure with the log in work/crash-*.log and Kodi restarted. `tools/android_test.py`: emulator smoke test
   (MSYS_NO_PATHCONV=1 for manual adb in Git Bash; the first start needs MANAGE_EXTERNAL_STORAGE - granted by appops).
 
+## 0.2.3 / 0.2.4
+- 0.2.3: official add-ons updated at build time (update_official), TV add-on + inputstream.adaptive bundled per platform
+  (bundle_binary; make_apk swaps in android-aarch64/armv7 builds), Kodi mirror fallback (download()), All_Subs guards v4
+  (one shared Player), System Update never waits on UpdateAddonRepos, install_addon refreshes the repo index when missing.
+- release.py: steps checkpointed in work/release_state.json; test_suite --stop-on-fail --resume (work/test_progress_*.json);
+  addon-checker result cached by hash (work/addonchecker_ok.txt).
+- 0.2.4: YouTube local server port 50152 is inside Windows' reserved ranges (Hyper-V/WSL) -> "WinError 10013":
+  build preset kodion.http.port=51152, resources/lib/ytport.py moves it at service start + System Update row.
+
 ## Status (2026-09-25, v0.2.0)
 Handoff steps 1-4 done. Release flow: `python tools/release.py --version X --notes "..."` (bump the version for every significant change;
 it rebuilds zip, guide, both APKs and the Windows installer, tests testkodi AND the installed Windows copy, pushes main + gh-pages, creates the GitHub release).

@@ -75,7 +75,7 @@ def check(name, fn):
         dumps = sorted(glob.glob(os.path.join(DATA, '*.dmp')), key=os.path.getmtime)
         RESULTS.append(('KODI CRASHED/FROZE during: ' + name, False, os.path.basename(dumps[-1]) if dumps else 'no dump', 0))
         kill_kodi()
-        keep = os.path.join(ROOT, 'work', 'crash-%s-%s.log' % (time.strftime('%H%M%S'), name.split(':')[-1].strip().replace(' ', '_')[:30]))
+        keep = os.path.join(ROOT, 'work', 'crash-%s-%s.log' % (time.strftime('%H%M%S'), re.sub(r'[^\w-]+', '_', name.split(':')[-1].strip())[:30]))
         shutil.copy(os.path.join(DATA, 'kodi.log'), keep)
         start_kodi()
 
@@ -87,9 +87,37 @@ def expect(cond, msg):
 
 
 # ------------------------------------------------------------------ setup
+def kodi_processes():
+    """[(pid, path)] of every running kodi.exe"""
+    out = subprocess.run(['powershell', '-NoProfile', '-Command',
+                          "Get-Process kodi -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.Id)|$($_.Path)\" }"],
+                         capture_output=True, text=True).stdout
+    return [tuple(l.split('|', 1)) for l in out.split() if '|' in l]
+
+
+def ours(path):
+    return os.path.normcase(os.path.abspath(path)).startswith(os.path.normcase(os.path.join(ROOT, '')))
+
+
 def kill_kodi():
-    subprocess.call(['taskkill', '/IM', 'kodi.exe', '/F'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    """stop the TEST copies of Kodi only (testkodi, work/wintest) - never the owner's own Kodi"""
+    for pid, path in kodi_processes():
+        if ours(path):
+            subprocess.call(['taskkill', '/PID', pid, '/F'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(3)
+
+
+def wait_foreign_kodi():
+    """Kodi on Windows runs once: while the owner's Kodi is open a test copy cannot start - wait, never close it"""
+    told = False
+    while True:
+        foreign = [p for _, p in kodi_processes() if not ours(p)]
+        if not foreign:
+            return
+        if not told:
+            print('WAITING: close your own Kodi (%s) - the tests need to start their own copy' % foreign[0], flush=True)
+            told = True
+        time.sleep(15)
 
 
 def install(ver):
@@ -125,6 +153,7 @@ def enable_rpc():
 
 
 def start_kodi():
+    wait_foreign_kodi()
     subprocess.Popen([os.path.join(KODI, 'kodi.exe'), '-p'], cwd=KODI,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(90):
@@ -473,7 +502,8 @@ def t_ai_button():
         before = rpc('Player.GetProperties', playerid=pid, properties=['currentsubtitle'])['result']['currentsubtitle']
         expect((before or {}).get('name', '').startswith('test_ru'), 'the human subtitle was not active first: %s' % before)
         # exactly what the skin button runs: RunPlugin(...?a=ai_subs_now) -> NotifyAll -> service
-        rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=ai_subs_now', wait=False)
+        # like the skin's RunPlugin: runs the add-on without opening a window (a window is refused behind a dialog)
+        rpc('Files.GetDirectory', directory=NOVA + '?a=ai_subs_now', media='files', timeout=60)
         got, seen = '', []
         for _ in range(60):
             time.sleep(1)
@@ -532,7 +562,7 @@ def t_ai_button_idle():
     _stop_all()
     logf = os.path.join(DATA, 'kodi.log')
     n0 = len(open(logf, encoding='utf-8', errors='ignore').read())
-    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=ai_subs_now', wait=False)
+    rpc('Files.GetDirectory', directory=NOVA + '?a=ai_subs_now', media='files', timeout=60)
     time.sleep(6)
     new = open(logf, encoding='utf-8', errors='ignore').read()[n0:]
     expect('Traceback' not in new, 'traceback: %s' % new[new.find('Traceback'):][:200])
@@ -1061,6 +1091,24 @@ def _versions_seen(log):
     return out
 
 
+def t_youtube_port():
+    """YouTube's local server port can be opened (Windows reserves port ranges): NovaTV moves it when blocked"""
+    p = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.youtube', 'settings.xml')
+    m = re.search(r'id="kodion.http.port"[^>]*>(\d+)<', open(p, encoding='utf-8').read())
+    port = int(m.group(1)) if m else 50152
+    import socket
+    s = socket.socket()
+    try:
+        s.bind(('127.0.0.1', port))
+        free = True
+    except OSError as e:
+        free = getattr(e, 'winerror', None) == 10048
+    finally:
+        s.close()
+    expect(free, 'YouTube port %d cannot be opened on this PC' % port)
+    return 'YouTube port %d usable' % port
+
+
 def t_no_tracebacks():
     """no Python traceback from ANY add-on during the whole run"""
     log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
@@ -1110,7 +1158,6 @@ def t_clean_shutdown():
         time.sleep(3)
     # Kodi installs its automatic add-on updates in the background and waits for them before it exits:
     # quit once they are done (no add-on installed for 20 s, at most 3 min), like a viewer some time after start
-    logf = os.path.join(DATA, 'kodi.log')
     last, t0 = _log_len(), time.time()
     quiet_since = time.time()
     while time.time() - t0 < 180 and time.time() - quiet_since < 20:
@@ -1160,7 +1207,7 @@ TESTS = [
     ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
     ('System Update + Auto-Fix', t_system_update),
     ('Static: addon-checker, py3.8, XML', t_static), ('Every NovaTV screen opens', t_menu_crawl),
-    ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('No thread leak', t_thread_leak),
+    ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('YouTube port usable', t_youtube_port), ('No thread leak', t_thread_leak),
     ('Kodi log clean', t_log_errors), ('No tracebacks (any add-on)', t_no_tracebacks),
     ('Clean shutdown', t_clean_shutdown),
 ]

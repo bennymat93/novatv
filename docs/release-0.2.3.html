@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>BN Stream 0.2.3 – סיכום גרסה</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1c1f26; font-size: 10.5pt; line-height: 1.5; }
+  h1 { font-size: 22pt; margin: 0; color: #111; }
+  .sub { color: #8a6d1d; font-size: 11pt; margin: 2px 0 14px; }
+  .brand { border-bottom: 3px solid #e8be5a; padding-bottom: 8px; margin-bottom: 14px; }
+  h2 { font-size: 13.5pt; color: #111; border-right: 5px solid #e8be5a; padding-right: 8px; margin: 18px 0 6px; page-break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; page-break-inside: auto; }
+  th, td { border: 1px solid #d6d9e0; padding: 5px 7px; vertical-align: top; text-align: right; }
+  th { background: #f4efe1; font-weight: 600; }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  h2 + table thead { break-after: avoid; }
+  h2 { break-after: avoid; }
+  .ok { color: #1a7f37; font-weight: 600; }
+  .ltr, code { direction: ltr; unicode-bidi: embed; font-family: Consolas, monospace; font-size: 9.5pt; }
+  code { background: #f3f4f6; padding: 0 3px; border-radius: 3px; }
+  .box { background: #f7f8fa; border: 1px solid #e2e5ea; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+  ul { margin: 4px 0; padding-right: 20px; }
+  li { margin: 2px 0; }
+  .kpi { display: flex; gap: 8px; margin: 8px 0 4px; }
+  .kpi div { flex: 1; border: 1px solid #e2e5ea; border-radius: 6px; padding: 6px 8px; text-align: center; }
+  .kpi b { display: block; font-size: 16pt; color: #1a7f37; }
+  .foot { color: #777; font-size: 8.5pt; margin-top: 16px; border-top: 1px solid #ddd; padding-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <h1>BN Stream – גרסה 0.2.3</h1>
+  <div class="sub">סיכום גרסה · פורסמה 26/09/2026 · Kodi 21.3 (Omega) · ריפו <span class="ltr">bennymat93/novatv</span></div>
+</div>
+
+<div class="kpi">
+  <div><b>40/40</b>בדיקות ב-Kodi בדיקתי</div>
+  <div><b>9/9</b>Android (אמולטור, התקנה נקייה)</div>
+  <div><b>11/11</b>העותק המותקן ב-Windows</div>
+  <div><b>0</b>שגיאות בכלי הרשמי של Kodi</div>
+</div>
+
+<h2>קבצים להורדה</h2>
+<table>
+  <thead><tr><th>קובץ</th><th>גודל</th><th>למה משמש</th></tr></thead>
+  <tr><td class="ltr">BN-Stream-21.3-arm64-v8a.apk</td><td>121 MB</td><td>רוב מכשירי ה-TV וה-Android החדשים (64 ביט). הבילד מותקן מראש.</td></tr>
+  <tr><td class="ltr">BN-Stream-21.3-armeabi-v7a.apk</td><td>121 MB</td><td>מכשירים ישנים של 32 ביט</td></tr>
+  <tr><td class="ltr">BN-Stream-Setup-0.2.3.exe</td><td>93 MB</td><td>התקנה ל-Windows: Kodi + הבילד, מוכן אחרי ההתקנה</td></tr>
+  <tr><td class="ltr">NovaTV-0.2.3.zip</td><td>54 MB</td><td>הבילד עצמו (לאשף / התקנה ידנית)</td></tr>
+</table>
+<div class="box">
+  Release: <span class="ltr">https://github.com/bennymat93/novatv/releases/tag/v0.2.3</span><br>
+  ריפו ל-Kodi (עדכון אוטומטי): <span class="ltr">https://bennymat93.github.io/novatv/</span><br>
+  מדריך משתמש (עברית ואנגלית): <span class="ltr">https://bennymat93.github.io/novatv/guide.html</span>
+</div>
+
+<h2>תכונות חדשות (מאז 0.2.0)</h2>
+<table>
+  <thead><tr><th>תכונה</th><th>פירוט</th></tr></thead>
+  <tr><td>כפתור "יצירת כתוביות AI"</td><td>בנגן (בכל 4 סגנונות הנגן, ליד "חפש כתובית") ובראש חלון הכתוביות. יוצר כתוביות AI בעברית לסרטון הנוכחי ועובר אליהן מיד, גם אם כבר מוצגות כתוביות אחרות. נגיש בשלט ("למעלה") גם מרשימת השירותים וגם מרשימת התוצאות.</td></tr>
+  <tr><td>"עדכון מערכת" בתפריט BN</td><td>מעדכן בפעולה אחת: מאגרים ותוספים, כל תוספי המקורות, חיבורים (Real-Debrid, Trakt, IPTV, שרת כתוביות AI, Gemini, TMDb), ערוצים ומדריך, רדיו, מטמון, כפתור ה-AI בסקין והגנות שירות הכתוביות. בסוף מוצג דוח עם מה שעודכן ועם כל שגיאה.</td></tr>
+  <tr><td>תיקון אוטומטי</td><td>מתחת לכל שורת שגיאה בדוח יש שורת "תיקון אוטומטי", ובראש הדוח "תקן את כל השגיאות". בכניסות לחשבונות ובמפתחות, התיקון פותח את המסך הנכון.</td></tr>
+  <tr><td>כל סרטון מתחיל נקי</td><td>בסוף סרטון נמחקות הכתוביות והגדרות הנגן שלו. הסרטון הבא מתחיל בלי כתוביות, והמערכת בוחרת את הכתוביות בעברית של אותו סרטון או יוצרת AI. נשמר רק הסימון "נצפה".</td></tr>
+</table>
+
+<h2>קריסות וקפיאות שתוקנו</h2>
+<table>
+  <thead><tr><th>בעיה</th><th>סיבה</th><th>תיקון</th></tr></thead>
+  <tr><td>Kodi קרס בניגון ועצירה חוזרים</td><td>אובייקטי Monitor נוצרו בתהליכונים קצרים ושוחררו בזמן ש-Kodi שלח להם התראה</td><td>Monitor אחד משותף לכל התוסף, שלא משתחרר</td></tr>
+  <tr><td>Kodi קרס סביב התחלה ועצירה של סרטון</td><td>שירות הכתוביות All_Subs יצר אובייקט Player חדש כל 100 מ"ש (18 מקומות)</td><td>Player אחד משותף לשירות (דרך תיקון של All_Subs)</td></tr>
+  <tr><td>Kodi קרס ברענון ערוצים</td><td>תוסף הטלוויזיה כובה והודלק מחדש בכל רענון</td><td>IPTV Simple מרענן בעצמו כל 60 דקות. הפעלה מחדש רק כשההגדרות משתנות.</td></tr>
+  <tr><td>Kodi קפא בזמן "עדכון מערכת"</td><td>המתנה לפקודת עדכון בזמן שהורדה נכשלה, ונוצר מבוי סתום</td><td>הפקודות נשלחות בלי המתנה, והמעקב הוא לפי הגרסאות</td></tr>
+  <tr><td>Kodi נתקע על חלון "אישור" פתוח</td><td>הודעת כשל התקנה שלא נסגרה</td><td>הבדיקות סוגרות חלונות שנשארו פתוחים ומזהות קפיאה</td></tr>
+  <tr><td>סגירה איטית של Kodi</td><td>טיימרים שלא היו תהליכוני רקע, ושירותי כתוביות שהתעלמו מהסגירה</td><td>כל השירותים נעצרים מיד. Kodi נסגר תוך 7 עד 16 שניות.</td></tr>
+</table>
+
+<h2>כתוביות</h2>
+<ul>
+  <li><b>All_Subs הכניס כתובית של סרטון קודם או של סרט אחר לגמרי</b>: הוא מכניס כתובית רק אם אותו סרטון עדיין מתנגן. הבדיקה מתבצעת לפני ההורדה ושוב לפני ההצבה.</li>
+  <li><b>כתוביות שנשארו בפרק הבא</b> (מעבר אוטומטי ברשימת ניגון): Kodi מחזיר את מצב הכתוביות השמור כמה רגעים אחרי שהסרטון מתחיל, ולכן NovaTV מכבה אותן שוב אחרי שנייה ואחרי 3 שניות, אלא אם נבחרו כתוביות לסרטון הזה.</li>
+  <li><b>הגדרות לכל קובץ</b> (מסלול כתוביות, השהיות, רצועת שמע) נמחקות בסוף ניגון של סטרים.</li>
+  <li><b>All Subs Plus</b> לא נסגר לעולם, ועכשיו הוא נסגר עם Kodi.</li>
+  <li>התיקונים ב-All_Subs מוחלים בבנייה, מוחלים מחדש בכל הפעלה (כי התוסף מתעדכן לבד) ונבדקים ב"עדכון מערכת".</li>
+</ul>
+
+<h2>התקנה, תוספים ושרתים</h2>
+<ul>
+  <li><b>תוסף הטלוויזיה (IPTV Simple) ורכיב הסטרימינג (inputstream.adaptive) כלולים בבילד</b>, בגרסת Windows ל-Windows ובגרסאות Android (arm64 ו-armv7) ל-APK. התקנה חדשה כבר לא תלויה בשרתי ההורדה של Kodi, שנפלו לסירוגין. ב-Android נטענו 1,855 ערוצים מהפעלה ראשונה.</li>
+  <li><b>התוספים הרשמיים כלולים בגרסה העדכנית</b> (11 עודכנו, למשל YouTube 7.3→7.4.4, מקורות המידע של TMDb וחבילת העברית, ונוסף versioncheck). הפעלה ראשונה לא מורידה כלום, והיא וגם הסגירה מהירות יותר.</li>
+  <li><b>התקנה לפי דרישה</b>: אם האינדקס של Kodi לא ירד, NovaTV מרענן אותו ואז מתקין. תוסף ספרייה שכובה מודלק שוב בלחיצה.</li>
+  <li><b>מקורות כבויים</b> לא נקראים יותר (קודם נוצרה שגיאת "Unknown addon").</li>
+  <li><b>קובץ הגדרות IPTV חלקי</b> לא שובר את אזור הטלוויזיה.</li>
+  <li><b>בזמן הבנייה</b> ההורדות מנסות שרתים חלופיים, והמטמון לא נשמר ריק אחרי הורדה שנכשלה.</li>
+  <li><b>התאמה לכללים הרשמיים של Kodi</b>: אייקונים אטומים, תקציר עם שפה, וקובץ המפתחות של YouTube נכלל כדי למנוע שגיאה בהפעלה ראשונה.</li>
+  <li><b>ממשק</b>: שורות כותרת ו"נקה היסטוריה" כבר לא מחזירות שגיאה.</li>
+</ul>
+
+<h2>בדיקות</h2>
+<table>
+  <thead><tr><th>קבוצה</th><th>מה נבדק</th><th>תוצאה</th></tr></thead>
+  <tr><td>תוכן</td><td>רשימות סרטים וסדרות, עברית/אנגלית/רוסית, ז'אנרים ושנים, מזהי TMDb, קוכניה, רדיו, מועדפים, היסטוריה ומהירות</td><td class="ok">עבר</td></tr>
+  <tr><td>טלוויזיה</td><td>מיזוג ומספור ערוצים, 5,428 ערוצים חינמיים, תקינות רשימת הערוצים, סינון ערוצים מתים</td><td class="ok">עבר</td></tr>
+  <tr><td>מקורות</td><td>חיפוש בכל המקורות, ספרייה מרכזית ורוסית, מעבר מ-POV למקורות אחרים, ספריות חינמיות, התקנה לפי דרישה</td><td class="ok">עבר</td></tr>
+  <tr><td>כתוביות</td><td>שרת AI, כתוביות AI מקצה לקצה, "מוכן לפני הצפייה", איפוס בין סרטונים ובפרק הבא, כפתור AI (גם בלי סרטון), הגנות All_Subs</td><td class="ok">עבר</td></tr>
+  <tr><td>מערכת</td><td>הודעת "מוכן" וטבלת מצב, עדכון מערכת עם תיקון אוטומטי, גיבוי, פרופיל נעול, יומן נקי</td><td class="ok">עבר</td></tr>
+  <tr><td>בדיקות עומק</td><td>הכלי הרשמי של Kodi (0 שגיאות), תחביר Python 3.8, תקינות XML, 46 מסכים, חלון הכתוביות עם שלט אמיתי, זליגת תהליכונים, אפס שגיאות Python מכל תוסף, סגירה נקייה</td><td class="ok">עבר</td></tr>
+  <tr><td>Android</td><td>התקנת APK נקייה, הבילד נפתח, סקין BN, הודעת "מוכן", כפתור AI, הגנות, אין קריסות</td><td class="ok">9/9</td></tr>
+  <tr><td>Windows מותקן</td><td>התקנה שקטה ו-11 בדיקות ממוקדות: עלייה, תפריט, סקין, ניגון, AI, שגיאות, סגירה</td><td class="ok">11/11</td></tr>
+</table>
+
+<h2>תהליך ה-release</h2>
+<ul>
+  <li>הבדיקות עוצרות בכישלון הראשון, ואחרי התיקון ממשיכות מאותה נקודה. גם שלבי ה-release ממשיכים מהשלב שנעצר.</li>
+  <li>קריסה או קפיאה של Kodi נרשמות ככישלון נפרד עם היומן. Kodi מופעל מחדש והבדיקות ממשיכות.</li>
+  <li>הבדיקה של הכלי הרשמי (כ-90 דקות) רצה רק כשקבצי התוספים שלנו משתנים.</li>
+  <li>בניית ה-APK והתקנת Windows רצות במקביל, והעותק המותקן נבדק בבדיקה ממוקדת.</li>
+  <li>שגיאות צד שלישי מוכרות מתועדות עם הסיבה, ומתקבלות רק בתנאים מדויקים: חסימת YouTube בלי חשבון, קובץ שחסר ל-YouTube בהפעלה ראשונה, הודעת certifi, ועדכון תוסף שקורה באותו רגע.</li>
+</ul>
+
+<h2>דברים שכדאי לדעת</h2>
+<ul>
+  <li><b>בהפעלה הראשונה של ה-APK</b> Kodi מבקש אישור גישה לקבצים. צריך ללחוץ Continue ואז Allow, אחרת האפליקציה נשארת במסך הפתיחה.</li>
+  <li><b>כש-All_Subs מחפש כתוביות</b> בחלון הכתוביות מופיע חלון "מחפש כתוביות". לחיצה אחת על Back עוצרת אותו, ואז "למעלה" מגיע לכפתור ה-AI.</li>
+  <li><b>YouTube</b> דורש חשבון מחובר לחלק מהסרטונים. זו מדיניות של YouTube ולא תקלה בבילד.</li>
+  <li><b>כתוביות AI</b> דורשות ששרת הכתוביות יפעל במחשב באותה רשת. מכשירים מוצאים אותו אוטומטית.</li>
+  <li><b>גרסת armv7</b> (32 ביט) לא נבדקה באמולטור, כי אין אמולטור ARM של 32 ביט.</li>
+  <li>הגרסה הקודמת שפורסמה הייתה 0.2.1. גרסה 0.2.2 לא פורסמה, וכל השינויים שלה נכללים ב-0.2.3.</li>
+</ul>
+
+<div class="foot">BN Stream / NovaTV · commit <span class="ltr">01e8065</span> · נוצר אוטומטית מתוך יומני ה-release והבדיקות</div>
+</body>
+</html>

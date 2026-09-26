@@ -388,6 +388,11 @@ def main():
             xbmc.executebuiltin('ReloadSkin()')
     except Exception as e:
         log('skin button: %s' % e, xbmc.LOGWARNING)
+    try:        # YouTube's local server port inside a range Windows reserved -> no YouTube playback
+        from resources.lib import ytport
+        ytport.check(fix=True)
+    except Exception as e:
+        log('YouTube port: %s' % e, xbmc.LOGWARNING)
     try:        # All_Subs updates itself and loses its guards: put them back (takes effect at its next start)
         import xbmcvfs
         from resources.lib import subspatch

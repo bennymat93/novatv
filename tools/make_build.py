@@ -184,7 +184,10 @@ def patch_skin_search(skin):
 
 PRESETS = {   # first-run prompts would block the hub's background searches
     'plugin.video.youtube': {'kodion.setup_wizard': 'false', 'kodion.setup_wizard.forced_runs': '1767970800',
-                             'kodion.http.listen': '127.0.0.1'},   # 0.0.0.0 picks a link-local IP -> 403 on streams
+                             'kodion.http.listen': '127.0.0.1',    # 0.0.0.0 picks a link-local IP -> 403 on streams
+                             # default 50152 lies in the port ranges Windows reserves for Hyper-V/WSL
+                             # (netsh ... excludedportrange: 49779-50799) -> "WinError 10013", no YouTube playback
+                             'kodion.http.port': '51152'},
     'plugin.video.archive.org': {'context': 'video'},
     'service.subtitles.All_Subs': {'telegram': 'false'},   # needs a personal Telegram login; opened a blocking dialog
 }

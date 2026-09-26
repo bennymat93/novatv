@@ -76,19 +76,23 @@ def main():
         result('APK installs', 'Success' in out, os.path.basename(a.apk))
         # what the viewer does on the first start: allow Kodi's access to files (its own prompt + system dialog)
         sh('appops set --uid %s MANAGE_EXTERNAL_STORAGE allow' % PKG)
-        adb('logcat', '-c')
+        adb('logcat', '-b', 'all', '-c')       # the crash buffer too: old crashes must not count
         act = sh('cmd package resolve-activity --brief %s | tail -1' % PKG).strip()
         sh('am start -n %s' % act)
         log, t0 = '', time.time()
-        while time.time() - t0 < 600:                # first start unpacks ~50 MB and installs the TV add-on
+        while time.time() - t0 < 900:                # first start unpacks ~50 MB and installs the TV add-on
             time.sleep(10)
             log = kodi_log()
-            if re.search(r'startup status: \d+ problems', log) or 'FATAL EXCEPTION' in adb('logcat', '-d', '-b', 'crash'):
+            crashed = any(PKG in l for l in adb('logcat', '-d', '-b', 'crash').splitlines()
+                          if 'FATAL' in l or 'Fatal signal' in l)       # our app only, not the emulator's services
+            if re.search(r'startup status: \d+ problems', log) or crashed:
                 break
         crash = adb('logcat', '-d', '-b', 'crash')
         open(os.path.join(ROOT, 'work', 'android', 'crash.log'), 'w', encoding='utf-8').write(crash)
         open(os.path.join(ROOT, 'work', 'android', 'logcat.log'), 'w', encoding='utf-8').write(adb('logcat', '-d', timeout=120))
-        result('No crash (logcat)', PKG not in crash and 'Fatal signal' not in crash, crash.strip()[:200])
+        # only OUR app counts (the emulator's own services, e.g. its Bluetooth stack, crash on their own)
+        mine = [l for l in crash.splitlines() if PKG in l and ('FATAL' in l or 'Fatal signal' in l or 'Abort' in l)]
+        result('No crash (logcat)', not mine, mine[0][:200] if mine else '')
         result('Kodi running', bool(sh('pidof %s' % PKG).strip()))
         m = re.search(r'plugin\.video\.nova v([\d.]+) installed', log)
         result('Build unpacked, NovaTV version', bool(m) and m.group(1) == a.version, m.group(1) if m else 'not found')

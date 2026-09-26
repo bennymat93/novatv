@@ -41,6 +41,7 @@ S = {
     'uptodate': ('הכול מעודכן (%d תוספים)', 'everything up to date (%d add-ons)', 'всё актуально (%d)'),
     'skin': ('כפתור כתוביות AI בנגן', 'AI subtitle button in the player', 'Кнопка ИИ-субтитров в плеере'),
     'subsguard': ('הגנות שירות הכתוביות (All Subs)', 'Subtitle service guards (All Subs)', 'Защита сервиса субтитров (All Subs)'),
+    'ytport': ('פורט YouTube (Windows)', 'YouTube port (Windows)', 'Порт YouTube (Windows)'),
     'hook': ('POV → חיפוש בכל המקורות', 'POV → search all sources hook', 'POV → поиск во всех источниках'),
     'iptv': ('ערוצי טלוויזיה ומדריך שידורים', 'TV channels & guide', 'ТВ-каналы и телепрограмма'),
     'pvr': ('נגן הטלוויזיה (IPTV Simple)', 'TV player (IPTV Simple)', 'ТВ-клиент (IPTV Simple)'),
@@ -176,6 +177,12 @@ def check_subsguard():
     return row('subsguard', 'addons', s('subsguard'), True, 'OK', changed=bool(n))
 
 
+def check_ytport(fix=False):
+    from . import ytport
+    ok, detail = ytport.check(fix=fix)
+    return row('ytport', 'addons', s('ytport'), ok, detail, changed='->' in detail)
+
+
 def check_service(k):
     from . import accounts
     name = dict(accounts.ROWS)[k]
@@ -245,6 +252,8 @@ def fix(rid):
         return check_hook()
     if rid == 'skin':
         return check_skin()
+    if rid == 'ytport':
+        return check_ytport(fix=True)
     if rid == 'subsguard':
         return check_subsguard()
     if rid.startswith('svc:'):
@@ -283,7 +292,7 @@ def run():
     rows = []
     jobs = [(s('internet'), check_internet), (s('repos'), 'repos'), (s('autoupd'), check_autoupdate)]
     jobs += [(name, (lambda a=aid, n=name: check_addon(a, n))) for aid, name in core_addons()]
-    jobs += [(s('hook'), check_hook), (s('skin'), check_skin), (s('subsguard'), check_subsguard)]
+    jobs += [(s('hook'), check_hook), (s('skin'), check_skin), (s('subsguard'), check_subsguard), (s('ytport'), check_ytport)]
     jobs += [(name, (lambda k=k: check_service(k))) for k, name in accounts.ROWS]
     jobs += [(s('iptv'), run_iptv), (s('pvr'), check_pvr), (s('radio'), check_radio), (s('cache'), run_cache)]
     for i, (label, job) in enumerate(jobs):

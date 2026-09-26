@@ -60,7 +60,7 @@ def a(url, text=None):
 
 # ------------------------------------------------------------------ content (en, he)
 def sections(f):
-    apk64, apk32, exe = REL + 'BN-Stream-21.3-arm64-v8a.apk', REL + 'BN-Stream-21.3-armeabi-v7a.apk', REL + 'BN-Stream-Setup-%s.exe' % f['ver']
+    apk64, apk32 = REL + 'BN-Stream-21.3-arm64-v8a.apk', REL + 'BN-Stream-21.3-armeabi-v7a.apk'
     exe_latest = 'https://github.com/%s/novatv/releases/latest' % GH
     free_en = ', '.join(x.replace('iptv-org ', '') for x in f['free'])
     off_en = ', '.join(x.replace('iptv-org ', '') for x in f['free_off'])
@@ -207,7 +207,7 @@ def sections(f):
 <li>Optional: a Gemini key (Accounts &rarr; Gemini) gives better translation; without it a local translator is used.</li>
 </ol>
 <p>Translate a whole series overnight:</p>
-<pre dir="ltr">{batch}</pre>'''.format(bat=c(r'server\start_server.bat'), auto=c(r'server\install_autostart.bat'), url=c('http://<PC-IP>:8765'),
+<pre dir="ltr">{batch}</pre>'''.format(auto=c(r'server\install_autostart.bat'), url=c('http://<PC-IP>:8765'),
                        status=c(r'.venv11\Scripts\python server\supervisor.py status'), log=c(r'server\logs\server.log'),
                        batch=html.escape(r'.venv11\Scripts\python server\nova_subs.py batch "D:\Kukhnya\*.mkv" --title "Кухня"')), '''
 <ol>
@@ -216,7 +216,7 @@ def sections(f):
 <li>לא חובה: מפתח Gemini (חשבונות &larr; Gemini) נותן תרגום טוב יותר. בלעדיו משתמשים במתרגם מקומי.</li>
 </ol>
 <p>תרגום של סדרה שלמה בלילה:</p>
-<pre dir="ltr">{batch}</pre>'''.format(bat=c(r'server\start_server.bat'), auto=c(r'server\install_autostart.bat'), url=c('http://<PC-IP>:8765'),
+<pre dir="ltr">{batch}</pre>'''.format(auto=c(r'server\install_autostart.bat'), url=c('http://<PC-IP>:8765'),
                        status=c(r'.venv11\Scripts\python server\supervisor.py status'), log=c(r'server\logs\server.log'),
                        batch=html.escape(r'.venv11\Scripts\python server\nova_subs.py batch "D:\Kukhnya\*.mkv" --title "Кухня"'))))
     S.append(('profile', 'Locked pre-configured profile', 'פרופיל מוגדר מראש נעול', '''
@@ -247,6 +247,7 @@ def sections(f):
 <tr><td>A TV channel does not play</td><td>Free channels can be offline or geo-blocked; try another one. Accounts &rarr; IPTV &rarr; refresh.</td></tr>
 <tr><td>No TV channels at all</td><td>Accounts &rarr; IPTV &rarr; refresh and wait a minute; large lists take time.</td></tr>
 <tr><td>AI subtitles unavailable</td><td>Make sure the PC server is running and on the same network.</td></tr>
+<tr><td>YouTube: "WinError 10013"</td><td>Windows reserved the port YouTube uses. BN moves it to a free port when it starts; if the message stays, run System Update and press Auto-Fix on the "YouTube port" line, then restart Kodi.</td></tr>
 <tr><td>Everything is broken</td><td>Restore a backup, or NovaTV Wizard &rarr; Fresh install.</td></tr>
 </table>''', '''
 <table>
@@ -255,6 +256,7 @@ def sections(f):
 <tr><td>ערוץ לא מתנגן</td><td>ערוצים חינמיים יכולים להיות מושבתים או חסומים גאוגרפית; נסו ערוץ אחר. חשבונות &larr; IPTV &larr; רענון.</td></tr>
 <tr><td>אין ערוצים בכלל</td><td>חשבונות &larr; IPTV &larr; רענון, ומחכים דקה. רשימות גדולות לוקחות זמן.</td></tr>
 <tr><td>כתוביות AI לא זמינות</td><td>בודקים שהשרת במחשב פועל ונמצא באותה רשת.</td></tr>
+<tr><td>YouTube: "WinError 10013"</td><td>Windows שמרה לעצמה את הפורט של YouTube. BN מעביר אותו לפורט פנוי בעלייה; אם ההודעה נשארת – עדכון מערכת ← תיקון אוטומטי בשורת "פורט YouTube", ואז הפעלה מחדש של Kodi.</td></tr>
 <tr><td>הכול לא עובד</td><td>משחזרים גיבוי, או NovaTV Wizard &larr; התקנה נקייה.</td></tr>
 </table>'''))
     if f['tests']:

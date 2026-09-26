@@ -86,7 +86,10 @@ def main():
     if not a.skip_installed_test:
         def installed():
             inst = os.path.join(ROOT, 'work', 'wintest')
-            subprocess.call(['taskkill', '/IM', 'kodi.exe', '/F'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            sys.path.insert(0, os.path.join(ROOT, 'tools'))
+            import test_suite
+            test_suite.kill_kodi()                 # test copies only - never the owner's Kodi
+            test_suite.wait_foreign_kodi()
             run(os.path.join(ROOT, 'dist', 'BN-Stream-Setup-%s.exe' % v), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
                 '/DIR=' + inst, '/TASKS=')
             run(PY, 'tools/test_suite.py', '--version', v, '--installed', inst, '--stop-on-fail', '--resume')
