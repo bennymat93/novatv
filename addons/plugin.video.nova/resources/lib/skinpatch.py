@@ -60,4 +60,11 @@ def apply(xml):
         t = t.replace('<onup>150</onup>', '<onup>7160</onup>', 1)
         open(p, 'w', encoding='utf-8', newline='').write(t)
         n += 1
+    # Up from the results list reaches the AI button too (also for skins patched by 0.2.1)
+    t = open(p, encoding='utf-8', newline='').read()
+    old = '<control type="list" id="120">\n\t\t\t\t<top>50</top>\n\t\t\t\t<onup>false</onup>'
+    if old in t:
+        t = t.replace(old, old.replace('<onup>false</onup>', '<onup>7160</onup>'), 1)
+        open(p, 'w', encoding='utf-8', newline='').write(t)
+        n += 1
     return n

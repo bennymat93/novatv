@@ -45,6 +45,10 @@ def menu(handle, url):
 def install(aid):
     from .iptv import install_addon
     xbmcgui.Dialog().notification('BN', '%s: %s' % (T('lib_install'), aid), xbmcgui.NOTIFICATION_INFO, 3000)
+    if xbmc.getCondVisibility('System.HasAddon(%s) + !System.AddonIsEnabled(%s)' % (aid, aid)):
+        import json      # installed but switched off (by the viewer or Auto-Fix): switch it back on
+        xbmc.executeJSONRPC(json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.SetAddonEnabled',
+                                        'params': {'addonid': aid, 'enabled': True}}))
     if install_addon(aid):
         xbmc.executebuiltin('ActivateWindow(Videos,plugin://%s/,return)' % aid)
     else:

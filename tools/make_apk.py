@@ -126,7 +126,7 @@ def keystore():
     return ks
 
 
-def embed_build(dec, build_zip):
+def embed_build(dec, build_zip, arch):
     """Ready on first start: BnSetup unpacks assets/bn_build.zip into Kodi's home before Kodi starts."""
     pkg = os.path.join(dec, 'smali', *NEW.split('.'))
     shutil.copy(os.path.join(ROOT, 'android', 'smali', 'BnSetup.smali'), pkg)
@@ -137,8 +137,11 @@ def embed_build(dec, build_zip):
     head = '.method protected doInBackground()Ljava/lang/Integer;\n    .locals 12\n'
     assert head in t, 'FillCache.doInBackground not found'
     open(fc, 'w', encoding='utf-8').write(t.replace(head, head + '\n' + hook, 1))
-    # binary add-ons inside the build are Windows builds: leave them out, Kodi on the box installs
-    # the Android build of each one from the official repository (NovaTV service, first start)
+    # binary add-ons inside the build are Windows builds: swap in the official Android build of each one
+    # (downloading them on the box failed whenever Kodi's mirrors timed out -> no TV on first start)
+    sys.path.insert(0, os.path.join(ROOT, 'tools'))
+    import make_build
+    platform = {'arm64-v8a': 'android-aarch64', 'armeabi-v7a': 'android-armv7'}[arch]
     with zipfile.ZipFile(build_zip) as zi:
         names = zi.namelist()
         binary = {n.split('/')[1] for n in names if n.startswith('addons/') and n.endswith(('.dll', '.so', '.dylib'))}
@@ -147,7 +150,16 @@ def embed_build(dec, build_zip):
                 if n.startswith('addons/') and n.split('/')[1] in binary:
                     continue
                 zo.writestr(zi.getinfo(n), zi.read(n))
-    print('   binary add-ons left out for Android:', ', '.join(sorted(binary)) or '-')
+            swapped = []
+            for aid in sorted(binary):
+                if aid not in make_build.BINARY:
+                    continue
+                with zipfile.ZipFile(make_build.binary_zip(aid, platform)) as za:
+                    for n in za.namelist():
+                        zo.writestr('addons/' + n, za.read(n))
+                swapped.append(aid)
+    print('   binary add-ons: %s -> %s build; left out: %s' % (', '.join(swapped) or '-', platform,
+                                                              ', '.join(sorted(binary - set(swapped))) or '-'))
     with zipfile.ZipFile(build_zip) as z:
         mark = z.read('userdata/novatv_build.txt')
     open(os.path.join(dec, 'assets', 'bn_build.txt'), 'wb').write(mark)
@@ -160,7 +172,7 @@ def build(src, arch, build_zip):
     print('decode', src)
     run(JAVA, '-jar', 'apktool.jar', 'd', '-f', src, '-o', dec)
     rebrand(dec)
-    embed_build(dec, build_zip)
+    embed_build(dec, build_zip, arch)
     out = os.path.join(W, 'bn_%s_unsigned.apk' % arch)
     print('build', arch)
     run(JAVA, '-jar', 'apktool.jar', 'b', dec, '-o', out)

@@ -6,11 +6,12 @@
  1. version -> addon.xml (plugin.video.nova)
  2. build zip + site (publish.py, also regenerates the user guide)
  3. full test suite on testkodi                          (stops on failure)
- 4. Android APKs with the build embedded (make_apk.py)
+ 4. Android APKs with the build embedded (make_apk.py) + emulator smoke test (android_test.py)
  5. Windows installer (make_windows.py) + silent install + test suite on the installed copy
  6. git commit + push main, push site to gh-pages, GitHub release with APKs, setup and zip
 """
 import argparse
+import json
 import os
 import re
 import shutil
@@ -29,28 +30,67 @@ def run(*a, cwd=ROOT):
     subprocess.check_call(list(a), cwd=cwd)
 
 
+STATE = os.path.join(ROOT, 'work', 'release_state.json')
+
+
+def state(v):
+    try:
+        st = json.load(open(STATE, encoding='utf-8'))
+        return st if st.get('version') == v else {'version': v, 'done': []}
+    except Exception:
+        return {'version': v, 'done': []}
+
+
+def step(v, name, fn):
+    """run a release step once: a stopped release rerun with the same version continues where it stopped"""
+    st = state(v)
+    if name in st['done']:
+        print('= %s (done earlier)' % name, flush=True)
+        return
+    fn()
+    st['done'].append(name)
+    json.dump(st, open(STATE, 'w', encoding='utf-8'))
+
+
+def both(*cmds):
+    """run commands in parallel; stop the release if any fails"""
+    procs = [(c, subprocess.Popen(c, cwd=ROOT)) for c in cmds]
+    bad = [' '.join(c[1:3]) for c, p in procs if p.wait() != 0]
+    if bad:
+        raise SystemExit('failed: %s' % ', '.join(bad))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--version', required=True)
     ap.add_argument('--notes', required=True, help='one line: what changed (commit + release notes)')
     ap.add_argument('--skip-installed-test', action='store_true')
+    ap.add_argument('--skip-android-test', action='store_true')
     a = ap.parse_args()
     v = a.version
     ax = os.path.join(ROOT, 'addons', 'plugin.video.nova', 'addon.xml')
     s = open(ax, encoding='utf-8').read()
     open(ax, 'w', encoding='utf-8').write(re.sub(r'(name="NovaTV" version=")[^"]+', r'\g<1>' + v, s, count=1))
 
+    # the build is always remade (a fix after a stop must be in it); every other step runs once per version:
+    # a stopped release rerun with the same version continues where it stopped, the tests from the failed check
     run(PY, 'tools/publish.py', '--gh-user', GH_USER, '--version', v)
-    run(PY, 'tools/test_suite.py', '--version', v)
+    step(v, 'tests', lambda: run(PY, 'tools/test_suite.py', '--version', v, '--stop-on-fail', '--resume'))
     run(PY, 'tools/make_guide.py')                     # now includes this run's test results
     shutil.copy(os.path.join(ROOT, 'docs', 'guide.html'), os.path.join(ROOT, 'site', 'guide.html'))
-    run(VENV if os.path.exists(VENV) else PY, 'tools/make_apk.py', '--version', v)
-    run(PY, 'tools/make_windows.py', '--version', v)
+    # APKs and the Windows installer build at the same time; then the emulator test runs next to the installed-copy test
+    step(v, 'packages', lambda: both([VENV if os.path.exists(VENV) else PY, 'tools/make_apk.py', '--version', v],
+                                     [PY, 'tools/make_windows.py', '--version', v]))
+    if not a.skip_android_test:
+        step(v, 'android', lambda: run(PY, 'tools/android_test.py', '--version', v))
     if not a.skip_installed_test:
-        inst = os.path.join(ROOT, 'work', 'wintest')
-        subprocess.call(['taskkill', '/IM', 'kodi.exe', '/F'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        run(os.path.join(ROOT, 'dist', 'BN-Stream-Setup-%s.exe' % v), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/DIR=' + inst, '/TASKS=')
-        run(PY, 'tools/test_suite.py', '--version', v, '--installed', inst)
+        def installed():
+            inst = os.path.join(ROOT, 'work', 'wintest')
+            subprocess.call(['taskkill', '/IM', 'kodi.exe', '/F'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            run(os.path.join(ROOT, 'dist', 'BN-Stream-Setup-%s.exe' % v), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+                '/DIR=' + inst, '/TASKS=')
+            run(PY, 'tools/test_suite.py', '--version', v, '--installed', inst, '--stop-on-fail', '--resume')
+        step(v, 'installed', installed)
 
     msg = 'v%s: %s%s' % (v, a.notes, TRAILER)
     run('git', 'add', '-A')

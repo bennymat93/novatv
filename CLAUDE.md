@@ -61,6 +61,22 @@ Core providers (pov, idanplus, youtube, archive) are never hidden. Delete the st
   Auto-Fix row under each error (`?a=sysfix&id=<row>`, `*` = all). Logins/keys: Auto-Fix opens the right screen.
 - Tests 29-31: subtitles reset between videos, AI button, System Update + Auto-Fix.
 
+## 0.2.2 hardening (deep tests found these)
+- Kodi crash (access violation python3.8.dll+0xdfec1) on play/stop: a new xbmc.Monitor per worker thread, freed while Kodi
+  delivered notifications. Rule: never create xbmc.Monitor() in threads - use common.monitor() (one per process, never freed).
+- Kodi crash (kodi.exe) while disabling/enabling pvr.iptvsimple on every IPTV refresh: IPTV Simple now refreshes the files
+  itself (m3uRefreshMode=1, 60 min); configure_pvr restarts only when its settings changed or the viewer edited sources.
+- threading.Timer is not a daemon: Kodi waited on exit and killed the service -> `later()` daemon helper.
+- plugin scripts wait for their worker threads before exiting (default.py finally).
+- `resources/lib/subspatch.py` (build + service start + System Update): All_Subs placed subtitles of an old search into the
+  next video (and a cached "last subtitle" from other titles), and blocked exit (xbmc.sleep loops); All Subs Plus never left
+  its main loop. Guards v3 / plus v1.
+- providers.installed() = installed AND enabled; "noop"/"history_clear" rows fixed; solid add-on icons; repo summary lang.
+- New checks: static (kodi-addon-checker in .venv11, py3.8 ast, XML), menu crawl, skin windows via remote, All_Subs guards,
+  thread leak, strict tracebacks (KNOWN_TRACEBACKS documents third-party noise), clean shutdown; a crash is recorded as its
+  own failure with the log in work/crash-*.log and Kodi restarted. `tools/android_test.py`: emulator smoke test
+  (MSYS_NO_PATHCONV=1 for manual adb in Git Bash; the first start needs MANAGE_EXTERNAL_STORAGE - granted by appops).
+
 ## Status (2026-09-25, v0.2.0)
 Handoff steps 1-4 done. Release flow: `python tools/release.py --version X --notes "..."` (bump the version for every significant change;
 it rebuilds zip, guide, both APKs and the Windows installer, tests testkodi AND the installed Windows copy, pushes main + gh-pages, creates the GitHub release).

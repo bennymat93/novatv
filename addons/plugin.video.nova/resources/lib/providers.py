@@ -18,6 +18,8 @@ from urllib.parse import quote, quote_plus, urlencode
 
 import xbmc
 import xbmcgui
+
+from .common import monitor
 import xbmcplugin
 
 from .common import T, ui_lang, load, save, log, ADDON_PATH
@@ -143,7 +145,8 @@ def status():
 
 
 def installed(addon_id):
-    return xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id)
+    # installed AND enabled: calling a disabled add-on fails ("Unknown addon id")
+    return xbmc.getCondVisibility('System.HasAddon(%s) + System.AddonIsEnabled(%s)' % (addon_id, addon_id))
 
 
 def enabled_map():
@@ -367,7 +370,7 @@ def play_with_fallback(pov_url, query, alt_query='', timeout=240):
     ensure_pov_hook()
     home = xbmcgui.Window(10000)
     home.clearProperty(NORES)
-    player, mon = xbmc.Player(), xbmc.Monitor()
+    player, mon = xbmc.Player(), monitor()
     xbmc.executebuiltin('PlayMedia(%s)' % pov_url)
     start, idle = time.time(), 0
     while time.time() - start < timeout and not mon.abortRequested():

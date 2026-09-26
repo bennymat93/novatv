@@ -13,6 +13,8 @@ import time
 
 import xbmc
 import xbmcgui
+
+from .common import monitor
 import xbmcplugin
 
 from .common import ADDON, T, load, save, log, now_str, ui_lang, PROFILE
@@ -38,6 +40,7 @@ S = {
     'updated': ('עודכנו', 'updated', 'обновлено'),
     'uptodate': ('הכול מעודכן (%d תוספים)', 'everything up to date (%d add-ons)', 'всё актуально (%d)'),
     'skin': ('כפתור כתוביות AI בנגן', 'AI subtitle button in the player', 'Кнопка ИИ-субтитров в плеере'),
+    'subsguard': ('הגנות שירות הכתוביות (All Subs)', 'Subtitle service guards (All Subs)', 'Защита сервиса субтитров (All Subs)'),
     'hook': ('POV → חיפוש בכל המקורות', 'POV → search all sources hook', 'POV → поиск во всех источниках'),
     'iptv': ('ערוצי טלוויזיה ומדריך שידורים', 'TV channels & guide', 'ТВ-каналы и телепрограмма'),
     'pvr': ('נגן הטלוויזיה (IPTV Simple)', 'TV player (IPTV Simple)', 'ТВ-клиент (IPTV Simple)'),
@@ -89,9 +92,11 @@ def check_autoupdate():
 def run_repos(progress=None):
     """refresh every repository and let Kodi install the updates; report what changed"""
     before = installed_versions()
-    xbmc.executebuiltin('UpdateAddonRepos', True)
-    xbmc.executebuiltin('UpdateLocalAddons', True)
-    mon, start, last_change, cur = xbmc.Monitor(), time.time(), time.time(), before
+    # never wait=True here: when a download fails at that moment Kodi's add-on manager and the waiting script
+    # block each other and Kodi freezes (found by the deep tests). Send, then follow the versions below.
+    xbmc.executebuiltin('UpdateAddonRepos')
+    xbmc.executebuiltin('UpdateLocalAddons')
+    mon, start, last_change, cur = monitor(), time.time(), time.time(), before
     # updates are downloaded in the background: wait until nothing changed for 20 s (at most 3 min)
     while time.time() - start < 180:
         if mon.waitForAbort(5):
@@ -155,6 +160,22 @@ def check_skin():
     return row('skin', 'addons', s('skin'), True, 'OK', changed=bool(n))
 
 
+def check_subsguard():
+    import xbmcvfs
+    from . import subspatch
+    d = xbmcvfs.translatePath('special://home/addons/service.subtitles.All_Subs')
+    if not os.path.isdir(d):
+        return row('subsguard', 'addons', s('subsguard'), None, s('missing'))
+    try:
+        n = subspatch.apply(d)
+        plus = xbmcvfs.translatePath('special://home/addons/service.subtitles.all_subs_plus')
+        if os.path.isdir(plus):
+            n += subspatch.apply_plus(plus)
+    except Exception as e:
+        return row('subsguard', 'addons', s('subsguard'), False, str(e)[:100])
+    return row('subsguard', 'addons', s('subsguard'), True, 'OK', changed=bool(n))
+
+
 def check_service(k):
     from . import accounts
     name = dict(accounts.ROWS)[k]
@@ -202,7 +223,7 @@ def fix(rid):
     from . import accounts
     from .iptv import install_addon
     if rid == 'internet':
-        xbmc.Monitor().waitForAbort(5)
+        monitor().waitForAbort(5)
         return check_internet()
     if rid == 'autoupd':
         _rpc('Settings.SetSettingValue', setting='general.addonupdates', value=0)
@@ -215,7 +236,7 @@ def fix(rid):
         det = (_rpc('Addons.GetAddonDetails', addonid=aid, properties=['enabled', 'broken']).get('result') or {}).get('addon')
         if det and not det.get('enabled') and not det.get('broken'):
             _rpc('Addons.SetAddonEnabled', addonid=aid, enabled=True)
-            xbmc.Monitor().waitForAbort(2)
+            monitor().waitForAbort(2)
         else:                       # missing or broken: (re)install from the repository
             install_addon(aid, timeout=120)
             _rpc('Addons.SetAddonEnabled', addonid=aid, enabled=True)
@@ -224,6 +245,8 @@ def fix(rid):
         return check_hook()
     if rid == 'skin':
         return check_skin()
+    if rid == 'subsguard':
+        return check_subsguard()
     if rid.startswith('svc:'):
         k = rid.split(':', 1)[1]
         if k == 'server':
@@ -260,7 +283,7 @@ def run():
     rows = []
     jobs = [(s('internet'), check_internet), (s('repos'), 'repos'), (s('autoupd'), check_autoupdate)]
     jobs += [(name, (lambda a=aid, n=name: check_addon(a, n))) for aid, name in core_addons()]
-    jobs += [(s('hook'), check_hook), (s('skin'), check_skin)]
+    jobs += [(s('hook'), check_hook), (s('skin'), check_skin), (s('subsguard'), check_subsguard)]
     jobs += [(name, (lambda k=k: check_service(k))) for k, name in accounts.ROWS]
     jobs += [(s('iptv'), run_iptv), (s('pvr'), check_pvr), (s('radio'), check_radio), (s('cache'), run_cache)]
     for i, (label, job) in enumerate(jobs):

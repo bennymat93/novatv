@@ -15,6 +15,8 @@ from urllib.parse import urlencode
 import xbmc
 import xbmcgui
 
+from resources.lib.common import monitor
+
 from resources.lib.common import ADDON, T, load, save, now_str, log, PROFILE
 from resources.lib.subsnet import discover_server
 
@@ -108,7 +110,7 @@ class Flow:
                 status('')
 
     def _run(self):
-        p, mon = self.p, xbmc.Monitor()
+        p, mon = self.p, monitor()
         if xbmc.getCondVisibility('PVR.IsPlayingTV | PVR.IsPlayingRadio | VideoPlayer.Content(livetv)'):
             if self.forced:
                 xbmcgui.Dialog().notification('NovaTV', T('ai_nolive'), xbmcgui.NOTIFICATION_WARNING, 4000)
@@ -197,6 +199,7 @@ class Flow:
                     with open(srt_path, 'wb') as f:
                         f.write(data)
                     p.setSubtitles(srt_path)      # adds the file and makes it the active track
+                    p.chosen = self.gen
                     p.showSubtitles(True)
                     log('AI subtitles loaded up to %ds (%s)' % (ready, 'button' if self.forced else 'auto'))
                     loaded_upto = ready
@@ -227,6 +230,7 @@ class Player(xbmc.Player):
         self.file = ''
         self.active = False
         self.flow = None
+        self.chosen = 0         # gen whose subtitles were deliberately switched on
         self.lock = threading.Lock()
 
     def playing_file(self):
@@ -255,10 +259,24 @@ class Player(xbmc.Player):
             self.gen += 1
             self.file, self.active, self.flow = path, True, None
         status('')
+        self.chosen = 0
+        gen = self.gen
         try:
             self.showSubtitles(False)      # subtitles must be chosen (or generated) for THIS video
         except RuntimeError:
             pass
+
+        def again():
+            # on playlist auto-advance (next episode) Kodi applies the item's saved subtitle state a moment
+            # AFTER onAVStarted: switch off again unless this video's subtitles were chosen in the meantime
+            for delay in (1.0, 2.0):
+                if monitor().waitForAbort(delay) or gen != self.gen or self.chosen == gen:
+                    return
+                try:
+                    self.showSubtitles(False)
+                except RuntimeError:
+                    return
+        threading.Thread(target=again, daemon=True).start()
 
     def finish(self):
         with self.lock:
@@ -270,7 +288,7 @@ class Player(xbmc.Player):
         if ended.startswith(('http://', 'https://')):
             # Kodi stores the file's settings right after the stop: clear them once it has
             def later():
-                xbmc.Monitor().waitForAbort(6)
+                monitor().waitForAbort(6)
                 try:
                     n = forget_file_settings(ended)
                     if n:
@@ -334,9 +352,11 @@ class Player(xbmc.Player):
         """a Hebrew track of the playing video (embedded, or added by All_Subs) -> make it the active one"""
         active = (xbmc.getInfoLabel('VideoPlayer.SubtitlesLanguage') or '').lower()
         if xbmc.getCondVisibility('VideoPlayer.SubtitlesEnabled') and active in HEB_CODES:
+            self.chosen = self.gen
             return True
         for i, lang in enumerate(self.getAvailableSubtitleStreams()):
             if (lang or '').lower() in HEB_CODES:
+                self.chosen = self.gen
                 self.setSubtitleStream(i)
                 self.showSubtitles(True)
                 return True
@@ -356,6 +376,7 @@ class Monitor(xbmc.Monitor):
 
 
 def main():
+    monitor()               # the shared Monitor is created here, on the main thread, and lives until exit
     player = Player()
     mon = Monitor(player)
     try:        # boxes updated from the repository: add the AI subtitle button to the installed skin once
@@ -367,10 +388,29 @@ def main():
             xbmc.executebuiltin('ReloadSkin()')
     except Exception as e:
         log('skin button: %s' % e, xbmc.LOGWARNING)
+    try:        # All_Subs updates itself and loses its guards: put them back (takes effect at its next start)
+        import xbmcvfs
+        from resources.lib import subspatch
+        subs_dir = xbmcvfs.translatePath('special://home/addons/service.subtitles.All_Subs')
+        if os.path.isdir(subs_dir) and subspatch.apply(subs_dir):
+            log('All_Subs guards applied')
+        plus_dir = xbmcvfs.translatePath('special://home/addons/service.subtitles.all_subs_plus')
+        if os.path.isdir(plus_dir) and subspatch.apply_plus(plus_dir):
+            log('All Subs Plus exit guard applied')
+    except Exception as e:
+        log('All_Subs guards: %s' % e, xbmc.LOGWARNING)
     threading.Thread(target=discover_server, daemon=True).start()
     if ADDON.getSettingBool('open_on_start'):
         xbmc.sleep(2500)
         xbmc.executebuiltin('ActivateWindow(Videos,plugin://plugin.video.nova/,return)')
+    def later(delay, job):
+        """run a job after a delay in a background thread that never keeps Kodi from quitting
+        (threading.Timer is not a daemon: Kodi waited for it on exit, killed the service and could crash)"""
+        def run():
+            if not monitor().waitForAbort(delay):
+                job()
+        threading.Thread(target=run, daemon=True).start()
+
     # Player callbacks are delivered on this thread while it waits, so long jobs
     # (IPTV / EPG download) must run in their own thread.
     def iptv_job():
@@ -386,7 +426,7 @@ def main():
             backup.auto_backup()
         except Exception as e:
             log('auto backup: %s' % e, xbmc.LOGWARNING)
-    threading.Timer(600, backup_job).start()      # 10 min after start, at most once a week
+    later(600, backup_job)      # 10 min after start, at most once a week
 
     def binary_job():
         # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not
@@ -398,7 +438,7 @@ def main():
                     log('installing %s for this platform: %s' % (aid, install_addon(aid)))
         except Exception as e:
             log('binary add-ons: %s' % e, xbmc.LOGWARNING)
-    threading.Timer(45, binary_job).start()
+    later(45, binary_job)
 
     def startup_job():
         """tell the viewer when everything is up: add-ons, services, how much content"""

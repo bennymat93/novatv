@@ -9,6 +9,8 @@ import time
 
 import xbmc
 import xbmcgui
+
+from .common import monitor
 import xbmcvfs
 
 from .common import T, load, save, PROFILE, log
@@ -66,6 +68,8 @@ def dead_streams():
 
 def sources():
     src = load('iptv.json', {'m3u': [], 'epg': []})
+    src.setdefault('m3u', [])        # a hand-edited / partial file must not break the TV section
+    src.setdefault('epg', [])
     src.setdefault('free', {})
     for name, _ in FREE:
         src['free'].setdefault(name, name not in FREE_OFF)
@@ -166,7 +170,7 @@ def merge(notify=True):
         # newest sources - dropping the request would leave the viewer with the old channel list
         if notify:
             xbmcgui.Dialog().notification('NovaTV', '...', xbmcgui.NOTIFICATION_INFO, 2000)
-        mon = xbmc.Monitor()
+        mon = monitor()
         for _ in range(600):
             if home.getProperty('NovaTV.iptv_busy') != '1' or mon.waitForAbort(0.5):
                 break
@@ -230,7 +234,7 @@ def _merge(notify):
     with open(MERGED_M3U, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
     merge_epg(src['epg'], errors)
-    if not configure_pvr():
+    if not configure_pvr(force=notify):
         errors.append('PVR IPTV Simple Client could not be installed - check internet, then Accounts > IPTV again')
     save('iptv_status.json', {'when': time.time(), 'channels': len(best), 'errors': errors})
     if notify:
@@ -268,10 +272,24 @@ def merge_epg(urls, errors):
     os.replace(tmp, MERGED_EPG)
 
 
+def repo_knows(addon_id):
+    """is the add-on in Kodi's repository index (installable)?"""
+    r = _jsonrpc('Addons.GetAddons', installed=False, properties=['name'])
+    return any(a.get('addonid') == addon_id for a in (r.get('result') or {}).get('addons', []))
+
+
 def install_addon(addon_id, timeout=120):
     """Install from the official repo and confirm Kodi's yes/no prompt ourselves."""
-    mon = xbmc.Monitor()
+    mon = monitor()
     for attempt in range(3):                    # dependency downloads sometimes fail - retry
+        if not xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id) and not repo_knows(addon_id):
+            # Kodi's download of the repository index timed out ("wrong digest"): it knows no add-on to install
+            # until its next refresh (up to a day) - refresh now and wait for the index
+            log('install %s: not in the repository index - refreshing repositories' % addon_id, xbmc.LOGWARNING)
+            xbmc.executebuiltin('UpdateAddonRepos')
+            for _ in range(90):
+                if repo_knows(addon_id) or mon.waitForAbort(1):
+                    break
         xbmc.executebuiltin('InstallAddon(%s)' % addon_id)
         for _ in range(timeout * 2 // 3):
             if xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id):
@@ -288,8 +306,12 @@ def install_addon(addon_id, timeout=120):
     return xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id)
 
 
-def configure_pvr():
-    """Write IPTV Simple instance settings first, then install (fresh) or restart (existing)."""
+def configure_pvr(force=False):
+    """Write IPTV Simple instance settings first, then install (fresh) or restart (existing).
+
+    IPTV Simple re-reads the merged files by itself every hour (m3uRefreshMode), so a running client is only
+    restarted when its settings changed or the viewer asked (force). Disabling/enabling the client on every
+    refresh crashed Kodi 21 now and then (PVR client destroyed while channels were being read)."""
     was_installed = xbmc.getCondVisibility('System.HasAddon(%s)' % PVR)
     data_dir = xbmcvfs.translatePath('special://profile/addon_data/%s/' % PVR)
     os.makedirs(data_dir, exist_ok=True)
@@ -298,16 +320,26 @@ def configure_pvr():
         'm3uPathType': '0', 'm3uPath': MERGED_M3U, 'm3uCache': 'true', 'startNum': '1',
         'numberByOrder': 'false', 'epgPathType': '0', 'epgPath': MERGED_EPG, 'epgCache': 'true',
         'epgTimeShift': '0', 'logoPathType': '1', 'logoFromEpg': '1', 'catchupEnabled': 'true',
+        'm3uRefreshMode': '1', 'm3uRefreshIntervalMins': '60',
     }
     xml = ['<settings version="2">'] + ['    <setting id="%s">%s</setting>' % (k, v) for k, v in settings.items()] + ['</settings>']
-    with open(os.path.join(data_dir, 'instance-settings-1.xml'), 'w', encoding='utf-8') as f:
-        f.write('\n'.join(xml))
+    body = '\n'.join(xml)
+    sp = os.path.join(data_dir, 'instance-settings-1.xml')
+    try:
+        with open(sp, encoding='utf-8') as f:
+            same = f.read() == body
+    except Exception:
+        same = False
+    with open(sp, 'w', encoding='utf-8') as f:
+        f.write(body)
     # let Kodi number channels in our tvg-chno order
     _rpc('Settings.SetSettingValue', setting='pvrmanager.usebackendchannelnumbers', value=True)
     if not was_installed:
         return install_addon(PVR)   # picks up the settings file on first start
+    if same and not force and _addon_enabled():
+        return True                 # the client refreshes the files itself - no restart
     # existing install: restart the client, but never overlap restarts (that aborts a big channel load)
-    mon = xbmc.Monitor()
+    mon = monitor()
     for attempt in range(4):
         _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
         for _ in range(20):                     # wait until the add-on is off and the PVR manager stopped

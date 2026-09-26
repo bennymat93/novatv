@@ -114,6 +114,19 @@ def tmdb_lang():
     return {'he': 'he-IL', 'ru': 'ru-RU'}.get(ui_lang(), 'en-US')
 
 
+_MON = None
+
+
+def monitor():
+    """ONE xbmc.Monitor per Python process, created once and never freed.
+    Kodi delivers every notification (playback start/stop ...) to all live Monitors; a Monitor created in a
+    short-lived thread and freed while Kodi was delivering one crashed Kodi (access violation in python3.8.dll)."""
+    global _MON
+    if _MON is None:
+        _MON = xbmc.Monitor()
+    return _MON
+
+
 def log(msg, level=xbmc.LOGINFO):
     xbmc.log('[NovaTV] %s' % msg, level)
 

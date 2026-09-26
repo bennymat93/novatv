@@ -44,16 +44,38 @@ SHOW = ['homemenunocustom1button', 'homemenunocustom2button', 'homemenunocustom3
         'homemenunomoviesbutton', 'homemenunotvshowsbutton']
 
 
+# Kodi's mirror redirector sometimes sends to a mirror that times out: retry, then try fixed mirrors directly
+KODI_MIRRORS = ['https://mirrors.kodi.tv', 'https://ftp.fau.de/xbmc', 'https://www.mirrorservice.org/sites/mirrors.xbmc.org',
+                'https://mirror.accum.se/mirror/xbmc.org']
+
+
+def download(url, timeout=60):
+    urls = [url] + ([url.replace('https://mirrors.kodi.tv', m) for m in KODI_MIRRORS[1:]] if 'mirrors.kodi.tv' in url else [])
+    err = None
+    for attempt in range(2):
+        for u in urls:
+            try:
+                return urllib.request.urlopen(u, timeout=timeout).read()
+            except Exception as e:
+                err = e
+                print('   retry (%s): %s' % (e, u))
+        time.sleep(10)
+    raise err
+
+
 def fetch(url, dest):
     if not os.path.exists(dest):
         print('download', url)
-        urllib.request.urlretrieve(url, dest)
+        data = download(url, timeout=120)
+        with open(dest + '.part', 'wb') as f:
+            f.write(data)
+        os.replace(dest + '.part', dest)
     return dest
 
 
 def base_zip():
     os.makedirs(WORK, exist_ok=True)
-    txt = urllib.request.urlopen(BASE_TXT).read().decode()
+    txt = download(BASE_TXT).decode()
     url = re.search(r'url="([^"]+\.zip)"', txt).group(1)
     return fetch(url, os.path.join(WORK, os.path.basename(url))), url
 
@@ -253,6 +275,24 @@ def bn_skin(stage):
     open(var, 'w', encoding='utf-8').write(v)
 
 
+def all_subs_guards(stage):
+    """All_Subs never places a subtitle into another video and stops when Kodi quits (shared with the service)"""
+    sys.path.insert(0, os.path.join(ROOT, 'addons', 'plugin.video.nova', 'resources', 'lib'))
+    import subspatch
+    return subspatch.apply(os.path.join(stage, 'addons', 'service.subtitles.All_Subs')) + \
+        subspatch.apply_plus(os.path.join(stage, 'addons', 'service.subtitles.all_subs_plus'))
+
+
+def youtube_keystore(stage):
+    """YouTube logged an OSError traceback on the first start (api_keys.json missing): ship its own default"""
+    d = os.path.join(stage, 'userdata', 'addon_data', 'plugin.video.youtube')
+    os.makedirs(d, exist_ok=True)
+    p = os.path.join(d, 'api_keys.json')
+    if not os.path.exists(p):
+        json.dump({'keys': {'user': {'api_key': '', 'client_id': '', 'client_secret': ''}, 'developer': {}}},
+                  open(p, 'w', encoding='utf-8'), indent=4)
+
+
 def ai_subs_buttons(stage):
     """'AI Subtitle Generation' in every player style and in the subtitle window (shared with the service)"""
     sys.path.insert(0, os.path.join(ROOT, 'addons', 'plugin.video.nova', 'resources', 'lib'))
@@ -274,8 +314,10 @@ def add_providers(stage):
     cache = os.path.join(WORK, 'omega')
     os.makedirs(os.path.join(cache, 'zips'), exist_ok=True)
     idx = os.path.join(cache, 'addons.xml')
-    if not os.path.exists(idx) or time.time() - os.path.getmtime(idx) > 86400:
-        open(idx, 'wb').write(gzip.decompress(urllib.request.urlopen(OMEGA + '/addons.xml.gz').read()))
+    if not os.path.exists(idx) or os.path.getsize(idx) < 1000 or time.time() - os.path.getmtime(idx) > 86400:
+        data = gzip.decompress(download(OMEGA + '/addons.xml.gz'))     # download first: a failed one left an empty file
+        with open(idx, 'wb') as f:
+            f.write(data)
     repo = {a.get('id'): a for a in ET.parse(idx).getroot().findall('addon')}
     have = set(os.listdir(os.path.join(stage, 'addons')))
     added, todo = [], list(provider_addons())
@@ -320,8 +362,85 @@ def apply_brand(stage):
     copyfile(os.path.join(BRAND, 'bn_wordmark.png'), os.path.join(skin, 'logos', 'letters.png'))
     for ad in OUR_ADDONS:
         d = os.path.join(stage, 'addons', ad)
-        copyfile(os.path.join(BRAND, 'icon.png'), os.path.join(d, 'icon.png'))
+        copyfile(os.path.join(BRAND, 'icon_solid.png'), os.path.join(d, 'icon.png'))   # Kodi rule: solid icon
         copyfile(os.path.join(BRAND, 'fanart.jpg'), os.path.join(d, 'fanart.jpg'))
+
+
+BINARY = ('pvr.iptvsimple', 'inputstream.adaptive')      # platform-specific: shipped per platform, never downloaded on the box
+BINARY_OFF = ('pvr.iptvsimple',)          # NovaTV writes its settings first, then switches it on (iptv.configure_pvr)
+
+
+def binary_zip(aid, platform):
+    """download (with mirror fallback) the official build of a binary add-on for one platform"""
+    import xml.etree.ElementTree as ET
+    idx = os.path.join(WORK, 'omega', 'addons.xml')
+    for a in ET.parse(idx).getroot().findall('addon'):
+        if a.get('id') != aid:
+            continue
+        meta = a.find("extension[@point='xbmc.addon.metadata']")
+        if meta is not None and (meta.findtext('platform') or '').strip() == platform:
+            path = meta.findtext('path') or '%s+%s/%s-%s.zip' % (aid, platform, aid, a.get('version'))
+            os.makedirs(os.path.join(WORK, 'omega', 'bin'), exist_ok=True)
+            return fetch('%s/%s' % (OMEGA, path), os.path.join(WORK, 'omega', 'bin', path.replace('/', '_')))
+    raise RuntimeError('%s: no %s build in the official repository' % (aid, platform))
+
+
+def bundle_binary(stage, platform='windows-x86_64'):
+    """Kodi's mirrors time out now and then: a box whose first start had to download the TV add-on stayed without TV.
+    The build carries them (Windows here; make_apk swaps in the Android builds)."""
+    for aid in BINARY:
+        shutil.rmtree(os.path.join(stage, 'addons', aid), ignore_errors=True)
+        with zipfile.ZipFile(binary_zip(aid, platform)) as z:
+            z.extractall(os.path.join(stage, 'addons'))
+    return list(BINARY)
+
+
+def _ver(v):
+    return tuple(int(x) for x in re.findall(r'\d+', v.split('+')[0])[:4])
+
+
+def update_official(stage):
+    """Every add-on of the base build that the official repository has in a newer version is updated here.
+    Otherwise a new install downloads ~12 updates on its first start: slow start, and Kodi waits for them before it
+    quits (40 s when a mirror hangs). Platform-independent add-ons only; binary ones come from bundle_binary."""
+    import gzip
+    import xml.etree.ElementTree as ET
+    idx = os.path.join(WORK, 'omega', 'addons.xml')
+    if not os.path.exists(idx) or os.path.getsize(idx) < 1000:
+        with open(idx, 'wb') as f:
+            f.write(gzip.decompress(download(OMEGA + '/addons.xml.gz')))
+    repo = {}
+    for a in ET.parse(idx).getroot().findall('addon'):
+        meta = a.find("extension[@point='xbmc.addon.metadata']")
+        plat = (meta.findtext('platform') if meta is not None else '') or 'all'
+        if plat.strip() == 'all':
+            repo[a.get('id')] = a.get('version')
+    done = []
+    # Kodi installs these itself on the first start when they are missing: ship them
+    for aid in ('service.xbmc.versioncheck',):
+        if aid in repo and not os.path.isdir(os.path.join(stage, 'addons', aid)):
+            z = fetch('%s/%s/%s-%s.zip' % (OMEGA, aid, aid, repo[aid]),
+                      os.path.join(WORK, 'omega', 'zips', '%s-%s.zip' % (aid, repo[aid])))
+            with zipfile.ZipFile(z) as zf:
+                zf.extractall(os.path.join(stage, 'addons'))
+            done.append('%s (added) %s' % (aid, repo[aid]))
+    for aid in sorted(os.listdir(os.path.join(stage, 'addons'))):
+        ax = os.path.join(stage, 'addons', aid, 'addon.xml')
+        if aid not in repo or aid in OUR_ADDONS or not os.path.exists(ax):
+            continue
+        m = re.search(r'<addon[^>]*\bversion="([^"]+)"', open(ax, encoding='utf-8', errors='ignore').read())
+        if not m or _ver(repo[aid]) <= _ver(m.group(1)):
+            continue
+        z = fetch('%s/%s/%s-%s.zip' % (OMEGA, aid, aid, repo[aid]),
+                  os.path.join(WORK, 'omega', 'zips', '%s-%s.zip' % (aid, repo[aid])))
+        shutil.rmtree(os.path.join(stage, 'addons', aid))
+        with zipfile.ZipFile(z) as zf:
+            zf.extractall(os.path.join(stage, 'addons'))
+        done.append('%s %s -> %s' % (aid, m.group(1), repo[aid]))
+    print('   official add-ons updated in the build: %d' % len(done))
+    for d in done:
+        print('     ' + d)
+    return done
 
 
 def enable_addons(db, ids):
@@ -331,7 +450,8 @@ def enable_addons(db, ids):
         c.execute('delete from installed where addonID=?', (a,))
     for a in ids:
         c.execute('insert or replace into installed (addonID, enabled, installDate, origin, disabledReason) '
-                  'values (?, 1, ?, ?, 0)', (a, now, 'repository.nova' if a != 'repository.nova' else ''))
+                  'values (?, ?, ?, ?, 0)', (a, 0 if a in BINARY_OFF else 1, now,
+                                             'repository.xbmc.org' if a in BINARY else 'repository.nova' if a != 'repository.nova' else ''))
     # drop the cached repository listings: they were fetched on Windows and point binary add-ons
     # (pvr.iptvsimple, inputstream.*) at Windows packages - Android then fails to install them.
     # Kodi re-reads every repository for its own platform on first start.
@@ -354,6 +474,7 @@ def main():
     for r in REMOVE:
         shutil.rmtree(os.path.join(STAGE, 'addons', r), ignore_errors=True)
         shutil.rmtree(os.path.join(STAGE, 'userdata', 'addon_data', r), ignore_errors=True)
+    update_official(STAGE)
     for ad in OUR_ADDONS:
         dst = os.path.join(STAGE, 'addons', ad)
         shutil.copytree(os.path.join(ROOT, 'addons', ad), dst,
@@ -363,8 +484,10 @@ def main():
     fix_startup(STAGE)
     bn_skin(STAGE)
     ai_subs_buttons(STAGE)
+    all_subs_guards(STAGE)
+    youtube_keystore(STAGE)
     patch_pov_hub(STAGE)
-    extra = add_providers(STAGE)
+    extra = add_providers(STAGE) + bundle_binary(STAGE)
     preset_settings(STAGE)
     apply_brand(STAGE)
     patch_skin_settings(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))

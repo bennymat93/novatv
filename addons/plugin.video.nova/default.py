@@ -4,6 +4,8 @@ from urllib.parse import parse_qsl, urlencode
 
 import xbmc
 import xbmcgui
+
+from resources.lib.common import monitor
 import xbmcplugin
 
 from resources.lib.common import (ADDON, T, tmdb, art, load, save, now_str, MEDIA, ui_lang)
@@ -337,7 +339,8 @@ def history():
         li.setProperty('IsPlayable', 'false' if target.startswith(BASE) else 'true')
         xbmcplugin.addDirectoryItem(HANDLE, target, li, False)
     if items:
-        folder('[COLOR red]%s[/COLOR]' % T('clear'), url(a='history_clear'))
+        li = xbmcgui.ListItem('[COLOR red]%s[/COLOR]' % T('clear'))
+        xbmcplugin.addDirectoryItem(HANDLE, url(a='history_clear'), li, False)
     end(cache=False)
 
 
@@ -413,7 +416,7 @@ def router(p):
         'tv_play': lambda: iptv.play_channel(p['id']),
         'radio_root': lambda: radio.menu(HANDLE, url, folder, end),
         'radio_list': lambda: radio.listing(HANDLE, url, end, **p),
-        'noop': lambda: None,
+        'noop': lambda: HANDLE >= 0 and xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=False),
         'libs': lambda: providers.library(HANDLE, url),
         'lib_cat': lambda: providers.library_cat(HANDLE, url, p['cat']),
         'lib_open': lambda: providers.open_provider(HANDLE, p['id'], p.get('q', '')),
@@ -450,7 +453,7 @@ def router(p):
     simple[a]()
 
 
-ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'noop', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto',
+ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto',
            'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now'}
 
 
@@ -469,7 +472,7 @@ def ai_subs_now():
 
 def refresh():
     # never refresh while Kodi is still building a listing (crashes Kodi 21)
-    mon = xbmc.Monitor()
+    mon = monitor()
     for _ in range(40):
         if not xbmc.getCondVisibility('Container.IsUpdating'):
             break
