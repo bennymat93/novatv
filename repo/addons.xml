@@ -9,12 +9,12 @@
     </dir>
   </extension>
   <extension point="xbmc.addon.metadata">
-    <summary>NovaTV add-ons and build updates</summary>
+    <summary lang="en">NovaTV add-ons and build updates</summary>
     <platform>all</platform>
     <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
   </extension>
 </addon>
-<addon id="plugin.video.nova" name="NovaTV" version="0.2.1" provider-name="NovaTV">
+<addon id="plugin.video.nova" name="NovaTV" version="0.2.3" provider-name="NovaTV">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" version="2.22.0"/>
@@ -56,7 +56,7 @@
   <requires><import addon="kodi.resource" version="1.0.0"/></requires>
   <extension point="kodi.resource.uisounds"/>
   <extension point="xbmc.addon.metadata">
-    <summary>Soft NovaTV navigation sounds</summary>
+    <summary lang="en">Soft NovaTV navigation sounds</summary>
     <platform>all</platform>
     <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
   </extension>
