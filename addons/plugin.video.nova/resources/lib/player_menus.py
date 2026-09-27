@@ -33,8 +33,20 @@ def _note(msg, ms=3000, kind=xbmcgui.NOTIFICATION_INFO):
     xbmcgui.Dialog().notification('BN', msg, kind, ms)
 
 
+_PL = None
+
+
+def _pl():
+    """ONE Player for the whole script: a Player created per menu pass and freed while Kodi notified it
+    crashed Kodi (python3.8.dll+0xdfec1, found by the 1.1.0 tests - same cause as 0.2.2)"""
+    global _PL
+    if _PL is None:
+        _PL = xbmc.Player()
+    return _PL
+
+
 def _player():
-    p = xbmc.Player()
+    p = _pl()
     return p if p.isPlayingVideo() else None
 
 
@@ -105,7 +117,7 @@ def _jump_to_time():
     t = xbmcgui.Dialog().numeric(2, 'קפיצה לזמן (שש:דד)')
     if t and _player():
         h, m = (t.split(':') + ['0'])[:2]
-        xbmc.Player().seekTime(int(h) * 3600 + int(m) * 60)
+        _pl().seekTime(int(h) * 3600 + int(m) * 60)
 
 
 def settings():
@@ -250,14 +262,14 @@ def subs_folder():
 
 
 def video_info():
-    tag = xbmc.Player().getVideoInfoTag()
+    tag = _pl().getVideoInfoTag()
     title = tag.getTVShowTitle() or tag.getTitle() or xbmc.getInfoLabel('Player.Title')
     s, e = tag.getSeason(), tag.getEpisode()
     imdb = tag.getIMDBNumber() or xbmc.getInfoLabel('VideoPlayer.UniqueID(imdb)')
     tmdb_id = tag.getUniqueID('tmdb')
     release = WIN.getProperty('subs.player_filename') or xbmc.getInfoLabel('Player.Filename')
     return {'title': title, 'season': s if s > 0 else 0, 'episode': e if e > 0 else 0, 'imdb': imdb, 'tmdb': tmdb_id,
-            'release': release, 'base': substore.video_base(title, s, e, xbmc.Player().getPlayingFile())}
+            'release': release, 'base': substore.video_base(title, s, e, _pl().getPlayingFile())}
 
 
 def _imdb(info):
@@ -384,7 +396,7 @@ def picker(filter_lang=None, filter_src=None):
         kind, val, _ = rows[i]
         if kind == 'stream':
             playerctl.rpc('Player.SetSubtitle', playerid=pid, subtitle=val['index'], enable=True)
-            WIN.setProperty('NovaTV.SubsChosen', xbmc.Player().getPlayingFile())
+            WIN.setProperty('NovaTV.SubsChosen', _pl().getPlayingFile())
         elif kind == 'file':
             _entry_actions(val)
         elif kind == 'online':
@@ -496,9 +508,9 @@ def subtitles():
         elif k == 'adv':
             appearance()
         elif k == 'off':
-            xbmc.Player().showSubtitles(not enabled)
+            _pl().showSubtitles(not enabled)
             if not enabled:
-                WIN.setProperty('NovaTV.SubsChosen', xbmc.Player().getPlayingFile())
+                WIN.setProperty('NovaTV.SubsChosen', _pl().getPlayingFile())
 
 
 def next_episode():
