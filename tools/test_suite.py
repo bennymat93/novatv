@@ -77,6 +77,8 @@ def check(name, fn):
         kill_kodi()
         keep = os.path.join(ROOT, 'work', 'crash-%s-%s.log' % (time.strftime('%H%M%S'), re.sub(r'[^\w-]+', '_', name.split(':')[-1].strip())[:30]))
         shutil.copy(os.path.join(DATA, 'kodi.log'), keep)
+        if dumps:
+            shutil.copy(dumps[-1], keep[:-4] + '.dmp')
         start_kodi()
 
 
@@ -1337,7 +1339,7 @@ def t_all_subs_guard():
     """All_Subs (third party) carries the BN guards: no subtitle for another video, stops when Kodi quits"""
     p = os.path.join(DATA, 'addons', 'service.subtitles.All_Subs', 'autosub.py')
     src = open(p, encoding='utf-8').read()
-    expect('# BN guard v4' in src, 'guards missing in the installed All_Subs')
+    expect('# BN guard v4' in src and '# BN guard v5' in src, 'guards missing in the installed All_Subs')
     expect(src.count('not monit.abortRequested()') >= 2 and '_bn_same_video()' in src, 'guards incomplete')
     plus = open(os.path.join(DATA, 'addons', 'service.subtitles.all_subs_plus', 'autosub.py'), encoding='utf-8').read()
     expect('# BN guard plus v1' in plus, 'All Subs Plus exit guard missing')
@@ -1484,6 +1486,8 @@ def main():
     ap.add_argument('--installed', help='test an already installed copy (e.g. from the Windows installer) instead of testkodi')
     ap.add_argument('--stop-on-fail', action='store_true', help='stop at the first failed check (fix it, then --resume)')
     ap.add_argument('--resume', action='store_true', help='skip the checks that already passed in the stopped run')
+    ap.add_argument('--only', help='comma-separated parts of check names to run (e.g. "silent,end-to-end")')
+    ap.add_argument('--repeat', type=int, default=1, help='run the selected checks N times (flaky/crash hunting)')
     a = ap.parse_args()
     prog_file = os.path.join(ROOT, 'work', 'test_progress_%s.json' % ('installed' if a.installed else 'testkodi'))
     prog = json.load(open(prog_file, encoding='utf-8')) if a.resume and os.path.exists(prog_file) else {}
@@ -1506,11 +1510,15 @@ def main():
                  'Movie & series lists', 'Startup ready message + status', 'AI Hebrew subtitles end-to-end',
                  'AI Subtitle Generation button', 'All_Subs guards', 'No tracebacks (any add-on)', 'Clean shutdown')
         tests = [t for t in TESTS if t[0] in smoke]
+    if a.only:
+        keys = [k.strip().lower() for k in a.only.split(',') if k.strip()]
+        tests = [t for t in tests if any(k in t[0].lower() for k in keys)]
+    tests = list(tests) * max(1, a.repeat)
     if done:
         print('resuming: %d checks already passed in the stopped run' % len(done), flush=True)
     stopped = False
     for name, fn in tests:
-        if name in done:
+        if name in done and a.repeat == 1:
             continue
         k = len(RESULTS)
         check(name, fn)

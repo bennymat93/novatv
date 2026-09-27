@@ -6,6 +6,8 @@ Found by the 0.2.2 deep tests:
     subtitle it found into whatever plays now (a subtitle of the previous video / another title) and holds Kodi's
     exit. Guards: remember the video of the search (Player.OnPlay), place a subtitle only while that same video
     plays, leave the wait loops as soon as Kodi quits.
+  * 1.1.0 (v5): after many quick video starts its queued automatic searches still ran with nothing playing and
+    while Kodi quit (Subscene retries held the exit for ~2 min): no search once Kodi quits or no video plays.
   * All Subs Plus' main loop read "Kodi quits" once at start and never ended, so Kodi had to kill it on exit.
 
 Pure Python (no Kodi modules): used by tools/make_build.py and by the NovaTV service at start-up, because the
@@ -91,9 +93,39 @@ def _patch(path, mark, edits):
     return 1
 
 
+MARK5 = '# BN guard v5'
+SEARCH = 'def temporary_pop_and_get_subtitles(video_data):\n'
+EDITS5 = [(SEARCH, SEARCH + "    if monit.abortRequested() or not _BN_PLAYER.isPlayingVideo():  %s\n"
+                            "        return []   # nothing plays any more / Kodi quits: no search\n" % MARK5)]
+
+
+# v5: the search engine and the message overlay created a new xbmc.Player() every 10-100 ms in worker threads (the
+# 0.2.2 crash pattern: Kodi crashed at CloseFile) and never noticed Kodi quitting (exit held ~2 min).
+# One Monitor per process (module level, never freed); "is something playing" read as an InfoLabel (no object).
+PLAYING = "xbmc.getCondVisibility('Player.HasMedia')"
+GENERAL5 = [
+    ('import xbmc,xbmcaddon,xbmcvfs,xbmcgui\n',
+     'import xbmc,xbmcaddon,xbmcvfs,xbmcgui\n_BN_MON = xbmc.Monitor()   %s: one Monitor per process\n' % MARK5),
+    ('            cond=xbmc.Monitor().abortRequested()\n', '            cond=_BN_MON.abortRequested()\n'),
+    ('while (not cond) and (xbmc.Player().isPlaying()):', 'while (not _BN_MON.abortRequested()) and %s:' % PLAYING),
+    ('xbmc.Player().isPlaying()', PLAYING),
+]
+ENGINE5 = [
+    ('import xbmc,xbmcgui,time,xbmcplugin\n',
+     'import xbmc,xbmcgui,time,xbmcplugin\n\n\ndef _bn_quit():   %s\n'
+     '    from resources.modules import general\n    return general._BN_MON.abortRequested()\n\n\n' % MARK5),
+    ('xbmc.Player().isPlaying()', PLAYING),
+    # Kodi quits: stop the source threads like the search time-out does
+    ('        if  elapsed_time>ExcludeTime: \n', '        if  elapsed_time>ExcludeTime or _bn_quit(): \n'),
+]
+
+
 def apply(addon_dir):
-    """All_Subs: 1 when autosub.py was changed, 0 when the guards were already there; raises if it changed shape"""
-    return _patch(os.path.join(addon_dir, 'autosub.py'), MARK, EDITS)
+    """All_Subs: 1 when a file was changed, 0 when the guards were already there; raises if it changed shape"""
+    path = os.path.join(addon_dir, 'autosub.py')
+    mods = os.path.join(addon_dir, 'resources', 'modules')
+    return _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | \
+        _patch(os.path.join(mods, 'general.py'), MARK5, GENERAL5) | _patch(os.path.join(mods, 'engine.py'), MARK5, ENGINE5)
 
 
 def apply_plus(addon_dir):
