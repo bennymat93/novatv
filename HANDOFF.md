@@ -82,7 +82,14 @@ release as v1.1.0 only after the full suite is green twice. Progress log: see "v
 - [start] branch release/v1.1.0 created; 0.2.6 work (BN player + icons) is included.
 - [phase 0+1 done] docs/v1.1.0: ARCHITECTURE, PLAN, DECISIONS (D1-D11), research/VLC_MATRIX, SRT_HANDLING, OTHER_PLAYERS (agents, from memory: verify Kodi facts), ANONYMOUS_TEARDOWN, POVIL_AI_SUBS_TEARDOWN.
 - [phase 4 core done] resources/lib/subfix.py (encodings, tolerant SRT/VTT, repair, Hebrew RLM fixes, atomic BOM write, fuzzy match), substore.py (<base>.<lang>.<src>[.vN].srt, versions, entries+preview, cleanup, rename), syncmath.py (bookmark sync, steps, dual merge {n8}, AI chunking). tests/ (pytest + Kodi stubs): 57 passed. Run: .venv11/Scripts/python -m pytest tests -q
-- [next] phase 5 PlaybackSession in service.py; phase 3 player v2 per photos + player_menus.py (Sync/Settings/Info/Subtitles); wire substore into AI flow; picker v2.
+- [phase 3/4/5 code, untested in Kodi] playerctl.py (delays/speed/view/state, verified labels+actions on Kodi 21; SetViewMode takes only viewmode; tempo disabled for test file),
+  player_menus.py (sync / settings / audio / appearance / subtitles / picker / online (Wizdom verified) / auto_subtitles / next_episode),
+  router actions sync_menu settings_menu audio_menu subs_pick next_episode (subs_menu -> player_menus.subtitles),
+  service: zero_state() at start (delays 0, speed 1, view normal, resume_same policy, 'session start' log), SESSION_PROPS cleared,
+  ab_loop thread, AI flow mode ai/mt (NovaTV.AIMode) + store to substore + PrimaryFile, Kodi subtitle folder (storagemode=1, custompath),
+  cleanup policy at start, keymap install (resources/keymaps/bn_player.xml, docs KEYMAP.md). Server: mode 'mt' skips Gemini, key suffix _mt.
+  New settings: subs_folder, subs_cleanup, subs_keep_last, subs_pref_source, opensubs_key, resume_same, sync_step.
+- [next] OSD v2 per photos (Includes_VideoOsdBN.xml: top logo/episode/chapter/clock/end time; bottom time | סנכרון כתוביות | transport | הפרק הבא שמע מידע | gear; badges; info overlay), then build + live tests.
 
 ## v0.2.6 – superseded by v1.1.0 (never published): BN player (not released)
 - "Anonymous" wizard found: `C:\Users\benny\Downloads\Compressed\repository.wizard.zip` -> GitHub `vip200/repowizard` ->

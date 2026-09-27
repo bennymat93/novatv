@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BN Stream: VLC-style keys in the player (docs/v1.1.0/KEYMAP.md). Installed to userdata/keymaps by the NovaTV service. -->
+<keymap>
+  <FullscreenVideo>
+    <keyboard>
+      <g>SubtitleDelayMinus</g>
+      <h>SubtitleDelayPlus</h>
+      <j>AudioDelayMinus</j>
+      <k>AudioDelayPlus</k>
+      <v>RunPlugin(plugin://plugin.video.nova/?a=subs_menu)</v>
+      <s mod="shift">RunPlugin(plugin://plugin.video.nova/?a=sync_menu)</s>
+      <b>AudioNextLanguage</b>
+      <t>NextSubtitle</t>
+      <leftbracket>PlayerControl(TempoDown)</leftbracket>
+      <rightbracket>PlayerControl(TempoUp)</rightbracket>
+      <e mod="ctrl">RunPlugin(plugin://plugin.video.nova/?a=settings_menu)</e>
+      <n>RunPlugin(plugin://plugin.video.nova/?a=next_episode)</n>
+      <a>AspectRatio</a>
+      <p mod="shift">TakeScreenshot</p>
+    </keyboard>
+    <remote>
+      <subtitle>RunPlugin(plugin://plugin.video.nova/?a=subs_menu)</subtitle>
+      <language>AudioNextLanguage</language>
+    </remote>
+  </FullscreenVideo>
+</keymap>

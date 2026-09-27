@@ -13,6 +13,13 @@
     <setting id="ai_prepare" label="Pause at start until Hebrew subtitles are ready" type="bool" default="true"/>
     <setting id="ai_wait" label="Seconds to wait for human subtitles" type="slider" range="5,5,90" option="int" default="25"/>
     <setting id="sub_server" label="AI subtitle server (http://PC-IP:8765)" type="text" default="http://127.0.0.1:8765"/>
+    <setting id="subs_folder" label="Subtitle folder (every created subtitle is saved here)" type="folder" default=""/>
+    <setting id="subs_cleanup" label="Keep subtitles" type="enum" values="All|Last N per video|Delete older than N days" default="0"/>
+    <setting id="subs_keep_last" label="N (subtitles per video / days)" type="slider" range="1,1,120" option="int" default="10"/>
+    <setting id="subs_pref_source" label="Preferred subtitle source" type="enum" values="Automatic|Human (downloaded)|AI|Machine translation" default="0"/>
+    <setting id="opensubs_key" label="OpenSubtitles API key (optional, for hash search)" type="text" option="hidden" default=""/>
+    <setting id="resume_same" label="Resume the same video" type="enum" values="Ask (Kodi)|Always|Never" default="0"/>
+    <setting id="sync_step" type="number" default="0.5" visible="false"/>
     <setting id="gemini_key" label="Gemini API key (optional)" type="text" option="hidden" default=""/>
   </category>
   <category label="Live TV">

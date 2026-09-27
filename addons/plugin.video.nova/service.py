@@ -6,6 +6,7 @@
  * periodic IPTV merge
  * open NovaTV on start
 """
+import json
 import os
 import re
 import threading
@@ -20,6 +21,8 @@ from resources.lib.common import monitor
 from resources.lib.common import ADDON, T, load, save, now_str, log, PROFILE
 from resources.lib.subsnet import discover_server
 
+# Window(10000) properties that belong to ONE video (cleared at every start)
+SESSION_PROPS = ('NovaTV.ABLoop', 'NovaTV.Dual', 'NovaTV.SyncMarkAudio', 'NovaTV.SyncMarkSub', 'NovaTV.SubsSource')
 HEB_CODES = ('heb', 'he', 'hebrew', 'iw')
 WIN = xbmcgui.Window(10000)
 
@@ -156,6 +159,9 @@ class Flow:
                'episode': tag.getEpisode(), 'imdb': tag.getIMDBNumber(), 'tmdb': tag.getUniqueID('tmdb'),
                'position': p.getTime(), 'gemini_key': ADDON.getSetting('gemini_key')}
         # YouTube plays through its local proxy: the PC cannot open that URL - send the video id instead
+        mode = WIN.getProperty('NovaTV.AIMode') or 'ai'          # 'mt' = machine translation only (Auto, no AI)
+        WIN.clearProperty('NovaTV.AIMode')
+        job['mode'] = mode
         yid = youtube_id(path + ' ' + xbmc.getInfoLabel('Player.FilenameAndPath') + ' ' +
                          xbmc.getInfoLabel('Player.FolderPath'))
         if yid:
@@ -224,7 +230,7 @@ class Flow:
                     else:
                         # a new name per version: Kodi does not reload a path it already has; the name is what
                         # the subtitle list shows ("BN AI" = complete, "BN AI 12m" = first 12 minutes)
-                        name = 'BN AI' if done else 'BN AI %dm' % max(1, int(ready // 60))
+                        name = ('BN AI' if job.get('mode') != 'mt' else 'BN auto') + ('' if done else ' %dm' % max(1, int(ready // 60)))
                         srt_path = os.path.join(ai_dir, name + '.he.srt')
                         with open(srt_path, 'wb') as f:
                             f.write(data)
@@ -254,6 +260,18 @@ class Flow:
                         status('')
                         xbmcgui.Dialog().notification('NovaTV', T('ai_empty'), xbmcgui.NOTIFICATION_WARNING, 6000)
                         return
+            if done and loaded_upto > 0:
+                try:                                   # every created subtitle also goes to the subtitle store
+                    from resources.lib import player_menus, substore
+                    tag = p.getVideoInfoTag()
+                    base = substore.video_base(tag.getTVShowTitle() or tag.getTitle(), tag.getSeason(), tag.getEpisode(), self.file)
+                    with open(srt_path, encoding='utf-8', errors='replace') as f:
+                        stored = substore.save(player_menus.subs_folder(), base, 'he', 'auto' if job.get('mode') == 'mt' else 'ai',
+                                               text=f.read())
+                    WIN.setProperty('NovaTV.PrimaryFile', srt_path)
+                    log('subtitle stored: %s' % stored)
+                except Exception as e:
+                    log('subtitle store: %s' % e, xbmc.LOGWARNING)
             if done:
                 status('')
                 if loaded_upto > 0:
@@ -318,6 +336,31 @@ class Player(xbmc.Player):
         except RuntimeError:
             pass
 
+        for prop in SESSION_PROPS:                     # everything the panels tied to the previous video
+            WIN.clearProperty(prop)
+
+        def zero_state():
+            """PlaybackSession start (v1.1.0 phase 5): nothing from the previous video carries over"""
+            from resources.lib import playerctl
+            if monitor().waitForAbort(0.8) or gen != self.gen:
+                return
+            try:
+                if abs(playerctl.sub_delay()) > 0.001:
+                    playerctl.set_sub_delay(0.0)
+                if abs(playerctl.audio_delay()) > 0.001:
+                    playerctl.set_audio_delay(0.0)
+                if abs(playerctl.speed() - 1.0) > 0.05:
+                    playerctl.set_speed(1.0)
+                playerctl.reset_view()
+                policy = ADDON.getSetting('resume_same') or '0'        # 0 ask (Kodi), 1 always, 2 never
+                if policy == '2' and self.getTime() > 5:
+                    self.seekTime(0)
+                log('session start: %s' % json.dumps(playerctl.state(), ensure_ascii=False))
+            except Exception as e:
+                log('session reset: %s' % e, xbmc.LOGWARNING)
+        threading.Thread(target=zero_state, daemon=True).start()
+        threading.Thread(target=self.ab_loop, args=(gen,), daemon=True).start()
+
         def again():
             # on playlist auto-advance (next episode) Kodi applies the item's saved subtitle state a moment
             # AFTER onAVStarted: switch off again unless this video's subtitles were chosen in the meantime
@@ -330,6 +373,20 @@ class Player(xbmc.Player):
                 except RuntimeError:
                     return
         threading.Thread(target=again, daemon=True).start()
+
+    def ab_loop(self, gen):
+        """A-B loop set in the player settings (Window property 'a,b'), bound to this video"""
+        while gen == self.gen and not monitor().abortRequested():
+            v = WIN.getProperty('NovaTV.ABLoop')
+            if ',' in v:
+                try:
+                    a, b = [float(x) for x in v.split(',')]
+                    if self.isPlayingVideo() and self.getTime() >= b:
+                        self.seekTime(a)
+                except (ValueError, RuntimeError):
+                    pass
+            if monitor().waitForAbort(0.4):
+                return
 
     def finish(self):
         with self.lock:
@@ -441,6 +498,30 @@ def main():
             xbmc.executebuiltin('ReloadSkin()')
     except Exception as e:
         log('skin button: %s' % e, xbmc.LOGWARNING)
+    try:        # every created subtitle is saved in one folder; Kodi uses it as its subtitle folder too
+        from resources.lib import player_menus, playerctl
+        folder = player_menus.subs_folder()
+        playerctl.rpc('Settings.SetSettingValue', setting='subtitles.storagemode', value=1)
+        playerctl.rpc('Settings.SetSettingValue', setting='subtitles.custompath', value=folder)
+        from resources.lib import substore
+        policy = ['keep_all', 'keep_last', 'older_than'][int(ADDON.getSetting('subs_cleanup') or 0)]
+        n = int(ADDON.getSetting('subs_keep_last') or 10)
+        gone = substore.cleanup(folder, policy, keep_last=n, older_days=n)
+        if gone:
+            log('subtitle cleanup: %d file(s)' % len(gone))
+    except Exception as e:
+        log('subtitle folder: %s' % e, xbmc.LOGWARNING)
+    try:        # VLC-style keys (docs/v1.1.0/KEYMAP.md)
+        import shutil
+        import xbmcvfs
+        src = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'keymaps', 'bn_player.xml')
+        dst = xbmcvfs.translatePath('special://profile/keymaps/bn_player.xml')
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        if not os.path.exists(dst) or open(dst, 'rb').read() != open(src, 'rb').read():
+            shutil.copyfile(src, dst)
+            xbmc.executebuiltin('Action(reloadkeymaps)')
+    except Exception as e:
+        log('keymap: %s' % e, xbmc.LOGWARNING)
     if ADDON.getSetting('bn_player_set') != 'true':
         xbmc.executebuiltin('Skin.SetString(__chooseplayer,__bnplayer)')   # once: a later choice is kept
         ADDON.setSetting('bn_player_set', 'true')
