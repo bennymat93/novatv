@@ -105,6 +105,15 @@ def patch_skin_settings(path):
         f.write(s)
 
 
+def bn_player_default(path):
+    """skin setting: the BN player style is the default one"""
+    s = open(path, encoding='utf-8').read()
+    line = '<setting id="__chooseplayer" type="string">__bnplayer</setting>'
+    rx = re.compile(r'<setting id="__chooseplayer" type="string">[^<]*</setting>')
+    s = rx.sub(line, s) if rx.search(s) else s.replace('<settings>', '<settings>' + chr(10) + '    ' + line, 1)
+    open(path, 'w', encoding='utf-8').write(s)
+
+
 def patch_guisettings(path):
     with open(path, encoding='utf-8') as f:
         s = f.read()
@@ -497,6 +506,7 @@ def main():
     preset_settings(STAGE)
     apply_brand(STAGE)
     patch_skin_settings(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
+    bn_player_default(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     patch_guisettings(os.path.join(STAGE, 'userdata', 'guisettings.xml'))
     patch_pov(os.path.join(STAGE, 'userdata', 'addon_data', 'plugin.video.pov', 'settings.xml'))
     enable_addons(os.path.join(STAGE, 'userdata', 'Database', 'Addons33.db'), OUR_ADDONS + extra)

@@ -441,6 +441,9 @@ def main():
             xbmc.executebuiltin('ReloadSkin()')
     except Exception as e:
         log('skin button: %s' % e, xbmc.LOGWARNING)
+    if ADDON.getSetting('bn_player_set') != 'true':
+        xbmc.executebuiltin('Skin.SetString(__chooseplayer,__bnplayer)')   # once: a later choice is kept
+        ADDON.setSetting('bn_player_set', 'true')
     try:        # YouTube's local server port inside a range Windows reserved -> no YouTube playback
         from resources.lib import ytport
         ytport.check(fix=True)

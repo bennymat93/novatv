@@ -70,6 +70,7 @@ def apply(xml):
         open(p, 'w', encoding='utf-8', newline='').write(t)
         n += 1
     n += _menu_button(xml)
+    n += bn_player(xml)
     return n
 
 
@@ -100,6 +101,38 @@ def _menu_button(xml):
         i = t.index('<control type="button" id="700452">')
         j = t.index('</control>', i) + len('</control>')
         t = t[:j] + btn + t[j:]
+        open(p, 'w', encoding='utf-8', newline='').write(t)
+        n += 1
+    return n
+
+
+BN_OSD = 'Includes_VideoOsdBN.xml'
+BN_INCLUDE = '<include condition="String.IsEqual(Skin.String(__chooseplayer),__bnplayer)">videosd_bn</include>'
+
+
+def bn_player(xml):
+    """the BN player style (one row of big buttons, name of the focused one, progress + times) - file shipped
+    in resources/skin, registered in Includes.xml and selectable as __chooseplayer = __bnplayer"""
+    n = 0
+    src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'skin', BN_OSD)
+    dst = os.path.join(xml, BN_OSD)
+    body = open(src, encoding='utf-8', newline='').read()
+    if not os.path.exists(dst) or open(dst, encoding='utf-8', newline='').read() != body:
+        open(dst, 'w', encoding='utf-8', newline='').write(body)
+        n += 1
+    p = os.path.join(xml, 'Includes.xml')
+    t = open(p, encoding='utf-8', newline='').read()
+    if BN_OSD not in t:
+        i = t.index('<include file=')
+        t = t[:i] + ('<include file="%s" />' % BN_OSD) + chr(10) + chr(9) + t[i:]
+        open(p, 'w', encoding='utf-8', newline='').write(t)
+        n += 1
+    p = os.path.join(xml, 'VideoOSD.xml')
+    t = open(p, encoding='utf-8', newline='').read()
+    if BN_INCLUDE not in t:
+        anchor = '>videosd4</include>'
+        i = t.index(anchor) + len(anchor)
+        t = t[:i] + chr(10) + chr(9) + BN_INCLUDE + ' <!-- נגן BN -->' + t[i:]
         open(p, 'w', encoding='utf-8', newline='').write(t)
         n += 1
     return n
