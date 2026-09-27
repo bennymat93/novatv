@@ -1,6 +1,6 @@
 # BN Stream (NovaTV) – HANDOFF
 
-Last update: 2026-09-27 03:10 – v0.2.5 PUBLISHED
+Last update: 2026-09-27 – v0.2.5 PUBLISHED; v0.2.6 (BN player) IN PROGRESS
 Repo: https://github.com/bennymat93/novatv (main + gh-pages + releases). Local: `C:\Users\benny\kodi-build`.
 Read `CLAUDE.md` first (layout, rules, history). This file = current state + open work + exact next steps.
 
@@ -71,6 +71,25 @@ wants a non-AI machine-translation fallback so there are ALWAYS subtitles; wants
 - Non-YouTube video + PC server off: subtitles come only from All_Subs (human Hebrew, or its own machine translation of foreign subs,
   setting auto_translate=true). A video with no subtitles anywhere and no server cannot get subtitles (no text to translate).
 - Embedded text subtitle tracks in MKV are not yet used as a translation source (server would need to read the whole file).
+
+## v0.2.6 – IN PROGRESS: BN player (not released)
+- "Anonymous" wizard found: `C:\Users\benny\Downloads\Compressed\repository.wizard.zip` -> GitHub `vip200/repowizard` ->
+  `plugin.program.Anonymous` 8.1.7 (downloaded for READING ONLY to `work/anon/`, never installed/imported).
+  Its skin (`skin/packages1.zip`) = customised Estuary: VideoOSD = one row of big icon buttons (prev, rew, play/pause, stop,
+  fwd, next | next episode, change source, channels, guide, episode list, info, bookmarks, settings, sync, subtitles),
+  Hebrew labels, progress bar with times, title on top.
+- Our own on that pattern (nothing copied): `addons/plugin.video.nova/resources/skin/Includes_VideoOsdBN.xml`
+  (include `videosd_bn`, button include `BNOsdButton`, row id 201 = VideoOSD default control, play/pause togglebutton 603):
+  prev, rewind, play/pause, stop, forward, next | BN subtitles (subs_menu), AI subtitles, subtitle sync, audio
+  (osdaudiosettings), picture (osdvideosettings), bookmarks, info, episode list (only when playlist > 1).
+  Focused button's name shown big under the row (System.CurrentControl; button labels are transparent text).
+- `skinpatch.bn_player(xml)`: copies the file, registers it in Includes.xml, adds
+  `<include condition="String.IsEqual(Skin.String(__chooseplayer),__bnplayer)">videosd_bn</include>` to VideoOSD.xml.
+  Runs in make_build (via skinpatch.apply) AND at service start (existing installs).
+- Default: make_build `bn_player_default()` (skin settings.xml __chooseplayer=__bnplayer); service sets it ONCE on existing
+  installs (hidden setting `bn_player_set`); a later choice of the owner is kept.
+- Next: build 0.2.6, test in testkodi (open OSD during playback: row focused, labels, subs button opens the BN window),
+  screenshot for the owner, add test `t_bn_player`, then `python tools/release.py --version 0.2.6 --notes "..."`.
 
 ## Useful facts
 - Subtitle server: `server/nova_subs.py serve --port 8765`, supervisor `server/supervisor.py` (pythonw, Startup shortcut),
