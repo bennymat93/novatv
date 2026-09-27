@@ -120,6 +120,16 @@ def bn_player(xml):
     if not os.path.exists(dst) or open(dst, encoding='utf-8', newline='').read() != body:
         open(dst, 'w', encoding='utf-8', newline='').write(body)
         n += 1
+    # icons -> the skin's own media folder (skin textures are looked up there)
+    icons = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'skin', 'icons')
+    media = os.path.join(os.path.dirname(os.path.normpath(xml)), 'media', 'bn')
+    os.makedirs(media, exist_ok=True)
+    for fn in os.listdir(icons):
+        a, b = os.path.join(icons, fn), os.path.join(media, fn)
+        data = open(a, 'rb').read()
+        if not os.path.exists(b) or open(b, 'rb').read() != data:
+            open(b, 'wb').write(data)
+            n += 1
     p = os.path.join(xml, 'Includes.xml')
     t = open(p, encoding='utf-8', newline='').read()
     if BN_OSD not in t:

@@ -90,7 +90,12 @@ wants a non-AI machine-translation fallback so there are ALWAYS subtitles; wants
   installs (hidden setting `bn_player_set`); a later choice of the owner is kept.
 - Tested live in testkodi: t_bn_player PASS (row focused, Hebrew names, subs button opens the BN window); screenshot
   work/bn_player.png sent to the owner. Lesson: an <image> separator inside the grouplist stopped Right navigation - removed.
-- Next: `python tools/release.py --version 0.2.6 --notes "..."` (in progress), then update this file.
+- Owner said the first design was wrong -> redesigned: own icon set `tools/make_osd_icons.py` (PIL, uniform style) ->
+  `resources/skin/icons/<name>_nf.png` (normal) + `<name>_fo.png` (gold circle + dark icon, pre-drawn: a plain button has one
+  texture per state; radiobutton showed "( )" in System.CurrentControl). skinpatch copies icons to skin `media/bn/`
+  (textures are resolved inside the skin; special:// paths via $VAR did not load). Times on separate labels, Hebrew-first
+  ("מסתיים ב־..."), dark panels top/bottom. Screenshot sent (work/bn_player.png). t_bn_player PASS.
+- Next: `python tools/release.py --version 0.2.6 --notes "..."` (running), then update this file.
 
 ## Useful facts
 - Subtitle server: `server/nova_subs.py serve --port 8765`, supervisor `server/supervisor.py` (pythonw, Startup shortcut),

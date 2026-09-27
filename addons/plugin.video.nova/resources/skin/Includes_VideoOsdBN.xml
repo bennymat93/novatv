@@ -1,92 +1,105 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- BN player (skin setting __chooseplayer = __bnplayer): one clear row of big buttons, the focused button's name under
-     it, progress bar with times, title on top. Modelled on the Estuary-style OSD (Anonymous TV build) that owners find
-     intuitive; BN additions: BN subtitles window, AI subtitles, subtitle sync, audio, picture. -->
+<!-- BN player (skin setting __chooseplayer = __bnplayer): one clear row of big buttons, the focused button inside a gold
+     circle with its name under the row, progress bar with times, title and clock on top. Own icon set (same style and
+     size, tools/make_osd_icons.py). Every text starts in Hebrew so right-to-left order is always correct. -->
 <includes>
 	<include name="videosd_bn">
 		<control type="group">
-			<!-- top: title + clock -->
+			<!-- top: title + clock on a soft dark band -->
 			<control type="image">
-				<left>0</left><top>0</top><width>100%</width><height>220</height>
-				<texture>frame/osdfade.png</texture>
+				<left>0</left><top>0</top><width>100%</width><height>200</height>
+				<texture colordiffuse="E6000000">frame/osdfade.png</texture>
 			</control>
 			<control type="label">
-				<left>60</left><right>60</right><top>30</top><height>60</height>
+				<right>70</right><width>1400</width><top>34</top><height>70</height>
 				<font>font45_title</font><align>right</align><aligny>center</aligny>
-				<label>$INFO[VideoPlayer.TVShowTitle,, · ]$INFO[VideoPlayer.Season,S,]$INFO[VideoPlayer.Episode,E, · ]$INFO[VideoPlayer.Title]</label>
-				<scroll>true</scroll>
-				<shadowcolor>black</shadowcolor>
+				<label>$INFO[VideoPlayer.TVShowTitle,, – ]$INFO[VideoPlayer.Title]</label>
+				<scroll>true</scroll><shadowcolor>black</shadowcolor>
 			</control>
 			<control type="label">
-				<left>60</left><top>30</top><width>300</width><height>60</height>
+				<right>70</right><width>1400</width><top>104</top><height>44</height>
+				<font>font27</font><align>right</align><aligny>center</aligny><textcolor>B3FFFFFF</textcolor>
+				<label>$INFO[VideoPlayer.Season,עונה , · ]$INFO[VideoPlayer.Episode,פרק ,]</label>
+				<visible>!String.IsEmpty(VideoPlayer.TVShowTitle)</visible>
+			</control>
+			<control type="label">
+				<left>70</left><width>300</width><top>34</top><height>70</height>
 				<font>font45</font><align>left</align><aligny>center</aligny>
-				<label>$INFO[System.Time]</label>
-				<shadowcolor>black</shadowcolor>
+				<label>$INFO[System.Time]</label><shadowcolor>black</shadowcolor>
 			</control>
 
-			<!-- bottom -->
+			<!-- bottom panel -->
 			<control type="image">
-				<left>0</left><bottom>0</bottom><width>100%</width><height>420</height>
-				<texture flipy="true">frame/osdfade.png</texture>
+				<left>0</left><bottom>0</bottom><width>100%</width><height>460</height>
+				<texture flipy="true" colordiffuse="F2000000">frame/osdfade.png</texture>
 			</control>
+
+			<!-- times: elapsed (left), total and end time (right) - each its own label, Hebrew first -->
 			<control type="label">
-				<left>60</left><bottom>300</bottom><width>400</width><height>50</height>
+				<left>90</left><bottom>318</bottom><width>400</width><height>50</height>
 				<font>font37</font><align>left</align><aligny>center</aligny>
-				<label>$INFO[Player.Time]</label>
-				<shadowcolor>black</shadowcolor>
+				<label>$INFO[Player.Time]</label><shadowcolor>black</shadowcolor>
 			</control>
 			<control type="label">
-				<right>60</right><bottom>300</bottom><width>700</width><height>50</height>
+				<right>90</right><bottom>318</bottom><width>400</width><height>50</height>
 				<font>font37</font><align>right</align><aligny>center</aligny>
-				<label>$INFO[Player.Duration]$INFO[Player.FinishTime,   ·   מסתיים ב-,]</label>
-				<shadowcolor>black</shadowcolor>
+				<label>$INFO[Player.Duration]</label><shadowcolor>black</shadowcolor>
 			</control>
+			<control type="label">
+				<right>90</right><bottom>368</bottom><width>600</width><height>40</height>
+				<font>font27</font><align>right</align><aligny>center</aligny><textcolor>B3FFFFFF</textcolor>
+				<label>מסתיים ב־$INFO[Player.FinishTime]</label>
+			</control>
+			<!-- progress: buffered + played, gold -->
 			<control type="group">
-				<left>60</left><right>60</right><bottom>270</bottom><height>14</height>
+				<left>90</left><right>90</right><bottom>292</bottom><height>12</height>
+				<control type="image">
+					<texture colordiffuse="40FFFFFF">colors/white.png</texture>
+				</control>
 				<control type="progress">
 					<info>Player.ProgressCache</info>
-					<texturebg border="3" colordiffuse="40FFFFFF">colors/white50.png</texturebg>
-					<midtexture colordiffuse="60FFFFFF">colors/white50.png</midtexture>
+					<texturebg colordiffuse="00FFFFFF">colors/white.png</texturebg>
+					<midtexture colordiffuse="55FFFFFF">colors/white.png</midtexture>
 				</control>
 				<control type="progress">
 					<info>Player.Progress</info>
-					<texturebg border="3" colordiffuse="00FFFFFF">colors/white50.png</texturebg>
+					<texturebg colordiffuse="00FFFFFF">colors/white.png</texturebg>
 					<midtexture colordiffuse="FFE8BE5A">colors/white.png</midtexture>
 				</control>
 			</control>
 
 			<!-- the buttons: one row, remote Left/Right, OK -->
 			<control type="grouplist" id="201">
-				<left>40</left><right>40</right><bottom>120</bottom><height>110</height>
-				<orientation>horizontal</orientation><align>center</align><itemgap>14</itemgap>
+				<left>60</left><right>60</right><bottom>130</bottom><height>130</height>
+				<orientation>horizontal</orientation><align>center</align><itemgap>10</itemgap>
 				<onup>Dialog.Close(videoosd)</onup>
 				<include content="BNOsdButton"><param name="id" value="601"/><param name="icon" value="previous"/><param name="label" value="הקודם"/><param name="action" value="PlayerControl(Previous)"/></include>
-				<include content="BNOsdButton"><param name="id" value="602"/><param name="icon" value="rewind"/><param name="label" value="אחורה"/><param name="action" value="PlayerControl(Rewind)"/></include>
+				<include content="BNOsdButton"><param name="id" value="602"/><param name="icon" value="rewind"/><param name="label" value="הרצה אחורה"/><param name="action" value="PlayerControl(Rewind)"/></include>
 				<control type="togglebutton" id="603">
-					<width>96</width><height>96</height>
-					<label>נגן / השהה</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
-					<texturefocus colordiffuse="FFE8BE5A">osd/fullscreen/buttons/pause.png</texturefocus>
-					<texturenofocus colordiffuse="FFFFFFFF">osd/fullscreen/buttons/pause.png</texturenofocus>
-					<alttexturefocus colordiffuse="FFE8BE5A">osd/fullscreen/buttons/play.png</alttexturefocus>
-					<alttexturenofocus colordiffuse="FFFFFFFF">osd/fullscreen/buttons/play.png</alttexturenofocus>
+					<width>120</width><height>120</height>
+					<label>השהה / נגן</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
+					<texturefocus>bn/pause_fo.png</texturefocus>
+					<texturenofocus>bn/pause_nf.png</texturenofocus>
+					<alttexturefocus>bn/play_fo.png</alttexturefocus>
+					<alttexturenofocus>bn/play_nf.png</alttexturenofocus>
 					<usealttexture>Player.Paused</usealttexture>
 					<onclick>PlayerControl(Play)</onclick>
 				</control>
 				<include content="BNOsdButton"><param name="id" value="604"/><param name="icon" value="stop"/><param name="label" value="עצור"/><param name="action" value="PlayerControl(Stop)"/></include>
-				<include content="BNOsdButton"><param name="id" value="605"/><param name="icon" value="forward"/><param name="label" value="קדימה"/><param name="action" value="PlayerControl(Forward)"/></include>
+				<include content="BNOsdButton"><param name="id" value="605"/><param name="icon" value="forward"/><param name="label" value="הרצה קדימה"/><param name="action" value="PlayerControl(Forward)"/></include>
 				<include content="BNOsdButton"><param name="id" value="606"/><param name="icon" value="next"/><param name="label" value="הבא"/><param name="action" value="PlayerControl(Next)"/></include>
-				<include content="BNOsdButton"><param name="id" value="607"/><param name="icon" value="subs"/><param name="label" value="כתוביות"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=subs_menu)"/></include>
-				<include content="BNOsdButton"><param name="id" value="608"/><param name="icon" value="subs3"/><param name="label" value="יצירת כתוביות AI"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=ai_subs_now)"/></include>
-				<include content="BNOsdButton"><param name="id" value="609"/><param name="icon" value="subs2"/><param name="label" value="סנכרון כתוביות"/><param name="action" value="SubtitleDelay"/></include>
+				<include content="BNOsdButton"><param name="id" value="607"/><param name="icon" value="subtitles"/><param name="label" value="כתוביות"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=subs_menu)"/></include>
+				<include content="BNOsdButton"><param name="id" value="608"/><param name="icon" value="ai"/><param name="label" value="יצירת כתוביות AI"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=ai_subs_now)"/></include>
+				<include content="BNOsdButton"><param name="id" value="609"/><param name="icon" value="sync"/><param name="label" value="סנכרון כתוביות"/><param name="action" value="SubtitleDelay"/></include>
 				<include content="BNOsdButton"><param name="id" value="610"/><param name="icon" value="audio"/><param name="label" value="שמע ושפה"/><param name="action" value="ActivateWindow(osdaudiosettings)"/></include>
-				<include content="BNOsdButton"><param name="id" value="611"/><param name="icon" value="settings"/><param name="label" value="תמונה"/><param name="action" value="ActivateWindow(osdvideosettings)"/></include>
-				<include content="BNOsdButton"><param name="id" value="612"/><param name="icon" value="bookmarks"/><param name="label" value="סימניות"/><param name="action" value="ActivateWindow(videobookmarks)"/></include>
-				<include content="BNOsdButton"><param name="id" value="613"/><param name="icon" value="information"/><param name="label" value="מידע"/><param name="action" value="Info"/></include>
+				<include content="BNOsdButton"><param name="id" value="611"/><param name="icon" value="picture"/><param name="label" value="תמונה"/><param name="action" value="ActivateWindow(osdvideosettings)"/></include>
+				<include content="BNOsdButton"><param name="id" value="612"/><param name="icon" value="bookmark"/><param name="label" value="סימניות"/><param name="action" value="ActivateWindow(videobookmarks)"/></include>
+				<include content="BNOsdButton"><param name="id" value="613"/><param name="icon" value="info"/><param name="label" value="מידע"/><param name="action" value="Info"/></include>
 				<include content="BNOsdButton"><param name="id" value="614"/><param name="icon" value="playlist"/><param name="label" value="רשימת פרקים"/><param name="action" value="ActivateWindow(videoplaylist)"/><param name="visible" value="Integer.IsGreater(Playlist.Length(video),1)"/></include>
 			</control>
-			<!-- the focused button's name (big, readable from the couch) -->
+			<!-- the focused button's name -->
 			<control type="label">
-				<left>0</left><width>100%</width><bottom>50</bottom><height>60</height>
+				<left>0</left><width>100%</width><bottom>58</bottom><height>60</height>
 				<font>font37</font><align>center</align><aligny>center</aligny>
 				<textcolor>FFE8BE5A</textcolor><shadowcolor>black</shadowcolor>
 				<label>$INFO[System.CurrentControl]</label>
@@ -98,10 +111,10 @@
 		<param name="visible" default="true"/>
 		<definition>
 			<control type="button" id="$PARAM[id]">
-				<width>96</width><height>96</height>
+				<width>120</width><height>120</height>
 				<label>$PARAM[label]</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
-				<texturefocus colordiffuse="FFE8BE5A">osd/fullscreen/buttons/$PARAM[icon].png</texturefocus>
-				<texturenofocus colordiffuse="FFFFFFFF">osd/fullscreen/buttons/$PARAM[icon].png</texturenofocus>
+				<texturefocus>bn/$PARAM[icon]_fo.png</texturefocus>
+				<texturenofocus>bn/$PARAM[icon]_nf.png</texturenofocus>
 				<onclick>$PARAM[action]</onclick>
 				<visible>$PARAM[visible]</visible>
 			</control>
