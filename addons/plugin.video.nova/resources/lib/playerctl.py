@@ -78,6 +78,6 @@ def state():
     vm = view_mode()
     return {'file': xbmc.getInfoLabel('Player.FilenameAndPath')[:120],
             'subtitles_on': bool(xbmc.getCondVisibility('VideoPlayer.SubtitlesEnabled')),
-            'subtitle': xbmc.getInfoLabel('VideoPlayer.SubtitlesName') or xbmc.getInfoLabel('VideoPlayer.SubtitlesLanguage'),
+            'subtitle': xbmc.getInfoLabel('VideoPlayer.SubtitlesLanguage'),
             'sub_delay': sub_delay(), 'audio_delay': audio_delay(), 'speed': speed(),
             'viewmode': vm.get('viewmode'), 'zoom': vm.get('zoom'), 'time': xbmc.getInfoLabel('Player.Time')}

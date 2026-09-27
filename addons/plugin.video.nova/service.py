@@ -245,6 +245,8 @@ class Flow:
                             p.chosen = self.gen
                             p.showSubtitles(True)
                             mon.waitForAbort(1)
+                            if not self.same_video() or not p.isPlayingVideo():
+                                return              # the video is closing: never touch the player mid-close (crash)
                             shown = len(p.getAvailableSubtitleStreams()) > before or \
                                 'BN AI' in (xbmc.getInfoLabel('VideoPlayer.SubtitlesName') or '')
                             log('AI subtitles loaded up to %ds (%s)%s' % (ready, 'button' if self.forced else 'auto',
@@ -263,8 +265,7 @@ class Flow:
             if done and loaded_upto > 0:
                 try:                                   # every created subtitle also goes to the subtitle store
                     from resources.lib import player_menus, substore
-                    tag = p.getVideoInfoTag()
-                    base = substore.video_base(tag.getTVShowTitle() or tag.getTitle(), tag.getSeason(), tag.getEpisode(), self.file)
+                    base = substore.video_base(job['title'], job['season'], job['episode'], self.file)
                     with open(srt_path, encoding='utf-8', errors='replace') as f:
                         stored = substore.save(player_menus.subs_folder(), base, 'he', 'auto' if job.get('mode') == 'mt' else 'ai',
                                                text=f.read())

@@ -620,7 +620,7 @@ def _server_state(fragment):
 
 
 def t_subs_menu():
-    """BN subtitle window: lists the tracks with the AI track marked, turning a track on by hand works"""
+    """BN subtitle picker (כתוביות > בחר כתובית): lists the tracks with the AI track marked, turning a track on by hand works"""
     import threading
     httpd = media_server()
     try:
@@ -636,7 +636,7 @@ def t_subs_menu():
         expect(any('BN AI' in (t.get('name') or '') for t in subs), 'no "BN AI" track (readable name) in the player')
         rpc('Player.SetSubtitle', playerid=pid, subtitle='off')
         time.sleep(1)
-        threading.Thread(target=lambda: rpc('Files.GetDirectory', directory=NOVA + '?a=subs_menu', media='files',
+        threading.Thread(target=lambda: rpc('Files.GetDirectory', directory=NOVA + '?a=subs_pick', media='files',
                                             timeout=120), daemon=True).start()
         opened = False
         for _ in range(20):
@@ -646,7 +646,7 @@ def t_subs_menu():
                 break
         expect(opened, 'the BN subtitle window did not open')
         labels, ai_row = [], None
-        for k in range(12):                      # walk the list like a remote and read every row
+        for k in range(20):                      # walk the list like a remote and read every row
             lab = rpc('XBMC.GetInfoLabels', labels=['System.CurrentControl'])['result']['System.CurrentControl']
             labels.append(lab)
             if 'AI' in lab and 'BN AI' in lab and ai_row is None:
@@ -751,6 +751,75 @@ def t_bn_player():
         _stop_all()
         expect(opened, 'the subtitles button did not open the BN subtitle window')
         return 'BN player default; buttons: %s' % ' | '.join(n for n in names[:11] if n)
+    finally:
+        httpd.shutdown()
+
+
+
+def _labels(*names):
+    return rpc('XBMC.GetInfoLabels', labels=list(names))['result']
+
+
+def _zero(v):
+    try:
+        return abs(float(v.split()[0])) < 0.0005
+    except (ValueError, IndexError):
+        return not v
+
+
+def t_zero_state_soak():
+    """zero-state x50: dirty subtitle/audio delay, view mode, A-B loop and info panel, start the next video,
+    every value must be back to default (spec phase 5)"""
+    httpd = media_server()
+    bad = []
+    try:
+        n = int(os.environ.get('BN_SOAK', '50'))
+        for i in range(n):
+            rpc('Player.Open', item={'file': MEDIA + ('test_ru.mp4', 'test_ru_long.mp4')[i % 2]})
+            pid = _wait_playing(30)
+            if pid is None:
+                bad.append('%d: did not play' % i)
+                continue
+            time.sleep(1.5)                         # zero_state thread
+            l = _labels('Player.SubtitleDelay', 'Player.AudioDelay', 'Window(Home).Property(NovaTV.ABLoop)',
+                        'Window(Home).Property(BN.OSDInfo)')
+            vm = (rpc('Player.GetViewMode').get('result') or {}).get('viewmode', 'normal')
+            if i and not (_zero(l['Player.SubtitleDelay']) and _zero(l['Player.AudioDelay'])
+                          and not l['Window(Home).Property(NovaTV.ABLoop)'] and not l['Window(Home).Property(BN.OSDInfo)']
+                          and vm == 'normal'):
+                bad.append('%d: %s view=%s' % (i, l, vm))
+            for a in ('subtitledelayplus',) * 3 + ('audiodelayplus',) * 2:
+                rpc('Input.ExecuteAction', action=a)
+            rpc('Player.SetViewMode', viewmode='zoom')
+            time.sleep(0.5)
+        _stop_all()
+        expect(not bad, '%d of %d starts kept state: %s' % (len(bad), n, bad[:3]))
+        return '%d starts, all zero-state' % n
+    finally:
+        httpd.shutdown()
+
+
+def t_player_panels():
+    """every BN player button opens its panel while a video plays (sync, subtitles, settings, audio, picker)"""
+    httpd = media_server()
+    try:
+        rpc('Player.Open', item={'file': MEDIA + 'test_ru_long.mp4'})
+        expect(_wait_playing() is not None, 'video did not play')
+        out = []
+        for a in ('sync_menu', 'subs_menu', 'settings_menu', 'audio_menu', 'subs_pick'):
+            rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=%s' % a)
+            ok = False
+            for _ in range(20):
+                time.sleep(0.5)
+                if _visible('Window.IsActive(selectdialog) | Window.IsActive(contextmenu) | Window.IsActive(okdialog) | Window.IsActive(notification) | Window.IsActive(sliderdialog)'):
+                    ok = True
+                    break
+            out.append('%s=%s' % (a, 'ok' if ok else 'NO'))
+            rpc('Input.Back')
+            time.sleep(1)
+        _stop_all()
+        expect(all(x.endswith('ok') for x in out), ' '.join(out))
+        return ' '.join(out)
     finally:
         httpd.shutdown()
 
@@ -1391,7 +1460,7 @@ TESTS = [
     ('Subtitles reset between videos', t_subs_reset_between_videos), ('AI Subtitle Generation button', t_ai_button),
     ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
     ('AI: silent video, nothing loaded', t_ai_no_audio), ('BN subtitle window', t_subs_menu),
-    ('BN player', t_bn_player), ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
+    ('BN player', t_bn_player), ('Player panels open', t_player_panels), ('Zero-state soak', t_zero_state_soak), ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
     ('System Update + Auto-Fix', t_system_update),
     ('Static: addon-checker, py3.8, XML', t_static), ('Every NovaTV screen opens', t_menu_crawl),
     ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('YouTube port usable', t_youtube_port), ('No thread leak', t_thread_leak),

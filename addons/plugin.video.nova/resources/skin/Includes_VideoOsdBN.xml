@@ -84,7 +84,7 @@
 				<control type="textbox">
 					<left>310</left><right>30</right><top>290</top><height>140</height>
 					<font>font27</font><align>right</align><textcolor>B3FFFFFF</textcolor>
-					<label>וידאו: $INFO[VideoPlayer.VideoCodec] · $INFO[VideoPlayer.VideoResolution]p · $INFO[Player.Process(videofps)] fps$INFO[VideoPlayer.HdrType, · ,]$INFO[Player.Process(videodecoder), · מפענח ,][CR]שמע: $INFO[VideoPlayer.AudioCodec] · $INFO[VideoPlayer.AudioChannels] ערוצים$INFO[VideoPlayer.AudioLanguage, · ,][CR]כתוביות: $INFO[VideoPlayer.SubtitlesName]$INFO[VideoPlayer.SubtitlesLanguage, · ,] · היסט כתוביות $INFO[Player.SubtitleDelay] · היסט שמע $INFO[Player.AudioDelay]</label>
+					<label>וידאו: $INFO[VideoPlayer.VideoCodec] · $INFO[VideoPlayer.VideoResolution]p · $INFO[Player.Process(videofps)] fps$INFO[VideoPlayer.HdrType, · ,]$INFO[Player.Process(videodecoder), · מפענח ,][CR]שמע: $INFO[VideoPlayer.AudioCodec] · $INFO[VideoPlayer.AudioChannels] ערוצים$INFO[VideoPlayer.AudioLanguage, · ,][CR]כתוביות: $INFO[VideoPlayer.SubtitlesLanguage] · היסט כתוביות $INFO[Player.SubtitleDelay] · היסט שמע $INFO[Player.AudioDelay]</label>
 				</control>
 			</control>
 
@@ -144,13 +144,13 @@
 			<include content="BNText"><param name="id" value="704"/><param name="x" value="1540"/><param name="w" value="120"/><param name="label" value="שמע"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=audio_menu)"/><param name="left" value="703"/><param name="right" value="705"/></include>
 			<control type="button" id="705">
 				<left>1670</left><bottom>34</bottom><width>120</width><height>66</height>
-				<label>מידע</label><font>font27</font><align>center</align><aligny>center</aligny>
-				<textcolor>B3FFFFFF</textcolor><focusedcolor>FFE8BE5A</focusedcolor>
+				<label>מידע</label><font>font27</font><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
 				<texturefocus colordiffuse="26E8BE5A">colors/white.png</texturefocus><texturenofocus />
 				<onclick condition="String.IsEqual(Window(Home).Property(BN.OSDInfo),1)">ClearProperty(BN.OSDInfo,home)</onclick>
 				<onclick condition="!String.IsEqual(Window(Home).Property(BN.OSDInfo),1)">SetProperty(BN.OSDInfo,1,home)</onclick>
 				<onleft>704</onleft><onright>706</onright><onup>Dialog.Close(videoosd)</onup>
 			</control>
+			<include content="BNLabel"><param name="id" value="705"/><param name="x" value="1670"/><param name="w" value="120"/><param name="label" value="מידע"/></include>
 			<include content="BNIconBtn"><param name="id" value="706"/><param name="x" value="1800"/><param name="icon" value="settings"/><param name="label" value="הגדרות"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=settings_menu)"/><param name="left" value="705"/><param name="right" value="701"/></include>
 		</control>
 	</include>
@@ -159,11 +159,36 @@
 		<definition>
 			<control type="button" id="$PARAM[id]">
 				<left>$PARAM[x]</left><bottom>34</bottom><width>$PARAM[w]</width><height>66</height>
-				<label>$PARAM[label]</label><font>font27</font><align>center</align><aligny>center</aligny>
-				<textcolor>B3FFFFFF</textcolor><focusedcolor>FFE8BE5A</focusedcolor>
+				<label>$PARAM[label]</label><font>font27</font><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
 				<texturefocus colordiffuse="26E8BE5A">colors/white.png</texturefocus><texturenofocus />
 				<onclick>$PARAM[action]</onclick>
 				<onleft>$PARAM[left]</onleft><onright>$PARAM[right]</onright><onup>Dialog.Close(videoosd)</onup>
+			</control>
+			<!-- button labels are not bidi-shaped (Hebrew shows reversed): the text is a label control on top -->
+			<control type="label">
+				<left>$PARAM[x]</left><bottom>34</bottom><width>$PARAM[w]</width><height>66</height>
+				<label>$PARAM[label]</label><font>font27</font><align>center</align><aligny>center</aligny>
+				<textcolor>B3FFFFFF</textcolor><visible>!Control.HasFocus($PARAM[id])</visible>
+			</control>
+			<control type="label">
+				<left>$PARAM[x]</left><bottom>34</bottom><width>$PARAM[w]</width><height>66</height>
+				<label>$PARAM[label]</label><font>font27</font><align>center</align><aligny>center</aligny>
+				<textcolor>FFE8BE5A</textcolor><visible>Control.HasFocus($PARAM[id])</visible>
+			</control>
+		</definition>
+	</include>
+
+	<include name="BNLabel">
+		<definition>
+			<control type="label">
+				<left>$PARAM[x]</left><bottom>34</bottom><width>$PARAM[w]</width><height>66</height>
+				<label>$PARAM[label]</label><font>font27</font><align>center</align><aligny>center</aligny>
+				<textcolor>B3FFFFFF</textcolor><visible>!Control.HasFocus($PARAM[id])</visible>
+			</control>
+			<control type="label">
+				<left>$PARAM[x]</left><bottom>34</bottom><width>$PARAM[w]</width><height>66</height>
+				<label>$PARAM[label]</label><font>font27</font><align>center</align><aligny>center</aligny>
+				<textcolor>FFE8BE5A</textcolor><visible>Control.HasFocus($PARAM[id])</visible>
 			</control>
 		</definition>
 	</include>
