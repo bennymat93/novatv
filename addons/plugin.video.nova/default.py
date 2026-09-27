@@ -429,6 +429,7 @@ def router(p):
         'sysupdate': system_update,
         'sysfix': lambda: (sysupdate.do_fix(p['id']), refresh()),
         'ai_subs_now': ai_subs_now,
+        'subs_menu': subs_menu,
         'yt_channel': lambda: providers.yt_channel(HANDLE, url, p['id'], p.get('token', '')),
         'yt_search': lambda: providers.yt_search(HANDLE, p['q']),
         'ia_search': lambda: providers.ia_search(HANDLE, p['q']),
@@ -454,7 +455,7 @@ def router(p):
 
 
 ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto',
-           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now'}
+           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now', 'subs_menu'}
 
 
 def system_update():
@@ -468,6 +469,12 @@ def ai_subs_now():
         return xbmcgui.Dialog().notification('NovaTV', T('ai_noplay'), xbmcgui.NOTIFICATION_WARNING, 4000)
     xbmc.executebuiltin('Dialog.Close(subtitlesearch)')
     xbmc.executebuiltin('NotifyAll(plugin.video.nova,ai_now)')
+
+
+def subs_menu():
+    """BN subtitles window (player button)"""
+    from resources.lib import subsmenu
+    subsmenu.show()
 
 
 def refresh():

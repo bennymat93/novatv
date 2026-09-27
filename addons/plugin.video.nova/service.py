@@ -50,6 +50,14 @@ def forget_file_settings(path):
         con.close()
 
 
+YT_ID = re.compile(r'(?:[?&]file=|video_id=|youtu\.be/|[?&]v=)([\w-]{11})')
+
+
+def youtube_id(text):
+    m = YT_ID.search(text or '')
+    return m.group(1) if m and ('youtube' in text or 'youtu.be' in text) else ''
+
+
 class Flow:
     """Subtitles for ONE video. A flow never touches a later video: every step checks it still owns the player."""
 
@@ -147,6 +155,11 @@ class Flow:
         job = {'url': path, 'title': tag.getTVShowTitle() or tag.getTitle(), 'season': tag.getSeason(),
                'episode': tag.getEpisode(), 'imdb': tag.getIMDBNumber(), 'tmdb': tag.getUniqueID('tmdb'),
                'position': p.getTime(), 'gemini_key': ADDON.getSetting('gemini_key')}
+        # YouTube plays through its local proxy: the PC cannot open that URL - send the video id instead
+        yid = youtube_id(path + ' ' + xbmc.getInfoLabel('Player.FilenameAndPath') + ' ' +
+                         xbmc.getInfoLabel('Player.FolderPath'))
+        if yid:
+            job['youtube_id'] = yid
         try:
             r = requests.post(base + '/jobs', json=job, timeout=10)
             r.raise_for_status()
@@ -159,7 +172,9 @@ class Flow:
                                       xbmcgui.NOTIFICATION_INFO, 5000)
         status('%s 0%%' % T('ai_progress'))
         loaded_upto, last_note, down_since, warned = -1.0, 0, 0, False
-        srt_path = os.path.join(PROFILE, 'ai_%s.he.srt' % job_id)
+        other = False       # Hebrew from another source (All_Subs / YouTube captions) arrived before the AI
+        ai_dir = os.path.join(PROFILE, 'ai', job_id)
+        os.makedirs(ai_dir, exist_ok=True)
         while self.alive() and not mon.abortRequested():
             try:
                 r = requests.get('%s/jobs/%s' % (base, job_id), timeout=10)
@@ -190,26 +205,61 @@ class Flow:
             if self.still_held() and self.bar:
                 self.bar.update(50 + min(49, pct // 2), 'NovaTV', '%s %d%%' % (T('ai_prepare'), pct))
             # load the first part as soon as it exists, then again for every meaningful new chunk and at the end
+            if not self.forced and loaded_upto < 0 and not other and p.has_hebrew():
+                # the fastest source wins: keep it on screen, the AI goes on in the background (BN subtitle window)
+                other = True
+                log('AI subtitles: Hebrew from another source is already showing - AI continues in the background')
             first = loaded_upto < 0 and ready > 0
             if first or ready - loaded_upto >= 120 or (done and ready > loaded_upto):
                 try:
                     data = requests.get('%s/jobs/%s/srt' % (base, job_id), timeout=20).content
                     if not self.alive():
                         return
-                    with open(srt_path, 'wb') as f:
-                        f.write(data)
-                    p.setSubtitles(srt_path)      # adds the file and makes it the active track
-                    p.chosen = self.gen
-                    p.showSubtitles(True)
-                    log('AI subtitles loaded up to %ds (%s)' % (ready, 'button' if self.forced else 'auto'))
-                    loaded_upto = ready
+                    if b'-->' not in data:
+                        # nothing to show yet: never hand Kodi an empty file ("Unable to create subtitle parser")
+                        log('AI subtitles: no cues yet (%d bytes) - not loaded' % len(data))
+                        loaded_upto = ready if not done else loaded_upto
+                        if done:
+                            raise RuntimeError('empty result')
+                    else:
+                        # a new name per version: Kodi does not reload a path it already has; the name is what
+                        # the subtitle list shows ("BN AI" = complete, "BN AI 12m" = first 12 minutes)
+                        name = 'BN AI' if done else 'BN AI %dm' % max(1, int(ready // 60))
+                        srt_path = os.path.join(ai_dir, name + '.he.srt')
+                        with open(srt_path, 'wb') as f:
+                            f.write(data)
+                        WIN.setProperty('NovaTV.AISrt', srt_path)          # the BN subtitle window offers it
+                        if not self.forced and (other or WIN.getProperty('NovaTV.SubsChosen') == self.file):
+                            # the viewer picked a subtitle by hand: keep it; the AI file waits in the BN menu
+                            log('AI subtitles ready up to %ds - kept the viewer\'s choice' % ready)
+                            loaded_upto = ready
+                        else:
+                            before = len(p.getAvailableSubtitleStreams())
+                            p.setSubtitles(srt_path)      # adds the file and makes it the active track
+                            p.chosen = self.gen
+                            p.showSubtitles(True)
+                            mon.waitForAbort(1)
+                            shown = len(p.getAvailableSubtitleStreams()) > before or \
+                                'BN AI' in (xbmc.getInfoLabel('VideoPlayer.SubtitlesName') or '')
+                            log('AI subtitles loaded up to %ds (%s)%s' % (ready, 'button' if self.forced else 'auto',
+                                                                          '' if shown else ' - Kodi did not list the track'))
+                            loaded_upto = ready
+                            if done and not shown:
+                                raise RuntimeError('player did not accept the subtitle file')
                     if self.still_held() and (done or ready >= job['position'] + 120):
                         self.release()      # the first part is subtitled: start watching
                 except Exception as e:
                     log('AI subs load: %s' % e, xbmc.LOGWARNING)
+                    if done:
+                        status('')
+                        xbmcgui.Dialog().notification('NovaTV', T('ai_empty'), xbmcgui.NOTIFICATION_WARNING, 6000)
+                        return
             if done:
                 status('')
-                xbmcgui.Dialog().notification('NovaTV', T('ai_ready'), xbmcgui.NOTIFICATION_INFO, 4000)
+                if loaded_upto > 0:
+                    xbmcgui.Dialog().notification('NovaTV', T('ai_ready'), xbmcgui.NOTIFICATION_INFO, 4000)
+                else:
+                    xbmcgui.Dialog().notification('NovaTV', T('ai_empty'), xbmcgui.NOTIFICATION_WARNING, 6000)
                 return
             if st.get('state') == 'error':
                 status('')
@@ -259,6 +309,8 @@ class Player(xbmc.Player):
             self.gen += 1
             self.file, self.active, self.flow = path, True, None
         status('')
+        WIN.clearProperty('NovaTV.AISrt')            # the previous video's AI file is not offered here
+        WIN.clearProperty('NovaTV.SubsChosen')
         self.chosen = 0
         gen = self.gen
         try:
@@ -270,7 +322,8 @@ class Player(xbmc.Player):
             # on playlist auto-advance (next episode) Kodi applies the item's saved subtitle state a moment
             # AFTER onAVStarted: switch off again unless this video's subtitles were chosen in the meantime
             for delay in (1.0, 2.0):
-                if monitor().waitForAbort(delay) or gen != self.gen or self.chosen == gen:
+                if monitor().waitForAbort(delay) or gen != self.gen or self.chosen == gen or \
+                        WIN.getProperty('NovaTV.SubsChosen') == path:
                     return
                 try:
                     self.showSubtitles(False)
@@ -391,6 +444,7 @@ def main():
     try:        # YouTube's local server port inside a range Windows reserved -> no YouTube playback
         from resources.lib import ytport
         ytport.check(fix=True)
+        ytport.ensure_subtitles()
     except Exception as e:
         log('YouTube port: %s' % e, xbmc.LOGWARNING)
     try:        # All_Subs updates itself and loses its guards: put them back (takes effect at its next start)

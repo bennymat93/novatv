@@ -64,6 +64,7 @@ STRINGS = {
     'ai_forced':   ('יוצר כתוביות AI לסרטון הזה', 'Generating AI subtitles for this video', 'Создаю ИИ-субтитры для этого видео'),
     'ai_noplay':   ('אין סרטון מתנגן', 'Nothing is playing', 'Ничего не воспроизводится'),
     'ai_nonet':    ('כתוביות AI זמינות רק לסרטונים מהרשת', 'AI subtitles work for streamed videos only', 'ИИ-субтитры только для потокового видео'),
+    'ai_empty':    ('לא נוצרו כתוביות AI: לא נמצא דיבור או שלא ניתן לקרוא את השמע', 'No AI subtitles: no speech found or the audio could not be read', 'ИИ-субтитры не созданы: нет речи или звук недоступен'),
     'ai_nolive':   ('אין כתוביות AI לשידור חי', 'No AI subtitles for live TV', 'Нет ИИ-субтитров для прямого эфира'),
     'movies_he':   ('סרטים', 'Movies', 'Фильмы'),
     'grp_israel':  ('ישראלי', 'Israeli', 'Израиль'),

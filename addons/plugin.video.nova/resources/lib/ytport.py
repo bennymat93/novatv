@@ -26,6 +26,20 @@ def usable(port):
         s.close()
 
 
+def ensure_subtitles():
+    """YouTube subtitles in Kodi's language with auto-translation fallback - only when still 'none' (0),
+    a choice the owner made in YouTube's settings is kept"""
+    try:
+        addon = xbmcaddon.Addon(YT)
+    except Exception:
+        return False
+    if (addon.getSetting('kodion.subtitle.languages.num') or '0') == '0':
+        addon.setSetting('kodion.subtitle.languages.num', '2')
+        log('YouTube subtitles: preferred language with auto-translation')
+        return True
+    return False
+
+
 def check(fix=True):
     """(ok, detail). With fix=True a blocked port is replaced by a usable one."""
     try:

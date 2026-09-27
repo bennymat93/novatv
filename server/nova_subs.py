@@ -25,6 +25,11 @@ import site
 import subprocess
 import sys
 import threading
+
+# the machine-translation layer is shared with the Kodi add-on (one implementation, box and PC)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'addons', 'plugin.video.nova',
+                                'resources', 'lib'))
+import mtrans  # noqa: E402
 import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -194,13 +199,19 @@ def translate(lines, src_lang, ctx, stats):
             log('gemini -> local fallback:', e)
             if 'quota' in str(e) or 'key' in str(e):
                 stats['gemini_off'] = True
+    # Google (several endpoints + MyMemory, checked batch by batch) is clearly better than the local model:
+    # the local model is the last resort when the internet translation fails
     try:
-        stats['engine'] = 'nllb-local'
-        return local_translate(lines, src_lang)
+        st = {}
+        res = mtrans.translate(lines, src_lang or 'auto', 'iw', st)
+        if not st.get('untranslated'):
+            stats['engine'] = '+'.join(sorted(st))
+            return res
+        log('machine translation incomplete:', st)
     except Exception as e:
-        log('local translate failed -> google:', e)
-        stats['engine'] = 'google'
-        return google_translate(lines, src_lang)
+        log('machine translation -> local:', e)
+    stats['engine'] = 'nllb-local'
+    return local_translate(lines, src_lang)
 
 
 # ------------------------------------------------------------------ srt
@@ -236,7 +247,65 @@ def to_srt(cues):
 JOBS = {}
 
 
+YT_ID = re.compile(r'(?:[?&]file=|video_id=|youtu\.be/|[?&]v=)([\w-]{11})')
+
+
+def youtube_id(j):
+    """YouTube plays through the add-on's local proxy (127.0.0.1:<port>/youtube/manifest/dash?file=<id>.mpd):
+    that URL is only reachable on the Kodi box and is a DASH manifest - the video id is what identifies it"""
+    if j.get('youtube_id'):
+        return j['youtube_id']
+    m = YT_ID.search(j.get('url') or '')
+    return m.group(1) if m and ('youtube' in j['url'] or 'youtu.be' in j['url']) else ''
+
+
+def resolve_source(j):
+    """a URL ffmpeg can read here: YouTube -> its audio stream via yt-dlp, anything else as sent"""
+    yid = youtube_id(j)
+    if not yid:
+        return j['url']
+    import yt_dlp
+    with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'format': 'bestaudio/best'}) as y:
+        info = y.extract_info('https://www.youtube.com/watch?v=' + yid, download=False)
+    return info['url']
+
+
+def youtube_captions(yid, stats):
+    """cues from the video's captions, or [] - YouTube's own Hebrew (auto-translated) first, else the original
+    language translated by the machine-translation layer"""
+    import yt_dlp
+    with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'skip_download': True}) as y:
+        info = y.extract_info('https://www.youtube.com/watch?v=' + yid, download=False)
+    manual, auto = info.get('subtitles') or {}, info.get('automatic_captions') or {}
+
+    def fetch(tracks):
+        for t in tracks:
+            if t.get('ext') == 'vtt':
+                return mtrans.unroll(mtrans.parse_srt(requests.get(t['url'], timeout=30).text))
+        return []
+    for lang in ('he', 'iw'):                                   # human Hebrew, then YouTube's translation
+        for pool in (manual, auto):
+            if lang in pool:
+                cues = fetch(pool[lang])
+                if cues:
+                    stats['engine'] = 'youtube-%s' % ('captions' if pool is manual else 'auto-translate')
+                    return [dict(c, src=c['text'], he=c['text']) for c in cues]
+    orig = next((k for k in manual if not k.startswith('live')), None) or \
+        next((k for k in auto if k.endswith('-orig')), None)
+    if not orig:
+        return []
+    cues = fetch((manual or auto)[orig])
+    if not cues:
+        return []
+    st = {}
+    out = mtrans.translate_cues(cues, orig.split('-')[0], st)
+    stats['engine'] = 'youtube-captions+' + '+'.join(sorted(st))
+    return [dict(c, src=c['text']) for c in out]
+
+
 def job_key(j):
+    if youtube_id(j):
+        return 'yt_' + youtube_id(j)          # the query of the proxy URL IS the video: never strip it
     if j.get('tmdb') and int(j.get('episode') or 0) > 0:
         return 'tmdb%s_s%se%s' % (j['tmdb'], j.get('season'), j.get('episode'))
     if j.get('tmdb'):
@@ -266,12 +335,32 @@ class Job:
             if os.path.exists(self.cache_file):
                 with open(self.cache_file, encoding='utf-8') as f:
                     cached = json.load(f)
-                self.cues = cached['cues']
-                self.state, self.progress, self.ready_until, self.stage = 'done', 100, 1e9, 'cache'
-                return
+                if cached.get('cues'):
+                    self.cues = cached['cues']
+                    self.state, self.progress, self.ready_until, self.stage = 'done', 100, 1e9, 'cache'
+                    return
+                os.remove(self.cache_file)          # an empty result is never reused: try again
             self.state, self.stage = 'running', 'probe'
-            src = self.spec['url']
+            self.stage = 'source'
+            yid = youtube_id(self.spec)
+            if yid:
+                try:
+                    cues = youtube_captions(yid, self.stats)
+                except Exception as e:
+                    log('youtube captions:', e)
+                    cues = []
+                if cues:                            # captions: the whole video at once, no transcription
+                    self.cues = [{'start': c['start'], 'end': c['end'], 'src': c.get('src', ''), 'he': c['he']}
+                                 for c in cues]
+                    with open(self.cache_file, 'w', encoding='utf-8') as f:
+                        json.dump({'spec': {k: v for k, v in self.spec.items() if k != 'gemini_key'},
+                                   'lang': 'captions', 'cues': self.cues}, f, ensure_ascii=False)
+                    self.state, self.stage, self.progress, self.ready_until = 'done', 'captions', 100, 1e9
+                    log('job', self.id, 'from captions:', self.stats.get('engine'), len(self.cues))
+                    return
+            src = resolve_source(self.spec)
             total = duration(src) or 3 * 3600
+            heard = False                              # was any audio decoded at all?
             starts = list(range(0, int(total) + 1, CHUNK))
             pos = float(self.spec.get('position') or 0)
             first = max(0, int(pos // CHUNK))
@@ -298,6 +387,7 @@ class Job:
                 if not len(audio):
                     done_chunks.add(st)
                     continue
+                heard = True
                 with _gpu_lock:
                     segs, info = m.transcribe(  # noqa
 audio, language=lang, beam_size=5, vad_filter=True,
@@ -322,6 +412,11 @@ audio, language=lang, beam_size=5, vad_filter=True,
                 self.ready_until = min(c, total)
                 self.progress = int(100 * len(done_chunks) / len(starts))
             self.cues.sort(key=lambda c: c['start'])
+            if not self.cues:
+                # never report "done" with nothing (Kodi then loaded an empty file and showed no subtitles)
+                if os.path.exists(part):
+                    os.remove(part)
+                raise RuntimeError('no audio could be read from this video' if not heard else 'no speech found in this video')
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump({'spec': {k: v for k, v in self.spec.items() if k != 'gemini_key'}, 'lang': lang,
                            'cues': self.cues}, f, ensure_ascii=False)

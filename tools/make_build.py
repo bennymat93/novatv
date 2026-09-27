@@ -187,7 +187,10 @@ PRESETS = {   # first-run prompts would block the hub's background searches
                              'kodion.http.listen': '127.0.0.1',    # 0.0.0.0 picks a link-local IP -> 403 on streams
                              # default 50152 lies in the port ranges Windows reserves for Hyper-V/WSL
                              # (netsh ... excludedportrange: 49779-50799) -> "WinError 10013", no YouTube playback
-                             'kodion.http.port': '51152'},
+                             'kodion.http.port': '51152',
+                             # subtitles in Kodi's language (Hebrew), YouTube's own auto-translation as fallback:
+                             # Hebrew on every YouTube video even without the AI server
+                             'kodion.subtitle.languages.num': '2'},
     'plugin.video.archive.org': {'context': 'video'},
     'service.subtitles.All_Subs': {'telegram': 'false'},   # needs a personal Telegram login; opened a blocking dialog
 }

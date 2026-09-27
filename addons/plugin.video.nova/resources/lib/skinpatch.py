@@ -8,6 +8,8 @@ import re
 
 AI_RUN = 'RunPlugin(plugin://plugin.video.nova/?a=ai_subs_now)'
 AI_LABEL = 'יצירת כתוביות AI'
+MENU_RUN = 'RunPlugin(plugin://plugin.video.nova/?a=subs_menu)'
+MENU_LABEL = 'כתוביות BN'
 
 
 def apply(xml):
@@ -65,6 +67,39 @@ def apply(xml):
     old = '<control type="list" id="120">\n\t\t\t\t<top>50</top>\n\t\t\t\t<onup>false</onup>'
     if old in t:
         t = t.replace(old, old.replace('<onup>false</onup>', '<onup>7160</onup>'), 1)
+        open(p, 'w', encoding='utf-8', newline='').write(t)
+        n += 1
+    n += _menu_button(xml)
+    return n
+
+
+def _menu_button(xml):
+    """'כתוביות BN' (every track incl. AI, turn AI on by hand, generate, search, sync) right after the AI item"""
+    n = 0
+    item = ('\n\t<item>\n\t\t<label>%s</label>\n\t\t<icon>osd/fullscreen/buttons/subs.png</icon>\n'
+            '\t\t<onclick>%s</onclick>\n\t</item>') % (MENU_LABEL, MENU_RUN)
+    for fn in ('Includes_VideoOsd.xml', 'Includes_VideoOsd1.xml', 'Includes_VideoOsd2.xml'):
+        p = os.path.join(xml, fn)
+        t = open(p, encoding='utf-8', newline='').read()
+        if MENU_RUN in t or AI_RUN not in t:
+            continue
+        i = t.index(AI_RUN)
+        j = t.index('</item>', i) + len('</item>')
+        t = t[:j] + item + t[j:]
+        open(p, 'w', encoding='utf-8', newline='').write(t)
+        n += 1
+    p = os.path.join(xml, 'Includes_VideoOsd3.xml')
+    t = open(p, encoding='utf-8', newline='').read()
+    if MENU_RUN not in t and AI_RUN in t:
+        btn = ('\n\t\t\t\t\t<control type="button" id="700453">\n\t\t\t\t\t\t<description>BN subtitles</description>\n'
+               '\t\t\t\t\t\t<width>225</width>\n\t\t\t\t\t\t<height>76</height>\n\t\t\t\t\t\t<label>%s</label>\n'
+               '\t\t\t\t\t\t<font>font12</font>\n\t\t\t\t\t\t<align>center</align>\n\t\t\t\t\t\t<aligny>center</aligny>\n'
+               '\t\t\t\t\t\t<textcolor>grey_a</textcolor>\n\t\t\t\t\t\t<focusedcolor>button_focus</focusedcolor>\n'
+               '\t\t\t\t\t\t<texturenofocus />\n\t\t\t\t\t\t<texturefocus />\n'
+               '\t\t\t\t\t\t<onclick>%s</onclick>\n\t\t\t\t\t</control>') % (MENU_LABEL, MENU_RUN)
+        i = t.index('<control type="button" id="700452">')
+        j = t.index('</control>', i) + len('</control>')
+        t = t[:j] + btn + t[j:]
         open(p, 'w', encoding='utf-8', newline='').write(t)
         n += 1
     return n

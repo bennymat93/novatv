@@ -419,7 +419,7 @@ def t_ai_subs_end_to_end():
         got = ''
         for _ in range(100):
             time.sleep(3)
-            srts = glob.glob(os.path.join(prof, 'ai_*.he.srt'))
+            srts = glob.glob(os.path.join(prof, 'ai', '*', '*.he.srt'))
             pl = rpc('Player.GetActivePlayers').get('result') or []
             if srts and pl:
                 sub = rpc('Player.GetProperties', playerid=pl[0]['playerid'],
@@ -494,10 +494,13 @@ def t_ai_button():
         pid = _wait_playing()
         expect(pid is not None, 'video did not play')
         time.sleep(8)                           # let the automatic flow settle first
-        for f in glob.glob(os.path.join(prof, 'ai_*.he.srt')):
+        for f in glob.glob(os.path.join(prof, 'ai', '*', '*.he.srt')):
             os.remove(f)
         rpc('Player.AddSubtitle', playerid=pid, subtitle=os.path.join(ROOT, 'test', 'test_ru.he.srt'))
-        rpc('Player.SetSubtitle', playerid=pid, subtitle='on')
+        time.sleep(1)
+        subs = rpc('Player.GetProperties', playerid=pid, properties=['subtitles'])['result']['subtitles']
+        human = next(t['index'] for t in subs if (t.get('name') or '').startswith('test_ru'))
+        rpc('Player.SetSubtitle', playerid=pid, subtitle=human, enable=True)     # the human one is showing
         time.sleep(2)
         before = rpc('Player.GetProperties', playerid=pid, properties=['currentsubtitle'])['result']['currentsubtitle']
         expect((before or {}).get('name', '').startswith('test_ru'), 'the human subtitle was not active first: %s' % before)
@@ -510,7 +513,7 @@ def t_ai_button():
             pr = rpc('Player.GetProperties', playerid=pid, properties=['subtitleenabled', 'subtitles', 'currentsubtitle'])['result']
             seen.append(pr)
             cur = (pr.get('currentsubtitle') or {}).get('name') or ''
-            if glob.glob(os.path.join(prof, 'ai_*.he.srt')) and pr['subtitleenabled'] and cur.startswith('ai_'):
+            if glob.glob(os.path.join(prof, 'ai', '*', '*.he.srt')) and pr['subtitleenabled'] and cur.startswith('BN AI'):
                 got = 'active subtitle switched from test_ru (human) to %s' % cur.split(' ')[0]
                 break
         _stop_all()
@@ -570,6 +573,142 @@ def t_ai_button_idle():
     return 'no player, no error'
 
 
+
+def t_ai_no_audio():
+    """a video without audio: the AI job fails cleanly - no empty subtitle file reaches the player, no 'loaded'"""
+    httpd = media_server()
+    n0 = _log_len()
+    try:
+        for f in glob.glob(os.path.join(ROOT, 'server', 'cache', '*.json')):
+            try:
+                if 'silent.mp4' in open(f, encoding='utf-8').read():
+                    os.remove(f)
+            except OSError:
+                pass
+        rpc('Player.Open', item={'file': MEDIA + 'silent.mp4'})
+        pid = _wait_playing()
+        expect(pid is not None, 'video did not play')
+        rpc('Files.GetDirectory', directory=NOVA + '?a=ai_subs_now', media='files', timeout=60)
+        failed = False
+        for _ in range(60):
+            time.sleep(2)
+            new = _log_since(n0)
+            if 'AI subs load' in new or 'no cues yet' in new or _server_state('silent.mp4') == 'error':
+                failed = True
+                break
+            if _player() is None:
+                break
+        pr = rpc('Player.GetProperties', playerid=pid, properties=['subtitles'])['result'] if _player() is not None else {}
+        _stop_all()
+        new = _log_since(n0)
+        expect(failed, 'the AI job for a silent video never ended')
+        expect('AI subtitles loaded' not in new, 'an empty AI result was loaded into the player')
+        expect(not any('BN AI' in (t.get('name') or '') for t in pr.get('subtitles', [])), 'empty AI track added')
+        return 'silent video: job failed cleanly, nothing loaded, viewer told'
+    finally:
+        httpd.shutdown()
+
+
+def _server_state(fragment):
+    try:
+        import urllib.request
+        for jid in ('u' + __import__('hashlib').md5((MEDIA + fragment).encode()).hexdigest()[:16],):
+            r = json.loads(urllib.request.urlopen('http://127.0.0.1:8765/jobs/' + jid, timeout=5).read())
+            return r.get('state')
+    except Exception:
+        return ''
+
+
+def t_subs_menu():
+    """BN subtitle window: lists the tracks with the AI track marked, turning a track on by hand works"""
+    import threading
+    httpd = media_server()
+    try:
+        rpc('Player.Open', item={'file': MEDIA + 'test_ru_long.mp4'})
+        pid = _wait_playing()
+        expect(pid is not None, 'video did not play')
+        rpc('Files.GetDirectory', directory=NOVA + '?a=ai_subs_now', media='files', timeout=60)
+        for _ in range(60):                      # the AI track (server cache) arrives
+            time.sleep(2)
+            subs = rpc('Player.GetProperties', playerid=pid, properties=['subtitles'])['result']['subtitles']
+            if any('BN AI' in (t.get('name') or '') for t in subs):
+                break
+        expect(any('BN AI' in (t.get('name') or '') for t in subs), 'no "BN AI" track (readable name) in the player')
+        rpc('Player.SetSubtitle', playerid=pid, subtitle='off')
+        time.sleep(1)
+        threading.Thread(target=lambda: rpc('Files.GetDirectory', directory=NOVA + '?a=subs_menu', media='files',
+                                            timeout=120), daemon=True).start()
+        opened = False
+        for _ in range(20):
+            time.sleep(1)
+            if _visible('Window.IsActive(selectdialog)'):
+                opened = True
+                break
+        expect(opened, 'the BN subtitle window did not open')
+        labels, ai_row = [], None
+        for k in range(12):                      # walk the list like a remote and read every row
+            lab = rpc('XBMC.GetInfoLabels', labels=['System.CurrentControl'])['result']['System.CurrentControl']
+            labels.append(lab)
+            if 'AI' in lab and 'BN AI' in lab and ai_row is None:
+                ai_row = k
+                break
+            rpc('Input.Down')
+            time.sleep(0.4)
+        expect(ai_row is not None, 'AI track not listed: %s' % labels)
+        rpc('Input.Select')
+        time.sleep(2)
+        rpc('Input.Back')                        # the window reopens with the new state: close it
+        time.sleep(1)
+        pr = rpc('Player.GetProperties', playerid=pid, properties=['subtitleenabled', 'currentsubtitle'])['result']
+        _stop_all()
+        expect(pr['subtitleenabled'] and 'BN AI' in (pr.get('currentsubtitle') or {}).get('name', ''),
+               'choosing the AI row did not turn the AI subtitles on: %s' % pr)
+        return 'window lists %d rows, AI track marked, turned on by hand' % (ai_row + 1)
+    finally:
+        httpd.shutdown()
+
+
+
+def t_machine_translation():
+    """the no-AI fallback: machine translation (Google endpoints -> MyMemory, batch-checked) gives Hebrew fast"""
+    sys.path.insert(0, os.path.join(NOVA_SRC, 'resources', 'lib'))
+    import mtrans
+    lines = ['Where is the kitchen?', 'Chef, the soup is burning!', '\u0427\u0442\u043e \u0442\u044b \u0445\u043e\u0447\u0435\u0448\u044c?'] * 30
+    st, t = {}, time.time()
+    out = mtrans.translate(lines, stats=st)
+    dt = time.time() - t
+    heb = sum(1 for o in out if re.search('[\u0590-\u05ff]', o))
+    expect(len(out) == len(lines), 'line count changed')
+    expect(heb >= len(lines) * 0.9, 'only %d/%d lines in Hebrew (%s)' % (heb, len(lines), st))
+    expect(dt < 30, 'too slow: %.0f s' % dt)
+    return '%d lines -> Hebrew in %.1f s via %s' % (len(lines), dt, st)
+
+
+def t_server_youtube_captions():
+    """AI server, YouTube video: Hebrew from the captions in seconds (no transcription)"""
+    import urllib.request
+    base = 'http://127.0.0.1:8765'
+    yid = 'HHAb-4Bmz70'
+    cache = os.path.join(ROOT, 'server', 'cache', 'yt_%s.json' % yid)
+    if os.path.exists(cache):
+        os.remove(cache)
+    req = urllib.request.Request(base + '/jobs', json.dumps({'url': 'http://127.0.0.1:51152/youtube/manifest/dash?file=%s.mpd' % yid,
+                                                             'youtube_id': yid, 'title': 'test'}).encode(),
+                                 {'Content-Type': 'application/json'})
+    jid = json.loads(urllib.request.urlopen(req, timeout=20).read())['id']
+    t, st = time.time(), {}
+    while time.time() - t < 120:
+        st = json.loads(urllib.request.urlopen('%s/jobs/%s' % (base, jid), timeout=10).read())
+        if st['state'] in ('done', 'error'):
+            break
+        time.sleep(2)
+    expect(st.get('state') == 'done', 'job %s: %s' % (st.get('state'), st.get('error')))
+    srt = urllib.request.urlopen('%s/jobs/%s/srt' % (base, jid), timeout=20).read().decode('utf-8')
+    n = srt.count('-->')
+    expect(n > 50 and re.search('[\u0590-\u05ff]', srt), 'only %d cues' % n)
+    return '%d Hebrew cues in %.0f s (%s)' % (n, time.time() - t, st.get('engine') or st.get('stage'))
+
+
 def t_system_update():
     """System Update: every part refreshed, report with Auto-Fix under each error, the fix works"""
     prof = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova')
@@ -617,7 +756,7 @@ def t_log_errors():
     log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
     ours = [l for l in log.splitlines() if ('NovaTV' in l or 'plugin.video.nova' in l or 'NovaWizard' in l)
             and (' error ' in l.lower() or 'Traceback' in l)
-            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install|play|prov_toggle|prov_install_all|sysupdate|sysfix|ai_subs_now)', l)]
+            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install|play|prov_toggle|prov_install_all|sysupdate|sysfix|ai_subs_now|subs_menu)', l)]
     expect(not ours, '%d errors from our add-ons: %s' % (len(ours), ours[:2]))
     return 'no errors from BN add-ons'
 
@@ -1205,6 +1344,8 @@ TESTS = [
     ('Subtitles ready before playing', t_subs_before_play),
     ('Subtitles reset between videos', t_subs_reset_between_videos), ('AI Subtitle Generation button', t_ai_button),
     ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
+    ('AI: silent video, nothing loaded', t_ai_no_audio), ('BN subtitle window', t_subs_menu),
+    ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
     ('System Update + Auto-Fix', t_system_update),
     ('Static: addon-checker, py3.8, XML', t_static), ('Every NovaTV screen opens', t_menu_crawl),
     ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('YouTube port usable', t_youtube_port), ('No thread leak', t_thread_leak),
