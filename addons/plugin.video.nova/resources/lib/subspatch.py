@@ -129,6 +129,17 @@ SHARED = 'from resources.modules.general import _BN_PLAYER   %s\n' % MARK6
 BN_FILE = "            _bn_file = _bn_playing_file()\n"
 AUTOSUB6 = [(BN_FILE, BN_FILE + "            if not _bn_file:   %s: nothing plays any more / Kodi quits\n"
                                 "                return\n" % MARK6)]
+# v7: while Kodi quits the video still counts as playing, so the backlog passed v6: a queued notification for the video
+# handled less than 60 s ago is a duplicate (a real replay of the same file after a minute still searches)
+MARK7 = '# BN guard v7'
+V6_RET = "                return\n"
+AUTOSUB7 = [("_bn_file = ''\n", "_bn_file = ''\n_bn_done = ('', 0.0)   %s: the last video handled + when\n" % MARK7),
+            ("            if not _bn_file:   %s: nothing plays any more / Kodi quits\n" % MARK6 + V6_RET,
+             "            if not _bn_file:   %s: nothing plays any more / Kodi quits\n" % MARK6 + V6_RET +
+             "            global _bn_done\n"
+             "            if _bn_done[0] == _bn_file and time.time() - _bn_done[1] < 60:\n"
+             "                return\n"
+             "            _bn_done = (_bn_file, time.time())\n")]
 GENERAL6 = [('_BN_MON = xbmc.Monitor()', '_BN_PLAYER = xbmc.Player()   %s: one Player per process\n_BN_MON = xbmc.Monitor()' % MARK6),
             ('xbmc.Player()', '_BN_PLAYER')]
 
@@ -138,7 +149,7 @@ def apply(addon_dir):
     """All_Subs: 1 when a file was changed, 0 when the guards were already there; raises if it changed shape"""
     path = os.path.join(addon_dir, 'autosub.py')
     mods = os.path.join(addon_dir, 'resources', 'modules')
-    n = _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | _patch(path, MARK6, AUTOSUB6) | \
+    n = _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | _patch(path, MARK6, AUTOSUB6) | _patch(path, MARK7, AUTOSUB7) | \
         _patch(os.path.join(mods, 'general.py'), MARK5, GENERAL5) | _patch(os.path.join(mods, 'engine.py'), MARK5, ENGINE5)
     # general.py first: _BN_PLAYER must exist there before the others import it (replace-all runs after the anchor edit,
     # so general's own new line keeps its xbmc.Player())
