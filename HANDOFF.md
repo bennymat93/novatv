@@ -1,6 +1,6 @@
 # BN Stream (NovaTV) – HANDOFF
 
-Last update: 2026-09-27 (in progress: v0.2.5 – subtitles, AI fallback, BN subtitle window)
+Last update: 2026-09-27 03:10 – v0.2.5 PUBLISHED
 Repo: https://github.com/bennymat93/novatv (main + gh-pages + releases). Local: `C:\Users\benny\kodi-build`.
 Read `CLAUDE.md` first (layout, rules, history). This file = current state + open work + exact next steps.
 
@@ -21,9 +21,10 @@ Read `CLAUDE.md` first (layout, rules, history). This file = current state + ope
 | 0.2.1 | AI subtitle button, every video starts clean, System Update + Auto-Fix |
 | 0.2.3 | stability (Monitor/Player crashes, PVR restart crash, freezes), All_Subs guards v4, bundled TV add-on, up-to-date official add-ons |
 | 0.2.4 | YouTube `WinError 10013`: port 50152 is in Windows' reserved ranges -> 51152 (build preset + ytport.py at start + System Update row) |
-Live repo currently serves **0.2.4**. 0.2.2 was never published.
+| 0.2.5 | subtitles fixed + BN subtitle window + no-AI fallback (see below) |
+Live repo serves **0.2.5**. 0.2.2 was never published.
 
-## v0.2.5 – IN PROGRESS (not released yet)
+## v0.2.5 – PUBLISHED 2026-09-27 (all checks passed: 45 testkodi, Android 9/9, installed Windows 11/11)
 Owner's reports: "AI subtitles loaded" but nothing on screen; wants better subtitle control (AI in the list, turn on by hand);
 wants a non-AI machine-translation fallback so there are ALWAYS subtitles; wants a better player (like the "Anonymous" wizard's).
 
@@ -62,10 +63,7 @@ wants a non-AI machine-translation fallback so there are ALWAYS subtitles; wants
 - addon.xml version already set to 0.2.5; `dist/NovaTV-0.2.5.zip` built earlier (before the fallback work) – rebuild.
 
 ### Next steps (exact)
-1. `python tools/release.py --version 0.2.5 --notes "..."` (runs build, full suite, APKs, Android, Windows, publish).
-   If a check fails: fix root cause, rerun the same command (resumes).
-2. After publishing: update this file + CLAUDE.md (0.2.5 section), tell the owner (Hebrew) + links.
-3. Player UI ("Anonymous wizard" player): NOT started. Could not find that wizard online or on disk. Ask the owner for its repo URL /
+1. Player UI ("Anonymous wizard" player): NOT started. Could not find that wizard online or on disk. Ask the owner for its repo URL /
    zip / screenshots; then analyse its OSD (layout, buttons, remote navigation) and build a similar OSD in the BN skin
    (skin.fentastic, via a skinpatch-like build step). Never import its content sources.
 
