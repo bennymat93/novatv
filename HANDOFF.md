@@ -1,6 +1,6 @@
 # BN Stream (NovaTV) – HANDOFF
 
-Last update: 2026-09-27 – v0.2.5 PUBLISHED; v0.2.6 (BN player) IN PROGRESS
+Last update: 2026-09-27 – MISSION v1.1.0 started on branch release/v1.1.0 (0.2.6 never published; live = 0.2.5)
 Repo: https://github.com/bennymat93/novatv (main + gh-pages + releases). Local: `C:\Users\benny\kodi-build`.
 Read `CLAUDE.md` first (layout, rules, history). This file = current state + open work + exact next steps.
 
@@ -72,7 +72,16 @@ wants a non-AI machine-translation fallback so there are ALWAYS subtitles; wants
   setting auto_translate=true). A video with no subtitles anywhere and no server cannot get subtitles (no text to translate).
 - Embedded text subtitle tracks in MKV are not yet used as a translation source (server would need to read the whole file).
 
-## v0.2.6 – IN PROGRESS: BN player (not released)
+## MISSION v1.1.0 (owner prompt, 2026-09-27) – ACTIVE
+Owner pasted a full spec ("Kodi build v1.1.0 – VLC-grade player, next-gen subtitle system, zero-state playback") + 7 TV photos
+of the Anonymous player (OSD bar, Sync slider, Subtitles menu, Settings menu, Info panel) as the visual spec.
+Docs live in docs/v1.1.0/ (ARCHITECTURE, PLAN, DECISIONS, KEYMAP, TEST_REPORT, research/*). Work on branch release/v1.1.0,
+release as v1.1.0 only after the full suite is green twice. Progress log: see "v1.1.0 progress" below (append every step).
+
+### v1.1.0 progress
+- [start] branch release/v1.1.0 created; 0.2.6 work (BN player + icons) is included.
+
+## v0.2.6 – superseded by v1.1.0 (never published): BN player (not released)
 - "Anonymous" wizard found: `C:\Users\benny\Downloads\Compressed\repository.wizard.zip` -> GitHub `vip200/repowizard` ->
   `plugin.program.Anonymous` 8.1.7 (downloaded for READING ONLY to `work/anon/`, never installed/imported).
   Its skin (`skin/packages1.zip`) = customised Estuary: VideoOSD = one row of big icon buttons (prev, rew, play/pause, stop,
