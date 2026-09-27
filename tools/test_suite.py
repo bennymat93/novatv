@@ -502,9 +502,12 @@ def t_ai_button():
         time.sleep(1)
         subs = rpc('Player.GetProperties', playerid=pid, properties=['subtitles'])['result']['subtitles']
         human = next(t['index'] for t in subs if (t.get('name') or '').startswith('test_ru'))
-        rpc('Player.SetSubtitle', playerid=pid, subtitle=human, enable=True)     # the human one is showing
-        time.sleep(2)
-        before = rpc('Player.GetProperties', playerid=pid, properties=['currentsubtitle'])['result']['currentsubtitle']
+        for _ in range(3):                       # setup: the human one is showing (the automatic start-up
+            rpc('Player.SetSubtitle', playerid=pid, subtitle=human, enable=True)   # flow may still switch once)
+            time.sleep(2)
+            before = rpc('Player.GetProperties', playerid=pid, properties=['currentsubtitle'])['result']['currentsubtitle']
+            if (before or {}).get('name', '').startswith('test_ru'):
+                break
         expect((before or {}).get('name', '').startswith('test_ru'), 'the human subtitle was not active first: %s' % before)
         # exactly what the skin button runs: RunPlugin(...?a=ai_subs_now) -> NotifyAll -> service
         # like the skin's RunPlugin: runs the add-on without opening a window (a window is refused behind a dialog)
@@ -1383,6 +1386,9 @@ def t_no_tracebacks():
     # Kodi auto-updating an add-on unregisters it for a few seconds: the skin's widgets calling it then fail once.
     # Accepted only for an add-on the log shows was really updated during this run.
     updated = {aid for aid, vs in _versions_seen(log).items() if len(vs) > 1}
+    # System Update's Auto-Fix reinstalls a broken add-on (same version): it is unregistered for those seconds too
+    for row in re.findall(r"\[NovaTV\] system update: .*?\[(.*?)\]", log):
+        updated |= set(re.findall(r"'addon:([\w.\-]+)'", row))
     blocks = [b for b in blocks if not (re.search(r"Unknown addon id '([^']+)'", b) and
                                         re.search(r"Unknown addon id '([^']+)'", b).group(1) in updated)]
     expect(not blocks, '%d tracebacks, first: %s' % (len(blocks), blocks[0][-300:] if blocks else ''))

@@ -145,12 +145,20 @@ GENERAL6 = [('_BN_MON = xbmc.Monitor()', '_BN_PLAYER = xbmc.Player()   %s: one P
 
 
 
+# v8: "no results -> search again in all languages" started a second full search round while Kodi was quitting
+MARK8 = '# BN guard v8'
+RETRY = "and not all_lang_override:\n"
+ENGINE8 = [(RETRY, "and not all_lang_override \\\n"
+                   "            and xbmc.getCondVisibility('Player.HasMedia') and not _bn_quit():   %s\n" % MARK8)]
+
+
 def apply(addon_dir):
     """All_Subs: 1 when a file was changed, 0 when the guards were already there; raises if it changed shape"""
     path = os.path.join(addon_dir, 'autosub.py')
     mods = os.path.join(addon_dir, 'resources', 'modules')
     n = _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | _patch(path, MARK6, AUTOSUB6) | _patch(path, MARK7, AUTOSUB7) | \
-        _patch(os.path.join(mods, 'general.py'), MARK5, GENERAL5) | _patch(os.path.join(mods, 'engine.py'), MARK5, ENGINE5)
+        _patch(os.path.join(mods, 'general.py'), MARK5, GENERAL5) | _patch(os.path.join(mods, 'engine.py'), MARK5, ENGINE5) | \
+        _patch(os.path.join(mods, 'engine.py'), MARK8, ENGINE8)
     # general.py first: _BN_PLAYER must exist there before the others import it (replace-all runs after the anchor edit,
     # so general's own new line keeps its xbmc.Player())
     g = os.path.join(mods, 'general.py')
