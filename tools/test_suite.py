@@ -709,6 +709,52 @@ def t_server_youtube_captions():
     return '%d Hebrew cues in %.0f s (%s)' % (n, time.time() - t, st.get('engine') or st.get('stage'))
 
 
+
+def t_bn_player():
+    """BN player: default style, the button row opens focused, remote Right walks the buttons (Hebrew names shown),
+    the subtitles button opens the BN subtitle window"""
+    httpd = media_server()
+    try:
+        style = rpc('XBMC.GetInfoLabels', labels=['Skin.String(__chooseplayer)'])['result']['Skin.String(__chooseplayer)']
+        expect(style == '__bnplayer', 'player style is %r, not the BN player' % style)
+        rpc('Player.Open', item={'file': MEDIA + 'test_ru_long.mp4'})
+        expect(_wait_playing() is not None, 'video did not play')
+        rpc('GUI.ActivateWindow', window='videoosd')
+        time.sleep(2)
+        expect(_visible('Window.IsActive(videoosd)'), 'player controls did not open')
+        names = []
+        for _ in range(8):
+            names.append(rpc('XBMC.GetInfoLabels', labels=['System.CurrentControl'])['result']['System.CurrentControl'])
+            rpc('Input.Right')
+            time.sleep(0.4)
+        expect(any('כתוביות' in n for n in names), 'no subtitles button in the row: %s' % names)
+        try:
+            from PIL import ImageGrab                      # a picture of the real player for the owner
+            ImageGrab.grab().save(os.path.join(ROOT, 'work', 'bn_player.png'))
+        except Exception:
+            pass
+        while 'כתוביות' != rpc('XBMC.GetInfoLabels', labels=['System.CurrentControl'])['result']['System.CurrentControl']:
+            rpc('Input.Left')
+            time.sleep(0.3)
+            if len(names) > 30:
+                break
+            names.append('')
+        rpc('Input.Select')
+        opened = False
+        for _ in range(15):
+            time.sleep(1)
+            if _visible('Window.IsActive(selectdialog)'):
+                opened = True
+                break
+        rpc('Input.Back')
+        time.sleep(1)
+        _stop_all()
+        expect(opened, 'the subtitles button did not open the BN subtitle window')
+        return 'BN player default; buttons: %s' % ' | '.join(n for n in names[:8] if n)
+    finally:
+        httpd.shutdown()
+
+
 def t_system_update():
     """System Update: every part refreshed, report with Auto-Fix under each error, the fix works"""
     prof = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova')
@@ -1345,7 +1391,7 @@ TESTS = [
     ('Subtitles reset between videos', t_subs_reset_between_videos), ('AI Subtitle Generation button', t_ai_button),
     ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
     ('AI: silent video, nothing loaded', t_ai_no_audio), ('BN subtitle window', t_subs_menu),
-    ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
+    ('BN player', t_bn_player), ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
     ('System Update + Auto-Fix', t_system_update),
     ('Static: addon-checker, py3.8, XML', t_static), ('Every NovaTV screen opens', t_menu_crawl),
     ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('YouTube port usable', t_youtube_port), ('No thread leak', t_thread_leak),

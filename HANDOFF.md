@@ -88,8 +88,9 @@ wants a non-AI machine-translation fallback so there are ALWAYS subtitles; wants
   Runs in make_build (via skinpatch.apply) AND at service start (existing installs).
 - Default: make_build `bn_player_default()` (skin settings.xml __chooseplayer=__bnplayer); service sets it ONCE on existing
   installs (hidden setting `bn_player_set`); a later choice of the owner is kept.
-- Next: build 0.2.6, test in testkodi (open OSD during playback: row focused, labels, subs button opens the BN window),
-  screenshot for the owner, add test `t_bn_player`, then `python tools/release.py --version 0.2.6 --notes "..."`.
+- Tested live in testkodi: t_bn_player PASS (row focused, Hebrew names, subs button opens the BN window); screenshot
+  work/bn_player.png sent to the owner. Lesson: an <image> separator inside the grouplist stopped Right navigation - removed.
+- Next: `python tools/release.py --version 0.2.6 --notes "..."` (in progress), then update this file.
 
 ## Useful facts
 - Subtitle server: `server/nova_subs.py serve --port 8765`, supervisor `server/supervisor.py` (pythonw, Startup shortcut),

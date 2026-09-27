@@ -57,13 +57,13 @@
 
 			<!-- the buttons: one row, remote Left/Right, OK -->
 			<control type="grouplist" id="201">
-				<centerleft>50%</centerleft><width>1500</width><bottom>120</bottom><height>110</height>
-				<orientation>horizontal</orientation><align>center</align><itemgap>18</itemgap>
+				<left>40</left><right>40</right><bottom>120</bottom><height>110</height>
+				<orientation>horizontal</orientation><align>center</align><itemgap>14</itemgap>
 				<onup>Dialog.Close(videoosd)</onup>
 				<include content="BNOsdButton"><param name="id" value="601"/><param name="icon" value="previous"/><param name="label" value="הקודם"/><param name="action" value="PlayerControl(Previous)"/></include>
 				<include content="BNOsdButton"><param name="id" value="602"/><param name="icon" value="rewind"/><param name="label" value="אחורה"/><param name="action" value="PlayerControl(Rewind)"/></include>
 				<control type="togglebutton" id="603">
-					<width>100</width><height>100</height>
+					<width>96</width><height>96</height>
 					<label>נגן / השהה</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
 					<texturefocus colordiffuse="FFE8BE5A">osd/fullscreen/buttons/pause.png</texturefocus>
 					<texturenofocus colordiffuse="FFFFFFFF">osd/fullscreen/buttons/pause.png</texturenofocus>
@@ -75,7 +75,6 @@
 				<include content="BNOsdButton"><param name="id" value="604"/><param name="icon" value="stop"/><param name="label" value="עצור"/><param name="action" value="PlayerControl(Stop)"/></include>
 				<include content="BNOsdButton"><param name="id" value="605"/><param name="icon" value="forward"/><param name="label" value="קדימה"/><param name="action" value="PlayerControl(Forward)"/></include>
 				<include content="BNOsdButton"><param name="id" value="606"/><param name="icon" value="next"/><param name="label" value="הבא"/><param name="action" value="PlayerControl(Next)"/></include>
-				<control type="image"><width>4</width><height>100</height><texture colordiffuse="40FFFFFF">colors/white.png</texture></control>
 				<include content="BNOsdButton"><param name="id" value="607"/><param name="icon" value="subs"/><param name="label" value="כתוביות"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=subs_menu)"/></include>
 				<include content="BNOsdButton"><param name="id" value="608"/><param name="icon" value="subs3"/><param name="label" value="יצירת כתוביות AI"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=ai_subs_now)"/></include>
 				<include content="BNOsdButton"><param name="id" value="609"/><param name="icon" value="subs2"/><param name="label" value="סנכרון כתוביות"/><param name="action" value="SubtitleDelay"/></include>
@@ -99,7 +98,7 @@
 		<param name="visible" default="true"/>
 		<definition>
 			<control type="button" id="$PARAM[id]">
-				<width>100</width><height>100</height>
+				<width>96</width><height>96</height>
 				<label>$PARAM[label]</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
 				<texturefocus colordiffuse="FFE8BE5A">osd/fullscreen/buttons/$PARAM[icon].png</texturefocus>
 				<texturenofocus colordiffuse="FFFFFFFF">osd/fullscreen/buttons/$PARAM[icon].png</texturenofocus>
