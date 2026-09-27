@@ -80,6 +80,8 @@ release as v1.1.0 only after the full suite is green twice. Progress log: see "v
 
 ### v1.1.0 progress
 - [start] branch release/v1.1.0 created; 0.2.6 work (BN player + icons) is included.
+- [phase 0+1 done] docs/v1.1.0: ARCHITECTURE, PLAN, DECISIONS (D1-D11), research/VLC_MATRIX, SRT_HANDLING, OTHER_PLAYERS (agents, from memory: verify Kodi facts), ANONYMOUS_TEARDOWN, POVIL_AI_SUBS_TEARDOWN.
+- [next] phase 3: player v2 per photos + panels (player_menus.py), then 4 (substore/subfix/picker), 5 (session), 6 (tests), 7 (release 1.1.0).
 
 ## v0.2.6 – superseded by v1.1.0 (never published): BN player (not released)
 - "Anonymous" wizard found: `C:\Users\benny\Downloads\Compressed\repository.wizard.zip` -> GitHub `vip200/repowizard` ->
