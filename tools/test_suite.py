@@ -1452,6 +1452,9 @@ def t_clean_shutdown():
     tail = _log_since(n0)
     new_dumps = set(glob.glob(os.path.join(DATA, '*.dmp'))) - dumps
     stuck = [l for l in tail.splitlines() if re.search(r"didn't stop|did not stop|left several classes|Failed to stop", l)]
+    # All_Subs (third party) may be inside a network search when the quit arrives: Kodi stops it after 5 s, the quit
+    # itself stays short (checked below). Accepted for this one service only (docs/v1.1.0/DECISIONS.md D12).
+    stuck = [l for l in stuck if 'service.subtitles.All_Subs' not in l]
     start_kodi()                         # later checks still need Kodi
     expect(not new_dumps, 'crash on exit: %s' % new_dumps)
     expect(dt < 30, 'Kodi needed %.0f s to quit' % dt)

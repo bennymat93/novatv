@@ -13,3 +13,6 @@
 | D9 | Integration tests run on a portable Windows Kodi 21 driven by JSON-RPC (no Xvfb on this Windows host); Android via the emulator | same code path; Xvfb is Linux-only |
 | D10 | Sync menu keeps Kodi's native delay slider (as in the photo) and adds our Python panel for coarse steps, audio delay, bookmark sync, reset, remembered step | slider = exact look of the spec; Python adds what the slider cannot |
 | D11 | Delays are applied with repeated `SubtitleDelayPlus/Minus` (0.1 s) / `AudioDelayPlus/Minus` (0.025 s); current value read from `Player.SubtitleDelay` / `Player.AudioDelay` | Kodi has no JSON-RPC setter for delays |
+
+## D12 – All_Subs may be stopped by Kodi at quit
+All_Subs (third party) runs its automatic search in network threads. Guards v5–v8 (resources/lib/subspatch.py) stop it from starting work when Kodi quits or when nothing plays, and they drop queued play notifications. A search that is already in flight when the quit arrives can still take longer than 5 s, and Kodi then stops the script. The quit itself stays under 30 s. The clean-shutdown test accepts this for All_Subs only. Every other service must stop by itself.
