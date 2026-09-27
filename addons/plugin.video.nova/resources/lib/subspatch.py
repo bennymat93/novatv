@@ -120,12 +120,55 @@ ENGINE5 = [
 ]
 
 
+# v6: the one-off xbmc.Player() calls of every video start (get_video_data, the sources, the subtitle window) ran in
+# worker threads too; each created+freed Player registers for Kodi's player callbacks -> the same crash when freed
+# while Kodi delivered one (dump 1.1.0: python3.8.dll+0xdfec1 in a Python thread at CloseFile). One Player per process.
+MARK6 = '# BN guard v6'
+SHARED = 'from resources.modules.general import _BN_PLAYER   %s\n' % MARK6
+# a backlog of queued Player.OnPlay notifications (quick zapping) was replayed one by one, even after Kodi quit
+BN_FILE = "            _bn_file = _bn_playing_file()\n"
+AUTOSUB6 = [(BN_FILE, BN_FILE + "            if not _bn_file:   %s: nothing plays any more / Kodi quits\n"
+                                "                return\n" % MARK6)]
+GENERAL6 = [('_BN_MON = xbmc.Monitor()', '_BN_PLAYER = xbmc.Player()   %s: one Player per process\n_BN_MON = xbmc.Monitor()' % MARK6),
+            ('xbmc.Player()', '_BN_PLAYER')]
+
+
+
 def apply(addon_dir):
     """All_Subs: 1 when a file was changed, 0 when the guards were already there; raises if it changed shape"""
     path = os.path.join(addon_dir, 'autosub.py')
     mods = os.path.join(addon_dir, 'resources', 'modules')
-    return _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | \
+    n = _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | _patch(path, MARK6, AUTOSUB6) | \
         _patch(os.path.join(mods, 'general.py'), MARK5, GENERAL5) | _patch(os.path.join(mods, 'engine.py'), MARK5, ENGINE5)
+    # general.py first: _BN_PLAYER must exist there before the others import it (replace-all runs after the anchor edit,
+    # so general's own new line keeps its xbmc.Player())
+    g = os.path.join(mods, 'general.py')
+    n |= _patch(g, MARK6, GENERAL6[:1])
+    with open(g, encoding='utf-8', newline='') as f:
+        s = f.read()
+    head, sep, rest = s.partition('_BN_MON = xbmc.Monitor()')
+    if 'xbmc.Player()' in rest:
+        with open(g, 'w', encoding='utf-8', newline='') as f:
+            f.write(head + sep + rest.replace('xbmc.Player()', '_BN_PLAYER'))
+        n = 1
+    for rel in (('resources', 'modules', 'engine.py'), ('resources', 'modules', 'sub_window.py'),
+                ('resources', 'sources', 'bsplayer.py')):
+        p = os.path.join(addon_dir, *rel)
+        if not os.path.exists(p):
+            continue
+        with open(p, encoding='utf-8', newline='') as f:
+            s = f.read()
+        if MARK6 in s:
+            continue
+        crlf = '\r\n' in s
+        lines = s.replace('\r\n', '\n').split('\n')
+        at = next(i for i, l in enumerate(lines) if l.startswith(('import ', 'from ')) and '__future__' not in l)
+        lines.insert(at + 1, SHARED.rstrip('\n'))
+        s = '\n'.join(lines[:at + 2]) + '\n' + '\n'.join(lines[at + 2:]).replace('xbmc.Player()', '_BN_PLAYER')
+        with open(p, 'w', encoding='utf-8', newline='') as f:
+            f.write(s.replace('\n', '\r\n') if crlf else s)
+        n = 1
+    return n
 
 
 def apply_plus(addon_dir):

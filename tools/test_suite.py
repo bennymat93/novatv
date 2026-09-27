@@ -1339,7 +1339,7 @@ def t_all_subs_guard():
     """All_Subs (third party) carries the BN guards: no subtitle for another video, stops when Kodi quits"""
     p = os.path.join(DATA, 'addons', 'service.subtitles.All_Subs', 'autosub.py')
     src = open(p, encoding='utf-8').read()
-    expect('# BN guard v4' in src and '# BN guard v5' in src, 'guards missing in the installed All_Subs')
+    expect(all('# BN guard v%d' % v in src for v in (4, 5)) and '# BN guard v6' in open(os.path.join(DATA, 'addons', 'service.subtitles.All_Subs', 'resources', 'modules', 'general.py'), encoding='utf-8').read(), 'guards missing in the installed All_Subs')
     expect(src.count('not monit.abortRequested()') >= 2 and '_bn_same_video()' in src, 'guards incomplete')
     plus = open(os.path.join(DATA, 'addons', 'service.subtitles.all_subs_plus', 'autosub.py'), encoding='utf-8').read()
     expect('# BN guard plus v1' in plus, 'All Subs Plus exit guard missing')
