@@ -122,3 +122,5 @@ release as v1.1.0 only after the full suite is green twice. Progress log: see "v
 - Testkodi: `testkodi/` (portable). Installed-copy test: `work/wintest`. Android: `work/android` (AVD "bn"),
   `tools/android_test.py` (grants MANAGE_EXTERNAL_STORAGE via appops; deletes leftover app data first; ignores emulator's own crashes).
 - Helper scripts I used live in the session scratchpad (not needed): edits are all in the repo.
+- [OSD v2 written] Includes_VideoOsdBN.xml rewritten per photos (top logo/פרק/קטע/clock/שעת סיום; bottom time | סנכרון כתוביות | transport (201 play) | הפרק הבא שמע מידע | gear 706; badges; info panel via Home prop BN.OSDInfo, cleared per session). plugin addon.xml -> 1.1.0. Built dist/NovaTV-1.1.0.zip. Full suite run 1 started -> work/suite_110_run1.log (t_bn_player walks 11 buttons now).
+  [next] read suite log, fix failures, screenshot work/bn_player.png, add integration tests (zero-state soak x50, panels, picker), TEST_REPORT.md, CHANGELOG, release.py --version 1.1.0.

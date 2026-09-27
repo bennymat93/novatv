@@ -723,7 +723,7 @@ def t_bn_player():
         time.sleep(2)
         expect(_visible('Window.IsActive(videoosd)'), 'player controls did not open')
         names = []
-        for _ in range(8):
+        for _ in range(11):
             names.append(rpc('XBMC.GetInfoLabels', labels=['System.CurrentControl'])['result']['System.CurrentControl'])
             rpc('Input.Right')
             time.sleep(0.4)
@@ -750,7 +750,7 @@ def t_bn_player():
         time.sleep(1)
         _stop_all()
         expect(opened, 'the subtitles button did not open the BN subtitle window')
-        return 'BN player default; buttons: %s' % ' | '.join(n for n in names[:8] if n)
+        return 'BN player default; buttons: %s' % ' | '.join(n for n in names[:11] if n)
     finally:
         httpd.shutdown()
 

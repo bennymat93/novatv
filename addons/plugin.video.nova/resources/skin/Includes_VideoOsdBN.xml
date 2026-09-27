@@ -1,61 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- BN player (skin setting __chooseplayer = __bnplayer): one clear row of big buttons, the focused button inside a gold
-     circle with its name under the row, progress bar with times, title and clock on top. Own icon set (same style and
-     size, tools/make_osd_icons.py). Every text starts in Hebrew so right-to-left order is always correct. -->
+<!-- BN player v2 (skin setting __chooseplayer = __bnplayer) - layout per the owner's reference photos (docs/v1.1.0):
+     top: clearlogo, "פרק:" + "קטע:" lines, clock + "שעת סיום"; bottom: time | סנכרון כתוביות | transport | הפרק הבא שמע מידע | gear,
+     codec badges over a thin progress bar; "מידע" opens the info panel (poster, plot, technical details).
+     Remote: Left/Right along the row (explicit onleft/onright chain), OK, Up closes. Play/pause = id 201 (VideoOSD default). -->
 <includes>
 	<include name="videosd_bn">
 		<control type="group">
-			<!-- top: title + clock on a soft dark band -->
+			<!-- ============ top ============ -->
 			<control type="image">
-				<left>0</left><top>0</top><width>100%</width><height>200</height>
+				<left>0</left><top>0</top><width>100%</width><height>240</height>
 				<texture colordiffuse="E6000000">frame/osdfade.png</texture>
 			</control>
-			<control type="label">
-				<right>70</right><width>1400</width><top>34</top><height>70</height>
-				<font>font45_title</font><align>right</align><aligny>center</aligny>
-				<label>$INFO[VideoPlayer.TVShowTitle,, – ]$INFO[VideoPlayer.Title]</label>
-				<scroll>true</scroll><shadowcolor>black</shadowcolor>
+			<control type="image">
+				<left>50</left><top>28</top><width>330</width><height>120</height>
+				<aspectratio align="left" aligny="center">keep</aspectratio>
+				<texture>$INFO[Player.Art(tvshow.clearlogo)]</texture>
+				<visible>!String.IsEmpty(Player.Art(tvshow.clearlogo))</visible>
+			</control>
+			<control type="image">
+				<left>50</left><top>28</top><width>330</width><height>120</height>
+				<aspectratio align="left" aligny="center">keep</aspectratio>
+				<texture>$INFO[Player.Art(clearlogo)]</texture>
+				<visible>String.IsEmpty(Player.Art(tvshow.clearlogo)) + !String.IsEmpty(Player.Art(clearlogo))</visible>
 			</control>
 			<control type="label">
-				<right>70</right><width>1400</width><top>104</top><height>44</height>
-				<font>font27</font><align>right</align><aligny>center</aligny><textcolor>B3FFFFFF</textcolor>
-				<label>$INFO[VideoPlayer.Season,עונה , · ]$INFO[VideoPlayer.Episode,פרק ,]</label>
+				<left>50</left><top>40</top><width>330</width><height>80</height>
+				<font>font45_title</font><align>left</align><aligny>center</aligny>
+				<label>$INFO[VideoPlayer.TVShowTitle]</label><shadowcolor>black</shadowcolor>
+				<visible>String.IsEmpty(Player.Art(tvshow.clearlogo)) + String.IsEmpty(Player.Art(clearlogo)) + !String.IsEmpty(VideoPlayer.TVShowTitle)</visible>
+			</control>
+			<control type="label">
+				<left>400</left><top>36</top><width>1000</width><height>44</height>
+				<font>font27</font><align>left</align><aligny>center</aligny><shadowcolor>black</shadowcolor>
+				<label>פרק: $INFO[VideoPlayer.Season,S,]$INFO[VideoPlayer.Episode,E, - ]$INFO[VideoPlayer.Title]</label>
 				<visible>!String.IsEmpty(VideoPlayer.TVShowTitle)</visible>
 			</control>
 			<control type="label">
-				<left>70</left><width>300</width><top>34</top><height>70</height>
-				<font>font45</font><align>left</align><aligny>center</aligny>
+				<left>400</left><top>36</top><width>1000</width><height>44</height>
+				<font>font37</font><align>left</align><aligny>center</aligny><shadowcolor>black</shadowcolor>
+				<label>$INFO[VideoPlayer.Title]$INFO[VideoPlayer.Year, (,)]</label>
+				<visible>String.IsEmpty(VideoPlayer.TVShowTitle)</visible>
+			</control>
+			<control type="label">
+				<left>400</left><top>80</top><width>1000</width><height>40</height>
+				<font>font27</font><align>left</align><aligny>center</aligny><textcolor>B3FFFFFF</textcolor>
+				<label>קטע: $INFO[Player.ChapterName,, - ]$INFO[Player.Chapter]/$INFO[Player.ChapterCount]</label>
+				<visible>Integer.IsGreater(Player.ChapterCount,1)</visible>
+			</control>
+			<control type="label">
+				<right>50</right><top>18</top><width>400</width><height>80</height>
+				<font>font45_title</font><align>right</align><aligny>center</aligny>
 				<label>$INFO[System.Time]</label><shadowcolor>black</shadowcolor>
 			</control>
+			<control type="label">
+				<right>50</right><top>94</top><width>400</width><height>40</height>
+				<font>font27</font><align>right</align><aligny>center</aligny>
+				<label>שעת סיום: $INFO[Player.FinishTime]</label><shadowcolor>black</shadowcolor>
+			</control>
 
-			<!-- bottom panel -->
+			<!-- ============ info panel (מידע) ============ -->
+			<control type="group">
+				<left>50</left><right>50</right><bottom>190</bottom><height>440</height>
+				<visible>String.IsEqual(Window(Home).Property(BN.OSDInfo),1)</visible>
+				<control type="image">
+					<texture colordiffuse="CC0B0E14">colors/white.png</texture>
+				</control>
+				<control type="image">
+					<left>20</left><top>20</top><width>266</width><height>400</height>
+					<aspectratio>keep</aspectratio>
+					<texture fallback="DefaultVideo.png">$INFO[Player.Art(poster)]</texture>
+				</control>
+				<control type="label">
+					<left>310</left><right>30</right><top>20</top><height>50</height>
+					<font>font37</font><align>right</align><aligny>center</aligny><textcolor>FFE8BE5A</textcolor>
+					<label>$INFO[VideoPlayer.TVShowTitle,, – ]$INFO[VideoPlayer.Title]</label>
+				</control>
+				<control type="textbox">
+					<left>310</left><right>30</right><top>80</top><height>200</height>
+					<font>font27</font><align>right</align>
+					<label>$INFO[VideoPlayer.Plot]</label>
+					<autoscroll delay="6000" time="3000" repeat="8000">true</autoscroll>
+				</control>
+				<control type="textbox">
+					<left>310</left><right>30</right><top>290</top><height>140</height>
+					<font>font27</font><align>right</align><textcolor>B3FFFFFF</textcolor>
+					<label>וידאו: $INFO[VideoPlayer.VideoCodec] · $INFO[VideoPlayer.VideoResolution]p · $INFO[Player.Process(videofps)] fps$INFO[VideoPlayer.HdrType, · ,]$INFO[Player.Process(videodecoder), · מפענח ,][CR]שמע: $INFO[VideoPlayer.AudioCodec] · $INFO[VideoPlayer.AudioChannels] ערוצים$INFO[VideoPlayer.AudioLanguage, · ,][CR]כתוביות: $INFO[VideoPlayer.SubtitlesName]$INFO[VideoPlayer.SubtitlesLanguage, · ,] · היסט כתוביות $INFO[Player.SubtitleDelay] · היסט שמע $INFO[Player.AudioDelay]</label>
+				</control>
+			</control>
+
+			<!-- ============ bottom ============ -->
 			<control type="image">
-				<left>0</left><bottom>0</bottom><width>100%</width><height>460</height>
+				<left>0</left><bottom>0</bottom><width>100%</width><height>300</height>
 				<texture flipy="true" colordiffuse="F2000000">frame/osdfade.png</texture>
 			</control>
-
-			<!-- times: elapsed (left), total and end time (right) - each its own label, Hebrew first -->
-			<control type="label">
-				<left>90</left><bottom>318</bottom><width>400</width><height>50</height>
-				<font>font37</font><align>left</align><aligny>center</aligny>
-				<label>$INFO[Player.Time]</label><shadowcolor>black</shadowcolor>
+			<!-- codec badges over the progress bar -->
+			<control type="grouplist">
+				<right>50</right><bottom>138</bottom><width>900</width><height>36</height>
+				<orientation>horizontal</orientation><align>right</align><itemgap>10</itemgap><usecontrolcoords>true</usecontrolcoords>
+				<include content="BNBadge"><param name="text" value="$INFO[VideoPlayer.VideoResolution]P"/><param name="visible" value="!String.IsEmpty(VideoPlayer.VideoResolution)"/></include>
+				<include content="BNBadge"><param name="text" value="$INFO[VideoPlayer.HdrType]"/><param name="visible" value="!String.IsEmpty(VideoPlayer.HdrType)"/></include>
+				<include content="BNBadge"><param name="text" value="$INFO[VideoPlayer.AudioCodec]"/><param name="visible" value="!String.IsEmpty(VideoPlayer.AudioCodec)"/></include>
+				<include content="BNBadge"><param name="text" value="$INFO[VideoPlayer.AudioChannels]CH"/><param name="visible" value="!String.IsEmpty(VideoPlayer.AudioChannels)"/></include>
 			</control>
-			<control type="label">
-				<right>90</right><bottom>318</bottom><width>400</width><height>50</height>
-				<font>font37</font><align>right</align><aligny>center</aligny>
-				<label>$INFO[Player.Duration]</label><shadowcolor>black</shadowcolor>
-			</control>
-			<control type="label">
-				<right>90</right><bottom>368</bottom><width>600</width><height>40</height>
-				<font>font27</font><align>right</align><aligny>center</aligny><textcolor>B3FFFFFF</textcolor>
-				<label>מסתיים ב־$INFO[Player.FinishTime]</label>
-			</control>
-			<!-- progress: buffered + played, gold -->
+			<!-- thin progress bar: buffer + played -->
 			<control type="group">
-				<left>90</left><right>90</right><bottom>292</bottom><height>12</height>
-				<control type="image">
-					<texture colordiffuse="40FFFFFF">colors/white.png</texture>
-				</control>
+				<left>50</left><right>50</right><bottom>120</bottom><height>8</height>
+				<control type="image"><texture colordiffuse="40FFFFFF">colors/white.png</texture></control>
 				<control type="progress">
 					<info>Player.ProgressCache</info>
 					<texturebg colordiffuse="00FFFFFF">colors/white.png</texturebg>
@@ -67,55 +117,78 @@
 					<midtexture colordiffuse="FFE8BE5A">colors/white.png</midtexture>
 				</control>
 			</control>
-
-			<!-- the buttons: one row, remote Left/Right, OK -->
-			<control type="grouplist" id="201">
-				<left>60</left><right>60</right><bottom>130</bottom><height>130</height>
-				<orientation>horizontal</orientation><align>center</align><itemgap>10</itemgap>
-				<onup>Dialog.Close(videoosd)</onup>
-				<include content="BNOsdButton"><param name="id" value="601"/><param name="icon" value="previous"/><param name="label" value="הקודם"/><param name="action" value="PlayerControl(Previous)"/></include>
-				<include content="BNOsdButton"><param name="id" value="602"/><param name="icon" value="rewind"/><param name="label" value="הרצה אחורה"/><param name="action" value="PlayerControl(Rewind)"/></include>
-				<control type="togglebutton" id="603">
-					<width>120</width><height>120</height>
-					<label>השהה / נגן</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
-					<texturefocus>bn/pause_fo.png</texturefocus>
-					<texturenofocus>bn/pause_nf.png</texturenofocus>
-					<alttexturefocus>bn/play_fo.png</alttexturefocus>
-					<alttexturenofocus>bn/play_nf.png</alttexturenofocus>
-					<usealttexture>Player.Paused</usealttexture>
-					<onclick>PlayerControl(Play)</onclick>
-				</control>
-				<include content="BNOsdButton"><param name="id" value="604"/><param name="icon" value="stop"/><param name="label" value="עצור"/><param name="action" value="PlayerControl(Stop)"/></include>
-				<include content="BNOsdButton"><param name="id" value="605"/><param name="icon" value="forward"/><param name="label" value="הרצה קדימה"/><param name="action" value="PlayerControl(Forward)"/></include>
-				<include content="BNOsdButton"><param name="id" value="606"/><param name="icon" value="next"/><param name="label" value="הבא"/><param name="action" value="PlayerControl(Next)"/></include>
-				<include content="BNOsdButton"><param name="id" value="607"/><param name="icon" value="subtitles"/><param name="label" value="כתוביות"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=subs_menu)"/></include>
-				<include content="BNOsdButton"><param name="id" value="608"/><param name="icon" value="ai"/><param name="label" value="יצירת כתוביות AI"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=ai_subs_now)"/></include>
-				<include content="BNOsdButton"><param name="id" value="609"/><param name="icon" value="sync"/><param name="label" value="סנכרון כתוביות"/><param name="action" value="SubtitleDelay"/></include>
-				<include content="BNOsdButton"><param name="id" value="610"/><param name="icon" value="audio"/><param name="label" value="שמע ושפה"/><param name="action" value="ActivateWindow(osdaudiosettings)"/></include>
-				<include content="BNOsdButton"><param name="id" value="611"/><param name="icon" value="picture"/><param name="label" value="תמונה"/><param name="action" value="ActivateWindow(osdvideosettings)"/></include>
-				<include content="BNOsdButton"><param name="id" value="612"/><param name="icon" value="bookmark"/><param name="label" value="סימניות"/><param name="action" value="ActivateWindow(videobookmarks)"/></include>
-				<include content="BNOsdButton"><param name="id" value="613"/><param name="icon" value="info"/><param name="label" value="מידע"/><param name="action" value="Info"/></include>
-				<include content="BNOsdButton"><param name="id" value="614"/><param name="icon" value="playlist"/><param name="label" value="רשימת פרקים"/><param name="action" value="ActivateWindow(videoplaylist)"/><param name="visible" value="Integer.IsGreater(Playlist.Length(video),1)"/></include>
-			</control>
-			<!-- the focused button's name -->
+			<!-- time -->
 			<control type="label">
-				<left>0</left><width>100%</width><bottom>58</bottom><height>60</height>
-				<font>font37</font><align>center</align><aligny>center</aligny>
-				<textcolor>FFE8BE5A</textcolor><shadowcolor>black</shadowcolor>
-				<label>$INFO[System.CurrentControl]</label>
+				<left>50</left><bottom>30</bottom><width>300</width><height>70</height>
+				<font>font27</font><align>left</align><aligny>center</aligny>
+				<label>$INFO[Player.Time] / $INFO[Player.Duration]</label>
 			</control>
+			<!-- the row -->
+			<include content="BNText"><param name="id" value="701"/><param name="x" value="340"/><param name="w" value="160"/><param name="label" value="סנכרון"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=sync_menu)"/><param name="left" value="706"/><param name="right" value="702"/></include>
+			<include content="BNText"><param name="id" value="702"/><param name="x" value="510"/><param name="w" value="160"/><param name="label" value="כתוביות"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=subs_menu)"/><param name="left" value="701"/><param name="right" value="601"/></include>
+			<include content="BNIconBtn"><param name="id" value="601"/><param name="x" value="740"/><param name="icon" value="previous"/><param name="label" value="הקודם"/><param name="action" value="PlayerControl(Previous)"/><param name="left" value="702"/><param name="right" value="602"/></include>
+			<include content="BNIconBtn"><param name="id" value="602"/><param name="x" value="830"/><param name="icon" value="rewind"/><param name="label" value="הרצה אחורה"/><param name="action" value="PlayerControl(Rewind)"/><param name="left" value="601"/><param name="right" value="201"/></include>
+			<control type="togglebutton" id="201">
+				<left>920</left><bottom>28</bottom><width>80</width><height>80</height>
+				<label>השהה / נגן</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
+				<texturefocus>bn/pause_fo.png</texturefocus><texturenofocus>bn/pause_nf.png</texturenofocus>
+				<alttexturefocus>bn/play_fo.png</alttexturefocus><alttexturenofocus>bn/play_nf.png</alttexturenofocus>
+				<usealttexture>Player.Paused</usealttexture>
+				<onclick>PlayerControl(Play)</onclick>
+				<onleft>602</onleft><onright>604</onright><onup>Dialog.Close(videoosd)</onup>
+			</control>
+			<include content="BNIconBtn"><param name="id" value="604"/><param name="x" value="1010"/><param name="icon" value="stop"/><param name="label" value="עצור"/><param name="action" value="PlayerControl(Stop)"/><param name="left" value="201"/><param name="right" value="605"/></include>
+			<include content="BNIconBtn"><param name="id" value="605"/><param name="x" value="1100"/><param name="icon" value="forward"/><param name="label" value="הרצה קדימה"/><param name="action" value="PlayerControl(Forward)"/><param name="left" value="604"/><param name="right" value="606"/></include>
+			<include content="BNIconBtn"><param name="id" value="606"/><param name="x" value="1190"/><param name="icon" value="next"/><param name="label" value="הבא"/><param name="action" value="PlayerControl(Next)"/><param name="left" value="605"/><param name="right" value="703"/></include>
+			<include content="BNText"><param name="id" value="703"/><param name="x" value="1340"/><param name="w" value="190"/><param name="label" value="הפרק הבא"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=next_episode)"/><param name="left" value="606"/><param name="right" value="704"/></include>
+			<include content="BNText"><param name="id" value="704"/><param name="x" value="1540"/><param name="w" value="120"/><param name="label" value="שמע"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=audio_menu)"/><param name="left" value="703"/><param name="right" value="705"/></include>
+			<control type="button" id="705">
+				<left>1670</left><bottom>34</bottom><width>120</width><height>66</height>
+				<label>מידע</label><font>font27</font><align>center</align><aligny>center</aligny>
+				<textcolor>B3FFFFFF</textcolor><focusedcolor>FFE8BE5A</focusedcolor>
+				<texturefocus colordiffuse="26E8BE5A">colors/white.png</texturefocus><texturenofocus />
+				<onclick condition="String.IsEqual(Window(Home).Property(BN.OSDInfo),1)">ClearProperty(BN.OSDInfo,home)</onclick>
+				<onclick condition="!String.IsEqual(Window(Home).Property(BN.OSDInfo),1)">SetProperty(BN.OSDInfo,1,home)</onclick>
+				<onleft>704</onleft><onright>706</onright><onup>Dialog.Close(videoosd)</onup>
+			</control>
+			<include content="BNIconBtn"><param name="id" value="706"/><param name="x" value="1800"/><param name="icon" value="settings"/><param name="label" value="הגדרות"/><param name="action" value="RunPlugin(plugin://plugin.video.nova/?a=settings_menu)"/><param name="left" value="705"/><param name="right" value="701"/></include>
 		</control>
 	</include>
 
-	<include name="BNOsdButton">
-		<param name="visible" default="true"/>
+	<include name="BNText">
 		<definition>
 			<control type="button" id="$PARAM[id]">
-				<width>120</width><height>120</height>
-				<label>$PARAM[label]</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
-				<texturefocus>bn/$PARAM[icon]_fo.png</texturefocus>
-				<texturenofocus>bn/$PARAM[icon]_nf.png</texturenofocus>
+				<left>$PARAM[x]</left><bottom>34</bottom><width>$PARAM[w]</width><height>66</height>
+				<label>$PARAM[label]</label><font>font27</font><align>center</align><aligny>center</aligny>
+				<textcolor>B3FFFFFF</textcolor><focusedcolor>FFE8BE5A</focusedcolor>
+				<texturefocus colordiffuse="26E8BE5A">colors/white.png</texturefocus><texturenofocus />
 				<onclick>$PARAM[action]</onclick>
+				<onleft>$PARAM[left]</onleft><onright>$PARAM[right]</onright><onup>Dialog.Close(videoosd)</onup>
+			</control>
+		</definition>
+	</include>
+
+	<include name="BNIconBtn">
+		<definition>
+			<control type="button" id="$PARAM[id]">
+				<left>$PARAM[x]</left><bottom>28</bottom><width>80</width><height>80</height>
+				<label>$PARAM[label]</label><textcolor>00000000</textcolor><focusedcolor>00000000</focusedcolor>
+				<texturefocus>bn/$PARAM[icon]_fo.png</texturefocus><texturenofocus>bn/$PARAM[icon]_nf.png</texturenofocus>
+				<onclick>$PARAM[action]</onclick>
+				<onleft>$PARAM[left]</onleft><onright>$PARAM[right]</onright><onup>Dialog.Close(videoosd)</onup>
+			</control>
+		</definition>
+	</include>
+
+	<include name="BNBadge">
+		<param name="visible" default="true"/>
+		<definition>
+			<control type="button">
+				<width>auto</width><height>36</height>
+				<label>[B]$PARAM[text][/B]</label><font>font12</font><align>center</align><aligny>center</aligny>
+				<textoffsetx>14</textoffsetx><disabledcolor>FF101318</disabledcolor>
+				<texturenofocus colordiffuse="E6FFFFFF" border="6">colors/white.png</texturenofocus>
+				<enable>false</enable>
 				<visible>$PARAM[visible]</visible>
 			</control>
 		</definition>

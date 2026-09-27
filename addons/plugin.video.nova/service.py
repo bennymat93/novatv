@@ -22,7 +22,7 @@ from resources.lib.common import ADDON, T, load, save, now_str, log, PROFILE
 from resources.lib.subsnet import discover_server
 
 # Window(10000) properties that belong to ONE video (cleared at every start)
-SESSION_PROPS = ('NovaTV.ABLoop', 'NovaTV.Dual', 'NovaTV.SyncMarkAudio', 'NovaTV.SyncMarkSub', 'NovaTV.SubsSource')
+SESSION_PROPS = ('NovaTV.ABLoop', 'NovaTV.Dual', 'NovaTV.SyncMarkAudio', 'NovaTV.SyncMarkSub', 'NovaTV.SubsSource', 'BN.OSDInfo')
 HEB_CODES = ('heb', 'he', 'hebrew', 'iw')
 WIN = xbmcgui.Window(10000)
 
