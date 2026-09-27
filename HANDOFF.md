@@ -81,7 +81,8 @@ release as v1.1.0 only after the full suite is green twice. Progress log: see "v
 ### v1.1.0 progress
 - [start] branch release/v1.1.0 created; 0.2.6 work (BN player + icons) is included.
 - [phase 0+1 done] docs/v1.1.0: ARCHITECTURE, PLAN, DECISIONS (D1-D11), research/VLC_MATRIX, SRT_HANDLING, OTHER_PLAYERS (agents, from memory: verify Kodi facts), ANONYMOUS_TEARDOWN, POVIL_AI_SUBS_TEARDOWN.
-- [next] phase 3: player v2 per photos + panels (player_menus.py), then 4 (substore/subfix/picker), 5 (session), 6 (tests), 7 (release 1.1.0).
+- [phase 4 core done] resources/lib/subfix.py (encodings, tolerant SRT/VTT, repair, Hebrew RLM fixes, atomic BOM write, fuzzy match), substore.py (<base>.<lang>.<src>[.vN].srt, versions, entries+preview, cleanup, rename), syncmath.py (bookmark sync, steps, dual merge {n8}, AI chunking). tests/ (pytest + Kodi stubs): 57 passed. Run: .venv11/Scripts/python -m pytest tests -q
+- [next] phase 5 PlaybackSession in service.py; phase 3 player v2 per photos + player_menus.py (Sync/Settings/Info/Subtitles); wire substore into AI flow; picker v2.
 
 ## v0.2.6 – superseded by v1.1.0 (never published): BN player (not released)
 - "Anonymous" wizard found: `C:\Users\benny\Downloads\Compressed\repository.wizard.zip` -> GitHub `vip200/repowizard` ->
