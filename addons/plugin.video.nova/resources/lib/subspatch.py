@@ -152,6 +152,27 @@ ENGINE8 = [(RETRY, "and not all_lang_override \\\n"
                    "            and xbmc.getCondVisibility('Player.HasMedia') and not _bn_quit():   %s\n" % MARK8)]
 
 
+# v9: v5/v6 created the Monitor and Player when general.py was imported, so every short-lived All_Subs script
+# (e.g. a search from Kodi's subtitle dialog) created them and freed them at its end - the same crash when that
+# happened while a video closed. Created on first real use instead (the long-running service keeps them).
+MARK9 = '# BN guard v9'
+LAZY = '''class _BNLazy(object):   %s: Kodi objects created on first use, never at import
+    def __init__(self, make):
+        self._make, self._obj = make, None
+
+    def __getattr__(self, name):
+        if self._obj is None:
+            self._obj = self._make()
+        return getattr(self._obj, name)
+''' % MARK9
+GENERAL9 = [
+    ('_BN_PLAYER = xbmc.Player()   %s: one Player per process\n' % MARK6,
+     LAZY + '_BN_PLAYER = _BNLazy(xbmc.Player)   %s: one Player per process\n' % MARK6),
+    ('_BN_MON = xbmc.Monitor()   %s: one Monitor per process\n' % MARK5,
+     '_BN_MON = _BNLazy(xbmc.Monitor)   %s: one Monitor per process\n' % MARK5),
+]
+
+
 def apply(addon_dir):
     """All_Subs: 1 when a file was changed, 0 when the guards were already there; raises if it changed shape"""
     path = os.path.join(addon_dir, 'autosub.py')
@@ -170,6 +191,7 @@ def apply(addon_dir):
         with open(g, 'w', encoding='utf-8', newline='') as f:
             f.write(head + sep + rest.replace('xbmc.Player()', '_BN_PLAYER'))
         n = 1
+    n |= _patch(g, MARK9, GENERAL9)
     for rel in (('resources', 'modules', 'engine.py'), ('resources', 'modules', 'sub_window.py'),
                 ('resources', 'sources', 'bsplayer.py')):
         p = os.path.join(addon_dir, *rel)
