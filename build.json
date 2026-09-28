@@ -1,8 +1,8 @@
 {
  "name": "NovaTV",
- "version": "1.1.0",
+ "version": "1.1.1",
  "kodi": "21",
- "url": "https://bennymat93.github.io/novatv/builds/NovaTV-1.1.0.zip",
- "size": 54719200,
- "sha256": "ffe096c8aee14e5234735bc2c73ab35706ffe2589227754aaa4b0316416b2772"
+ "url": "https://bennymat93.github.io/novatv/builds/NovaTV-1.1.1.zip",
+ "size": 54719809,
+ "sha256": "405b5062c79a87f8c5594613b77c556cc2443b76e8ba45489c6a5087a7c66970"
 }
