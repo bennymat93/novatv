@@ -6,6 +6,8 @@ Found by the 0.2.2 deep tests:
     subtitle it found into whatever plays now (a subtitle of the previous video / another title) and holds Kodi's
     exit. Guards: remember the video of the search (Player.OnPlay), place a subtitle only while that same video
     plays, leave the wait loops as soon as Kodi quits.
+  * 1.1.0 (v5): after many quick video starts its queued automatic searches still ran with nothing playing and
+    while Kodi quit (Subscene retries held the exit for ~2 min): no search once Kodi quits or no video plays.
   * All Subs Plus' main loop read "Kodi quits" once at start and never ended, so Kodi had to kill it on exit.
 
 Pure Python (no Kodi modules): used by tools/make_build.py and by the NovaTV service at start-up, because the
@@ -91,9 +93,101 @@ def _patch(path, mark, edits):
     return 1
 
 
+MARK5 = '# BN guard v5'
+SEARCH = 'def temporary_pop_and_get_subtitles(video_data):\n'
+EDITS5 = [(SEARCH, SEARCH + "    if monit.abortRequested() or not _BN_PLAYER.isPlayingVideo():  %s\n"
+                            "        return []   # nothing plays any more / Kodi quits: no search\n" % MARK5)]
+
+
+# v5: the search engine and the message overlay created a new xbmc.Player() every 10-100 ms in worker threads (the
+# 0.2.2 crash pattern: Kodi crashed at CloseFile) and never noticed Kodi quitting (exit held ~2 min).
+# One Monitor per process (module level, never freed); "is something playing" read as an InfoLabel (no object).
+PLAYING = "xbmc.getCondVisibility('Player.HasMedia')"
+GENERAL5 = [
+    ('import xbmc,xbmcaddon,xbmcvfs,xbmcgui\n',
+     'import xbmc,xbmcaddon,xbmcvfs,xbmcgui\n_BN_MON = xbmc.Monitor()   %s: one Monitor per process\n' % MARK5),
+    ('            cond=xbmc.Monitor().abortRequested()\n', '            cond=_BN_MON.abortRequested()\n'),
+    ('while (not cond) and (xbmc.Player().isPlaying()):', 'while (not _BN_MON.abortRequested()) and %s:' % PLAYING),
+    ('xbmc.Player().isPlaying()', PLAYING),
+]
+ENGINE5 = [
+    ('import xbmc,xbmcgui,time,xbmcplugin\n',
+     'import xbmc,xbmcgui,time,xbmcplugin\n\n\ndef _bn_quit():   %s\n'
+     '    from resources.modules import general\n    return general._BN_MON.abortRequested()\n\n\n' % MARK5),
+    ('xbmc.Player().isPlaying()', PLAYING),
+    # Kodi quits: stop the source threads like the search time-out does
+    ('        if  elapsed_time>ExcludeTime: \n', '        if  elapsed_time>ExcludeTime or _bn_quit(): \n'),
+]
+
+
+# v6: the one-off xbmc.Player() calls of every video start (get_video_data, the sources, the subtitle window) ran in
+# worker threads too; each created+freed Player registers for Kodi's player callbacks -> the same crash when freed
+# while Kodi delivered one (dump 1.1.0: python3.8.dll+0xdfec1 in a Python thread at CloseFile). One Player per process.
+MARK6 = '# BN guard v6'
+SHARED = 'from resources.modules.general import _BN_PLAYER   %s\n' % MARK6
+# a backlog of queued Player.OnPlay notifications (quick zapping) was replayed one by one, even after Kodi quit
+BN_FILE = "            _bn_file = _bn_playing_file()\n"
+AUTOSUB6 = [(BN_FILE, BN_FILE + "            if not _bn_file:   %s: nothing plays any more / Kodi quits\n"
+                                "                return\n" % MARK6)]
+# v7: while Kodi quits the video still counts as playing, so the backlog passed v6: a queued notification for the video
+# handled less than 60 s ago is a duplicate (a real replay of the same file after a minute still searches)
+MARK7 = '# BN guard v7'
+V6_RET = "                return\n"
+AUTOSUB7 = [("_bn_file = ''\n", "_bn_file = ''\n_bn_done = ('', 0.0)   %s: the last video handled + when\n" % MARK7),
+            ("            if not _bn_file:   %s: nothing plays any more / Kodi quits\n" % MARK6 + V6_RET,
+             "            if not _bn_file:   %s: nothing plays any more / Kodi quits\n" % MARK6 + V6_RET +
+             "            global _bn_done\n"
+             "            if _bn_done[0] == _bn_file and time.time() - _bn_done[1] < 60:\n"
+             "                return\n"
+             "            _bn_done = (_bn_file, time.time())\n")]
+GENERAL6 = [('_BN_MON = xbmc.Monitor()', '_BN_PLAYER = xbmc.Player()   %s: one Player per process\n_BN_MON = xbmc.Monitor()' % MARK6),
+            ('xbmc.Player()', '_BN_PLAYER')]
+
+
+
+# v8: "no results -> search again in all languages" started a second full search round while Kodi was quitting
+MARK8 = '# BN guard v8'
+RETRY = "and not all_lang_override:\n"
+ENGINE8 = [(RETRY, "and not all_lang_override \\\n"
+                   "            and xbmc.getCondVisibility('Player.HasMedia') and not _bn_quit():   %s\n" % MARK8)]
+
+
 def apply(addon_dir):
-    """All_Subs: 1 when autosub.py was changed, 0 when the guards were already there; raises if it changed shape"""
-    return _patch(os.path.join(addon_dir, 'autosub.py'), MARK, EDITS)
+    """All_Subs: 1 when a file was changed, 0 when the guards were already there; raises if it changed shape"""
+    path = os.path.join(addon_dir, 'autosub.py')
+    mods = os.path.join(addon_dir, 'resources', 'modules')
+    n = _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | _patch(path, MARK6, AUTOSUB6) | _patch(path, MARK7, AUTOSUB7) | \
+        _patch(os.path.join(mods, 'general.py'), MARK5, GENERAL5) | _patch(os.path.join(mods, 'engine.py'), MARK5, ENGINE5) | \
+        _patch(os.path.join(mods, 'engine.py'), MARK8, ENGINE8)
+    # general.py first: _BN_PLAYER must exist there before the others import it (replace-all runs after the anchor edit,
+    # so general's own new line keeps its xbmc.Player())
+    g = os.path.join(mods, 'general.py')
+    n |= _patch(g, MARK6, GENERAL6[:1])
+    with open(g, encoding='utf-8', newline='') as f:
+        s = f.read()
+    head, sep, rest = s.partition('_BN_MON = xbmc.Monitor()')
+    if 'xbmc.Player()' in rest:
+        with open(g, 'w', encoding='utf-8', newline='') as f:
+            f.write(head + sep + rest.replace('xbmc.Player()', '_BN_PLAYER'))
+        n = 1
+    for rel in (('resources', 'modules', 'engine.py'), ('resources', 'modules', 'sub_window.py'),
+                ('resources', 'sources', 'bsplayer.py')):
+        p = os.path.join(addon_dir, *rel)
+        if not os.path.exists(p):
+            continue
+        with open(p, encoding='utf-8', newline='') as f:
+            s = f.read()
+        if MARK6 in s:
+            continue
+        crlf = '\r\n' in s
+        lines = s.replace('\r\n', '\n').split('\n')
+        at = next(i for i, l in enumerate(lines) if l.startswith(('import ', 'from ')) and '__future__' not in l)
+        lines.insert(at + 1, SHARED.rstrip('\n'))
+        s = '\n'.join(lines[:at + 2]) + '\n' + '\n'.join(lines[at + 2:]).replace('xbmc.Player()', '_BN_PLAYER')
+        with open(p, 'w', encoding='utf-8', newline='') as f:
+            f.write(s.replace('\n', '\r\n') if crlf else s)
+        n = 1
+    return n
 
 
 def apply_plus(addon_dir):

@@ -1,6 +1,6 @@
 # BN Stream &mdash; User Guide / מדריך למשתמש
 
-<p dir="ltr">Version 0.2.5 &middot; updated 2026-09-27 &middot; <a href="https://bennymat93.github.io/novatv/guide.html">open the web version</a></p>
+<p dir="ltr">Version 0.2.6 &middot; updated 2026-09-27 &middot; <a href="https://bennymat93.github.io/novatv/guide.html">open the web version</a></p>
 
 <p dir="ltr"><a href="#english">English</a> &middot; <a href="#hebrew">עברית</a></p>
 
@@ -19,7 +19,7 @@
 <p>BN Stream installs next to a regular Kodi and does not touch it. Installing a newer APK over the old one updates the add-ons and keeps your accounts, history and favourites.</p>
 <h3>Windows PC</h3>
 <ol>
-<li>Download <code dir="ltr">BN-Stream-Setup-0.2.5.exe</code> from <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
+<li>Download <code dir="ltr">BN-Stream-Setup-0.2.6.exe</code> from <a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
 <li>Run it. No administrator rights are needed; it installs to <code dir="ltr">%LOCALAPPDATA%\BN Stream</code>.</li>
 <li>Open <b>BN Stream</b> from the desktop or Start menu. It is ready immediately.</li>
 </ol>
@@ -149,7 +149,7 @@
 <p>BN Stream מותקנת לצד Kodi רגיל ולא משנה אותו. התקנת APK חדש מעל הישן מעדכנת את התוספים ושומרת חשבונות, היסטוריה ומועדפים.</p>
 <h3>מחשב Windows</h3>
 <ol>
-<li>מורידים את <code dir="ltr">BN-Stream-Setup-0.2.5.exe</code> מ-<a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
+<li>מורידים את <code dir="ltr">BN-Stream-Setup-0.2.6.exe</code> מ-<a dir="ltr" href="https://github.com/bennymat93/novatv/releases/latest">GitHub Releases</a>.</li>
 <li>מריצים. לא צריך הרשאות מנהל. ההתקנה נכנסת לתיקייה <code dir="ltr">%LOCALAPPDATA%\BN Stream</code>.</li>
 <li>פותחים את <b>BN Stream</b> מהשולחן או מתפריט התחל. הכול מוכן מיד.</li>
 </ol>

@@ -77,6 +77,8 @@ def check(name, fn):
         kill_kodi()
         keep = os.path.join(ROOT, 'work', 'crash-%s-%s.log' % (time.strftime('%H%M%S'), re.sub(r'[^\w-]+', '_', name.split(':')[-1].strip())[:30]))
         shutil.copy(os.path.join(DATA, 'kodi.log'), keep)
+        if dumps:
+            shutil.copy(dumps[-1], keep[:-4] + '.dmp')
         start_kodi()
 
 
@@ -500,9 +502,12 @@ def t_ai_button():
         time.sleep(1)
         subs = rpc('Player.GetProperties', playerid=pid, properties=['subtitles'])['result']['subtitles']
         human = next(t['index'] for t in subs if (t.get('name') or '').startswith('test_ru'))
-        rpc('Player.SetSubtitle', playerid=pid, subtitle=human, enable=True)     # the human one is showing
-        time.sleep(2)
-        before = rpc('Player.GetProperties', playerid=pid, properties=['currentsubtitle'])['result']['currentsubtitle']
+        for _ in range(3):                       # setup: the human one is showing (the automatic start-up
+            rpc('Player.SetSubtitle', playerid=pid, subtitle=human, enable=True)   # flow may still switch once)
+            time.sleep(2)
+            before = rpc('Player.GetProperties', playerid=pid, properties=['currentsubtitle'])['result']['currentsubtitle']
+            if (before or {}).get('name', '').startswith('test_ru'):
+                break
         expect((before or {}).get('name', '').startswith('test_ru'), 'the human subtitle was not active first: %s' % before)
         # exactly what the skin button runs: RunPlugin(...?a=ai_subs_now) -> NotifyAll -> service
         # like the skin's RunPlugin: runs the add-on without opening a window (a window is refused behind a dialog)
@@ -620,7 +625,7 @@ def _server_state(fragment):
 
 
 def t_subs_menu():
-    """BN subtitle window: lists the tracks with the AI track marked, turning a track on by hand works"""
+    """BN subtitle picker (כתוביות > בחר כתובית): lists the tracks with the AI track marked, turning a track on by hand works"""
     import threading
     httpd = media_server()
     try:
@@ -636,7 +641,7 @@ def t_subs_menu():
         expect(any('BN AI' in (t.get('name') or '') for t in subs), 'no "BN AI" track (readable name) in the player')
         rpc('Player.SetSubtitle', playerid=pid, subtitle='off')
         time.sleep(1)
-        threading.Thread(target=lambda: rpc('Files.GetDirectory', directory=NOVA + '?a=subs_menu', media='files',
+        threading.Thread(target=lambda: rpc('Files.GetDirectory', directory=NOVA + '?a=subs_pick', media='files',
                                             timeout=120), daemon=True).start()
         opened = False
         for _ in range(20):
@@ -646,7 +651,7 @@ def t_subs_menu():
                 break
         expect(opened, 'the BN subtitle window did not open')
         labels, ai_row = [], None
-        for k in range(12):                      # walk the list like a remote and read every row
+        for k in range(20):                      # walk the list like a remote and read every row
             lab = rpc('XBMC.GetInfoLabels', labels=['System.CurrentControl'])['result']['System.CurrentControl']
             labels.append(lab)
             if 'AI' in lab and 'BN AI' in lab and ai_row is None:
@@ -723,7 +728,7 @@ def t_bn_player():
         time.sleep(2)
         expect(_visible('Window.IsActive(videoosd)'), 'player controls did not open')
         names = []
-        for _ in range(8):
+        for _ in range(11):
             names.append(rpc('XBMC.GetInfoLabels', labels=['System.CurrentControl'])['result']['System.CurrentControl'])
             rpc('Input.Right')
             time.sleep(0.4)
@@ -750,7 +755,83 @@ def t_bn_player():
         time.sleep(1)
         _stop_all()
         expect(opened, 'the subtitles button did not open the BN subtitle window')
-        return 'BN player default; buttons: %s' % ' | '.join(n for n in names[:8] if n)
+        return 'BN player default; buttons: %s' % ' | '.join(n for n in names[:11] if n)
+    finally:
+        httpd.shutdown()
+
+
+
+def _labels(*names):
+    return rpc('XBMC.GetInfoLabels', labels=list(names))['result']
+
+
+def _zero(v):
+    try:
+        return abs(float(v.split()[0])) < 0.0005
+    except (ValueError, IndexError):
+        return not v
+
+
+def t_zero_state_soak():
+    """zero-state x50: dirty subtitle/audio delay, view mode, A-B loop and info panel, start the next video,
+    every value must be back to default (spec phase 5)"""
+    httpd = media_server()
+    bad = []
+    try:
+        n = int(os.environ.get('BN_SOAK', '50'))
+        for i in range(n):
+            rpc('Player.Open', item={'file': MEDIA + ('test_ru.mp4', 'test_ru_long.mp4')[i % 2]})
+            pid = _wait_playing(30)
+            if pid is None:
+                bad.append('%d: did not play' % i)
+                continue
+            left = ['?']
+            for _ in range(12):                      # the reset runs in the service's zero_state thread (async)
+                time.sleep(0.5)
+                l = _labels('Player.SubtitleDelay', 'Player.AudioDelay')
+                vm = (rpc('Player.GetViewMode').get('result') or {}).get('viewmode', 'normal')
+                left = [k for k, ok in (('sub_delay', _zero(l['Player.SubtitleDelay'])), ('audio_delay', _zero(l['Player.AudioDelay'])),
+                                        ('view=%s' % vm, vm == 'normal')) if not ok]
+                if not left:
+                    break
+            if i and left:
+                bad.append('%d: %s' % (i, left))
+            for a in ('subtitledelayplus',) * 3 + ('audiodelayplus',) * 2:
+                rpc('Input.ExecuteAction', action=a)
+            rpc('Player.SetViewMode', viewmode='zoom')
+            time.sleep(0.5)
+        _stop_all()
+        expect(not bad, '%d of %d starts kept state: %s' % (len(bad), n, bad[:3]))
+        return '%d starts, all zero-state' % n
+    finally:
+        httpd.shutdown()
+
+
+def t_player_panels():
+    """every BN player button opens its panel while a video plays (sync, subtitles, settings, audio, picker)"""
+    httpd = media_server()
+    try:
+        rpc('Player.Open', item={'file': MEDIA + 'test_ru_long.mp4'})
+        expect(_wait_playing() is not None, 'video did not play')
+        out = []
+        for a in ('sync_menu', 'subs_menu', 'settings_menu', 'audio_menu', 'subs_pick'):
+            rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=%s' % a)
+            ok = False
+            for _ in range(20):
+                time.sleep(0.5)
+                if _visible('Window.IsActive(selectdialog) | Window.IsActive(sliderdialog)'):
+                    ok = True
+                    break
+            out.append('%s=%s' % (a, 'ok' if ok else 'NO'))
+            for _ in range(10):                     # close it for real: a menu left open blocks the next panel and quit
+                if not _visible('Window.IsActive(selectdialog) | Window.IsActive(sliderdialog)'):
+                    break
+                rpc('Input.Back')
+                time.sleep(0.8)
+            time.sleep(1)
+        _stop_all()
+        expect(all(x.endswith('ok') for x in out), ' '.join(out))
+        return ' '.join(out)
     finally:
         httpd.shutdown()
 
@@ -802,7 +883,7 @@ def t_log_errors():
     log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
     ours = [l for l in log.splitlines() if ('NovaTV' in l or 'plugin.video.nova' in l or 'NovaWizard' in l)
             and (' error ' in l.lower() or 'Traceback' in l)
-            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install|play|prov_toggle|prov_install_all|sysupdate|sysfix|ai_subs_now|subs_menu)', l)]
+            and not re.search(r'GetDirectory.*a=(fav_add|fav_rm|history_clear|acc|tv_do|tv_play|noop|bk_auto|lib_install|play|prov_toggle|prov_install_all|sysupdate|sysfix|ai_subs_now|subs_menu|sync_menu|settings_menu|audio_menu|subs_pick|next_episode)', l)]
     expect(not ours, '%d errors from our add-ons: %s' % (len(ours), ours[:2]))
     return 'no errors from BN add-ons'
 
@@ -1253,6 +1334,7 @@ KNOWN_TRACEBACKS = [
     'googlevideo.com/videoplayback',   # YouTube refuses some streams without a signed-in account (403): YouTube's policy
     'access_manager.json',             # YouTube's first start: it creates this file itself right after logging this
     'resources.py", line 190, in path',   # certifi (requests) at interpreter exit: "Exception ignored", harmless
+    '429 Client Error: Too Many Requests for url: https://www.youtube.com/api/timedtext',   # YouTube rate-limits its own caption fetch (third party)
 ]
 
 
@@ -1260,7 +1342,7 @@ def t_all_subs_guard():
     """All_Subs (third party) carries the BN guards: no subtitle for another video, stops when Kodi quits"""
     p = os.path.join(DATA, 'addons', 'service.subtitles.All_Subs', 'autosub.py')
     src = open(p, encoding='utf-8').read()
-    expect('# BN guard v4' in src, 'guards missing in the installed All_Subs')
+    expect(all('# BN guard v%d' % v in src for v in (4, 5)) and '# BN guard v6' in open(os.path.join(DATA, 'addons', 'service.subtitles.All_Subs', 'resources', 'modules', 'general.py'), encoding='utf-8').read(), 'guards missing in the installed All_Subs')
     expect(src.count('not monit.abortRequested()') >= 2 and '_bn_same_video()' in src, 'guards incomplete')
     plus = open(os.path.join(DATA, 'addons', 'service.subtitles.all_subs_plus', 'autosub.py'), encoding='utf-8').read()
     expect('# BN guard plus v1' in plus, 'All Subs Plus exit guard missing')
@@ -1304,6 +1386,9 @@ def t_no_tracebacks():
     # Kodi auto-updating an add-on unregisters it for a few seconds: the skin's widgets calling it then fail once.
     # Accepted only for an add-on the log shows was really updated during this run.
     updated = {aid for aid, vs in _versions_seen(log).items() if len(vs) > 1}
+    # System Update's Auto-Fix reinstalls a broken add-on (same version): it is unregistered for those seconds too
+    for row in re.findall(r"\[NovaTV\] system update: .*?\[(.*?)\]", log):
+        updated |= set(re.findall(r"'addon:([\w.\-]+)'", row))
     blocks = [b for b in blocks if not (re.search(r"Unknown addon id '([^']+)'", b) and
                                         re.search(r"Unknown addon id '([^']+)'", b).group(1) in updated)]
     expect(not blocks, '%d tracebacks, first: %s' % (len(blocks), blocks[0][-300:] if blocks else ''))
@@ -1367,6 +1452,9 @@ def t_clean_shutdown():
     tail = _log_since(n0)
     new_dumps = set(glob.glob(os.path.join(DATA, '*.dmp'))) - dumps
     stuck = [l for l in tail.splitlines() if re.search(r"didn't stop|did not stop|left several classes|Failed to stop", l)]
+    # All_Subs (third party) may be inside a network search when the quit arrives: Kodi stops it after 5 s, the quit
+    # itself stays short (checked below). Accepted for this one service only (docs/v1.1.0/DECISIONS.md D12).
+    stuck = [l for l in stuck if 'service.subtitles.All_Subs' not in l]
     start_kodi()                         # later checks still need Kodi
     expect(not new_dumps, 'crash on exit: %s' % new_dumps)
     expect(dt < 30, 'Kodi needed %.0f s to quit' % dt)
@@ -1391,7 +1479,7 @@ TESTS = [
     ('Subtitles reset between videos', t_subs_reset_between_videos), ('AI Subtitle Generation button', t_ai_button),
     ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
     ('AI: silent video, nothing loaded', t_ai_no_audio), ('BN subtitle window', t_subs_menu),
-    ('BN player', t_bn_player), ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
+    ('BN player', t_bn_player), ('Player panels open', t_player_panels), ('Zero-state soak', t_zero_state_soak), ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
     ('System Update + Auto-Fix', t_system_update),
     ('Static: addon-checker, py3.8, XML', t_static), ('Every NovaTV screen opens', t_menu_crawl),
     ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('YouTube port usable', t_youtube_port), ('No thread leak', t_thread_leak),
@@ -1407,6 +1495,8 @@ def main():
     ap.add_argument('--installed', help='test an already installed copy (e.g. from the Windows installer) instead of testkodi')
     ap.add_argument('--stop-on-fail', action='store_true', help='stop at the first failed check (fix it, then --resume)')
     ap.add_argument('--resume', action='store_true', help='skip the checks that already passed in the stopped run')
+    ap.add_argument('--only', help='comma-separated parts of check names to run (e.g. "silent,end-to-end")')
+    ap.add_argument('--repeat', type=int, default=1, help='run the selected checks N times (flaky/crash hunting)')
     a = ap.parse_args()
     prog_file = os.path.join(ROOT, 'work', 'test_progress_%s.json' % ('installed' if a.installed else 'testkodi'))
     prog = json.load(open(prog_file, encoding='utf-8')) if a.resume and os.path.exists(prog_file) else {}
@@ -1429,11 +1519,15 @@ def main():
                  'Movie & series lists', 'Startup ready message + status', 'AI Hebrew subtitles end-to-end',
                  'AI Subtitle Generation button', 'All_Subs guards', 'No tracebacks (any add-on)', 'Clean shutdown')
         tests = [t for t in TESTS if t[0] in smoke]
+    if a.only:
+        keys = [k.strip().lower() for k in a.only.split(',') if k.strip()]
+        tests = [t for t in tests if any(k in t[0].lower() for k in keys)]
+    tests = list(tests) * max(1, a.repeat)
     if done:
         print('resuming: %d checks already passed in the stopped run' % len(done), flush=True)
     stopped = False
     for name, fn in tests:
-        if name in done:
+        if name in done and a.repeat == 1:
             continue
         k = len(RESULTS)
         check(name, fn)

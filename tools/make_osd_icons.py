@@ -119,13 +119,23 @@ def playlist(d):
     d.rounded_rectangle((92, 308, 166, 336), 12, fill=C)
 
 
+def gear(d):
+    cx = cy = 256
+    for k in range(8):                                   # teeth
+        a = k * math.pi / 4
+        x, y = cx + 150 * math.cos(a), cy + 150 * math.sin(a)
+        d.rounded_rectangle((x - 34, y - 34, x + 34, y + 34), 10, fill=C)
+    d.ellipse((cx - 140, cy - 140, cx + 140, cy + 140), fill=C)
+    d.ellipse((cx - 60, cy - 60, cx + 60, cy + 60), fill=(0, 0, 0, 0))
+
+
 def focus(d):
     d.ellipse((0, 0, S - 1, S - 1), fill=C)
 
 
 ICONS = {'previous': prev_, 'rewind': rew, 'play': play, 'pause': pause, 'stop': stop, 'forward': fwd,
          'next': next_, 'subtitles': subs, 'ai': ai, 'sync': sync, 'audio': audio, 'picture': picture,
-         'bookmark': bookmark, 'info': info, 'playlist': playlist, 'focus': focus}
+         'bookmark': bookmark, 'info': info, 'playlist': playlist, 'settings': gear, 'focus': focus}
 
 
 def main():

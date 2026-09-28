@@ -304,6 +304,10 @@ def youtube_captions(yid, stats):
 
 
 def job_key(j):
+    return _job_key(j) + ('_mt' if j.get('mode') == 'mt' else '')   # machine-translation results cached apart
+
+
+def _job_key(j):
     if youtube_id(j):
         return 'yt_' + youtube_id(j)          # the query of the proxy URL IS the video: never strip it
     if j.get('tmdb') and int(j.get('episode') or 0) > 0:
@@ -366,7 +370,7 @@ class Job:
             first = max(0, int(pos // CHUNK))
             order = starts[first:] + starts[:first][::-1]      # from where the viewer is, then backfill
             m = model()
-            ctx = {'title': self.spec.get('title', ''), 'gemini_key': self.spec.get('gemini_key', ''), 'prev': []}
+            ctx = {'title': self.spec.get('title', ''), 'gemini_key': '' if self.spec.get('mode') == 'mt' else self.spec.get('gemini_key', ''), 'prev': []}
             lang = None
             done_chunks = set()
             part = self.cache_file + '.part'           # survive a server restart: resume, don't redo

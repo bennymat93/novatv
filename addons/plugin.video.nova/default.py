@@ -430,6 +430,11 @@ def router(p):
         'sysfix': lambda: (sysupdate.do_fix(p['id']), refresh()),
         'ai_subs_now': ai_subs_now,
         'subs_menu': subs_menu,
+        'sync_menu': lambda: _pm().sync(),
+        'settings_menu': lambda: _pm().settings(),
+        'audio_menu': lambda: _pm().audio(),
+        'subs_pick': lambda: _pm().picker(),
+        'next_episode': lambda: _pm().next_episode(),
         'yt_channel': lambda: providers.yt_channel(HANDLE, url, p['id'], p.get('token', '')),
         'yt_search': lambda: providers.yt_search(HANDLE, p['q']),
         'ia_search': lambda: providers.ia_search(HANDLE, p['q']),
@@ -455,7 +460,8 @@ def router(p):
 
 
 ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto',
-           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now', 'subs_menu'}
+           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now', 'subs_menu', 'sync_menu',
+           'settings_menu', 'audio_menu', 'subs_pick', 'next_episode'}
 
 
 def system_update():
@@ -471,10 +477,14 @@ def ai_subs_now():
     xbmc.executebuiltin('NotifyAll(plugin.video.nova,ai_now)')
 
 
+def _pm():
+    from resources.lib import player_menus
+    return player_menus
+
+
 def subs_menu():
-    """BN subtitles window (player button)"""
-    from resources.lib import subsmenu
-    subsmenu.show()
+    """the Subtitles menu (player button): generation actions, picker, appearance"""
+    _pm().subtitles()
 
 
 def refresh():
