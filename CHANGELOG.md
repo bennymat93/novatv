@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1
+- AI subtitle server reachable outside home: when the saved address and the home network do not answer, NovaTV uses the server's Tailscale address (setting "Subtitle server outside home", default the PC in the owner's tailnet). Needs Tailscale on the Kodi device, signed in to the same account.
+
 ## 1.1.0
 **Player (BN OSD v2).** The layout follows the reference photos:
 - Top: clearlogo, episode and chapter lines, a clock and the end time.
