@@ -13,6 +13,10 @@
     <setting id="ai_prepare" label="Pause at start until Hebrew subtitles are ready" type="bool" default="true"/>
     <setting id="ai_wait" label="Seconds to wait for human subtitles" type="slider" range="5,5,90" option="int" default="25"/>
     <setting id="sub_server" label="AI subtitle server (http://PC-IP:8765)" type="text" default="http://127.0.0.1:8765"/>
+    <setting id="gd_auto" label="Google Drive: weekly backup + sync" type="bool" default="true"/>
+    <setting id="gd_keep" label="Google Drive: backups to keep" type="slider" range="1,1,20" option="int" default="5"/>
+    <setting id="gd_client_id" label="Google OAuth client id (set by the build)" type="text" option="hidden" visible="false" default=""/>
+    <setting id="gd_client_secret" label="Google OAuth client secret (set by the build)" type="text" option="hidden" visible="false" default=""/>
     <setting id="sub_server_remote" label="Subtitle server outside home (Tailscale address)" type="text" default="http://100.104.55.83:8765"/>
     <setting id="subs_folder" label="Subtitle folder (every created subtitle is saved here)" type="folder" default=""/>
     <setting id="subs_cleanup" label="Keep subtitles" type="enum" values="All|Last N per video|Delete older than N days" default="0"/>

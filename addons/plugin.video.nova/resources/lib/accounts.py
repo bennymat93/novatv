@@ -23,6 +23,9 @@ HINTS = {
     'server': ('הפעל את NovaTV Subtitle Server במחשב וודא ששני המכשירים באותה רשת. כתובת: http://IP-של-המחשב:8765',
                'Start the NovaTV Subtitle Server on the PC and make sure both devices are on the same network. Address: http://PC-IP:8765',
                'Запустите NovaTV Subtitle Server на ПК; оба устройства должны быть в одной сети. Адрес: http://IP-ПК:8765'),
+    'gdrive': ('התחבר עם קוד שמופיע במסך: היכנס ל-google.com/device בטלפון והזן אותו. לגיבויים, שחזור וסנכרון בין מכשירים.',
+               'Sign in with the code on screen: open google.com/device on your phone and enter it. For backups, restore and sync between devices.',
+               'Вход по коду на экране: откройте google.com/device на телефоне и введите его. Резервные копии, восстановление и синхронизация.'),
     'iptv': ('הוסף קישור M3U וקישור EPG מספק ה-IPTV. אם מופיעים רק ערוצי Demo – המנוי אינו פעיל.',
              'Add the M3U and EPG links from your IPTV provider. If only "Demo" channels appear, the subscription is not active.',
              'Добавьте ссылки M3U и EPG от провайдера. Если видны только каналы «Demo» - подписка не активна.'),
@@ -43,6 +46,12 @@ def _pov(setting):
 def check(k):
     """Returns (ok: bool|None, detail). None = not configured."""
     import requests
+    if k == 'gdrive':
+        from . import gdrive_ui
+        if not gdrive_ui.configured():
+            return None, ''
+        d = gdrive_ui.drive()
+        return (True, d.account() or 'Google') if d.signed_in() else (None, '')
     try:
         if k == 'rd':
             tok = _pov('rd.token')
@@ -95,7 +104,7 @@ def check(k):
     return None, ''
 
 
-ROWS = [('rd', 'Real-Debrid'), ('trakt', 'Trakt'), ('iptv', 'IPTV (M3U + EPG)'), ('server', 'AI Subtitle Server'),
+ROWS = [('rd', 'Real-Debrid'), ('trakt', 'Trakt'), ('gdrive', 'Google Drive'), ('iptv', 'IPTV (M3U + EPG)'), ('server', 'AI Subtitle Server'),
         ('gemini', 'Gemini AI'), ('tmdb', 'TMDb')]
 
 
@@ -132,6 +141,12 @@ def action(k):
         return xbmc.executebuiltin('Container.Refresh')
     if k in ('rd', 'trakt'):
         xbmc.executebuiltin('RunPlugin(plugin://plugin.video.pov/?mode=myservices)', True)
+    elif k == 'gdrive':
+        from . import gdrive_ui
+        if not gdrive_ui.drive().signed_in():
+            gdrive_ui.login()
+        else:
+            return xbmc.executebuiltin('Container.Update(plugin://plugin.video.nova/?a=gd_menu)')
     elif k == 'iptv':
         from . import iptv
         iptv.edit_sources()

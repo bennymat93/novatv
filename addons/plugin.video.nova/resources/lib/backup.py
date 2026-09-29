@@ -93,6 +93,12 @@ def restore():
             return
     else:
         local = os.path.join(AUTO_DIR, autos[i - 1])
+    restore_zip(local)
+
+
+def restore_zip(local):
+    """restore a BN backup zip (local file, from a folder or from Google Drive) and restart Kodi"""
+    d = xbmcgui.Dialog()
     try:
         with zipfile.ZipFile(local) as z:
             if 'bn_backup.txt' not in z.namelist():

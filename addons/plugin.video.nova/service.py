@@ -572,6 +572,15 @@ def main():
             log('auto backup: %s' % e, xbmc.LOGWARNING)
     later(600, backup_job)      # 10 min after start, at most once a week
 
+    def gdrive_job():
+        # Google Drive (when signed in): sync favourites/history/IPTV between devices, weekly backup to Drive
+        try:
+            from resources.lib import gdrive_ui
+            gdrive_ui.auto()
+        except Exception as e:
+            log('google drive: %s' % e, xbmc.LOGWARNING)
+    later(120, gdrive_job)
+
     def binary_job():
         # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not
         # shipped inside the Android app: install the right build for this device from the Kodi repository

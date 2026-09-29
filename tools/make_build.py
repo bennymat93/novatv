@@ -477,6 +477,21 @@ def enable_addons(db, ids):
     c.close()
 
 
+def gdrive_source(stage):
+    """Videos > Files: a "Google Drive (BN)" source (NovaTV's Drive browser: the BN Stream folder, sign-in when needed)"""
+    p = os.path.join(stage, 'userdata', 'sources.xml')
+    src = open(p, encoding='utf-8').read() if os.path.exists(p) else \
+        '<sources>\n    <video>\n        <default pathversion="1"></default>\n    </video>\n</sources>\n'
+    if 'a=gd_browse' in src:
+        return
+    entry = ('        <source>\n            <name>Google Drive (BN)</name>\n'
+             '            <path pathversion="1">plugin://plugin.video.nova/?a=gd_browse</path>\n'
+             '            <allowsharing>true</allowsharing>\n        </source>\n')
+    i = src.index('</video>')
+    with open(p, 'w', encoding='utf-8') as f:
+        f.write(src[:i].rstrip(' ') + entry + '    ' + src[i:].lstrip())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--version', default='0.1.0')
@@ -508,6 +523,7 @@ def main():
     patch_skin_settings(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     bn_player_default(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     patch_guisettings(os.path.join(STAGE, 'userdata', 'guisettings.xml'))
+    gdrive_source(STAGE)
     patch_pov(os.path.join(STAGE, 'userdata', 'addon_data', 'plugin.video.pov', 'settings.xml'))
     enable_addons(os.path.join(STAGE, 'userdata', 'Database', 'Addons33.db'), OUR_ADDONS + extra)
     with open(os.path.join(STAGE, 'userdata', 'novatv_build.txt'), 'w') as f:

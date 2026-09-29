@@ -205,7 +205,7 @@ def t_branding():
 
 def t_root():
     items = ls(NOVA)
-    expect(len(items) == 12, '%d root items' % len(items))
+    expect(len(items) == 13, '%d root items' % len(items))
     expect('a=hub_search' in items[0]['file'], 'first item is search-all')
     expect('a=status' in items[-2]['file'], 'system status item missing')
     expect('a=sysreport' in items[-1]['file'], 'System Update item missing')
@@ -271,7 +271,7 @@ def t_radio():
 
 def t_accounts():
     rows = ls(NOVA + '?a=accounts')
-    expect(len(rows) == 8, '%d rows' % len(rows))
+    expect(len(rows) == 9, '%d rows' % len(rows))
     expect(sum('preset_' in r['file'] for r in rows) == 2, 'locked-profile rows missing')
     return [r['label'].split('   ')[0] for r in rows]
 

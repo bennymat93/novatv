@@ -10,3 +10,4 @@ gemini.key
 __pycache__/
 *.pyc
 server/logs/
+addons/plugin.video.nova/resources/gdrive_client.json

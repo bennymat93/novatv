@@ -121,6 +121,7 @@ def root():
     folder(providers.s('library'), url(a='libs'), icon('libraries'))
     folder(T('accounts'), url(a='accounts'), icon('accounts'))
     folder(T('backup_menu'), url(a='bk_menu'), icon('backup'))
+    folder('Google Drive', url(a='gd_menu'), 'DefaultNetwork.png')
     folder(status.s('title'), url(a='status'), icon('accounts'))
     folder('[B]%s[/B]' % sysupdate.s('title'), url(a='sysreport'), icon('accounts'),
            plot=sysupdate.s('running'))
@@ -132,7 +133,13 @@ def bk_menu():
         li = xbmcgui.ListItem(label)
         li.setArt({'icon': 'DefaultAddonProgram.png'})
         xbmcplugin.addDirectoryItem(HANDLE, url(a=act), li, False)
+    folder('Google Drive', url(a='gd_menu'), 'DefaultNetwork.png')      # backups on Drive, restore, sync
     end(cache=False)
+
+
+def _gd():
+    from resources.lib import gdrive_ui
+    return gdrive_ui
 
 
 GENRES = {  # tmdb genre ids (movie, tv)
@@ -389,6 +396,7 @@ def fav_add(kind, id, label, extra=''):
 def fav_rm(kind, id):
     data = [f for f in load('favourites.json', []) if not (f['kind'] == kind and str(f['id']) == str(id))]
     save('favourites.json', data)
+    _gd().remember_removed(kind, id)          # stays removed on the other devices after a Google Drive sync
     refresh()
 
 
@@ -446,6 +454,10 @@ def router(p):
         'play': lambda: play(**p),
         'lib_install': lambda: libraries.install(p['id']),
         'bk_menu': bk_menu,
+        'gd_menu': lambda: _gd().menu(HANDLE, url),
+        'gd': lambda: _gd().action(p['do']),
+        'gd_browse': lambda: _gd().browse(HANDLE, url, p.get('id', '')),
+        'gd_play': lambda: _gd().play(HANDLE, p['id'], p.get('name', '')),
         'bk_do': backup.backup,
         'bk_restore': backup.restore,
         'bk_auto': lambda: backup.auto_backup(every_days=0),
@@ -462,7 +474,7 @@ def router(p):
     simple[a]()
 
 
-ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto',
+ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto', 'gd', 'gd_play',
            'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now', 'subs_menu', 'sync_menu',
            'settings_menu', 'audio_menu', 'subs_pick', 'next_episode'}
 
