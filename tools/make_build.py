@@ -262,7 +262,7 @@ PRESETS = {   # first-run prompts would block the hub's background searches
         'show_debug': 'false',                  # thousands of DEBUG lines at warning level per session
         # sends what the viewer watches to a third-party repository through obfuscated code: off (privacy)
         'write_heb_embedded_taglines_to_twilight_repo': 'false',
-        'auto_remove_hi_tags': 'true'},         # no [music] / (laughs) descriptions in downloaded subtitles either
+        },
 }
 
 
