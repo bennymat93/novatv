@@ -1356,6 +1356,7 @@ def t_skin_windows():
 
 # third-party add-on errors that are known and outside the build's control (reason next to each)
 KNOWN_TRACEBACKS = [
+    "ConnectionResetError: [WinError 10054]",   # YouTube's local proxy: the player dropped the connection (after a YouTube 429)
     'googlevideo.com/videoplayback',   # YouTube refuses some streams without a signed-in account (403): YouTube's policy
     'access_manager.json',             # YouTube's first start: it creates this file itself right after logging this
     'resources.py", line 190, in path',   # certifi (requests) at interpreter exit: "Exception ignored", harmless
