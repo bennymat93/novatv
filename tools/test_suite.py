@@ -916,19 +916,19 @@ def t_log_errors():
 def t_libraries():
     docs = ls(NOVA + '?a=lib_cat&cat=docs')
     expect(any('id=esa' in i['file'] for i in docs), 'ESA missing from documentaries')
-    expect(not any('id=ted' in i['file'] for i in docs), 'unstable TED still listed')
+    expect(not any('ted' in i['file'] for i in docs), 'TED (removed) still listed')
     inside = ls(NOVA + '?a=lib_open&id=esa')              # provider menu shown inside NovaTV
     expect(len(inside) >= 3, 'ESA menu inside NovaTV: %d items' % len(inside))
-    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=lib_install&id=plugin.video.ted.talks')
+    rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=lib_install&id=plugin.video.nasa')
     for _ in range(90):                   # NovaTV retries a slow mirror: wait long enough to see its retry
         time.sleep(2)
-        r = rpc('Addons.GetAddonDetails', addonid='plugin.video.ted.talks', properties=['enabled'])
+        r = rpc('Addons.GetAddonDetails', addonid='plugin.video.nasa', properties=['enabled'])
         if 'result' in r and r['result']['addon']['enabled']:
             return 'ESA menu inside NovaTV (%d items), unstable TED hidden, on-demand install works' % len(inside)
     # Kodi's official mirror sometimes times out: that is outside the build - accept it only if NovaTV retried
     log = open(os.path.join(DATA, 'kodi.log'), encoding='utf-8', errors='ignore').read()
     mirror_down = re.search(r'CCurlFile.*mirrors?\.|CCurlFile.*/xbmc/addons/omega/.*Failed', log) and 'failed to download' in log
-    if mirror_down and 'install plugin.video.ted.talks: attempt 2 failed, retrying' in log:
+    if mirror_down and 'install plugin.video.nasa: attempt 2 failed, retrying' in log:
         return 'ESA menu inside NovaTV (%d items), TED hidden; on-demand install retried 3x - Kodi mirror unreachable (external)' % len(inside)
     raise AssertionError('on-demand install failed')
 

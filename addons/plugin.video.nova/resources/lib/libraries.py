@@ -16,7 +16,6 @@ LIBRARIES = [
     ('plugin.video.dailymotion_com', 'Dailymotion', 'Dailymotion', 'Dailymotion', 'video'),
     ('plugin.video.vimeo', 'Vimeo', 'Vimeo', 'Vimeo', 'video'),
     ('plugin.video.twitch', 'Twitch – שידורים חיים', 'Twitch – live streams', 'Twitch – стримы', 'video'),
-    ('plugin.video.ted.talks', 'TED – הרצאות', 'TED Talks', 'TED – лекции', 'docs'),
     ('plugin.video.nasa', 'NASA', 'NASA', 'NASA', 'docs'),
     ('plugin.video.redbull.tv', 'Red Bull TV – ספורט אתגרי', 'Red Bull TV – extreme sports', 'Red Bull TV – экстрим', 'sport'),
     ('plugin.video.nhklive', 'NHK World – חדשות', 'NHK World – news', 'NHK World – новости', 'news'),

@@ -52,8 +52,6 @@ PROVIDERS = [
     ('lbry', 'plugin.video.lbry', ('Odysee / LBRY', 'Odysee / LBRY', 'Odysee / LBRY'), 'video', 'plugin://plugin.video.lbry/search/{q}/1'),
     ('peertube', 'plugin.video.pt', ('PeerTube', 'PeerTube', 'PeerTube'), 'video', None),
     # --- documentaries & learning
-    ('ted', 'plugin.video.ted.talks', ('TED – הרצאות', 'TED Talks', 'TED – лекции'), 'docs',
-     'plugin://plugin.video.ted.talks/?mode=searchMore&search_term={q}&page=0'),
     ('docheaven', 'plugin.video.documentaryheaven', ('Documentary Heaven – תעודה', 'Documentary Heaven', 'Documentary Heaven – документальные'), 'docs', None),
     ('filmsforaction', 'plugin.video.filmsforaction', ('Films For Action – תעודה', 'Films For Action', 'Films For Action'), 'docs', None),
     ('nasa', 'plugin.video.nasa', ('NASA', 'NASA', 'NASA'), 'docs', None),

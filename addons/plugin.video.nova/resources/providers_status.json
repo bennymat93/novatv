@@ -95,14 +95,6 @@
   "search": "",
   "play": "nothing playable found"
  },
- "ted": {
-  "addon": "plugin.video.ted.talks",
-  "stable": false,
-  "checked": "2026-09-25",
-  "menu": 4,
-  "search": "fail: Invalid params.",
-  "play": "no playback"
- },
  "docheaven": {
   "addon": "plugin.video.documentaryheaven",
   "stable": true,
