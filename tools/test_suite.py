@@ -920,7 +920,7 @@ def t_libraries():
     inside = ls(NOVA + '?a=lib_open&id=esa')              # provider menu shown inside NovaTV
     expect(len(inside) >= 3, 'ESA menu inside NovaTV: %d items' % len(inside))
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=lib_install&id=plugin.video.ted.talks')
-    for _ in range(60):
+    for _ in range(90):                   # NovaTV retries a slow mirror: wait long enough to see its retry
         time.sleep(2)
         r = rpc('Addons.GetAddonDetails', addonid='plugin.video.ted.talks', properties=['enabled'])
         if 'result' in r and r['result']['addon']['enabled']:
