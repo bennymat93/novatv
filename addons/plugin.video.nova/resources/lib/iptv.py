@@ -340,15 +340,31 @@ def configure_pvr(force=False):
         return True                 # the client refreshes the files itself - no restart
     # existing install: restart the client, but never overlap restarts (that aborts a big channel load)
     mon = monitor()
+    # a client disabled while it is still loading channels / EPG crashed Kodi ("Dll Destroyed" seconds after
+    # "PVR Manager: Started"): let the running client finish its load first
+    for _ in range(60):
+        if _pvr_available() or mon.waitForAbort(1):
+            break
+    if mon.waitForAbort(15):
+        return False
     for attempt in range(4):
         _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
         for _ in range(20):                     # wait until the add-on is off and the PVR manager stopped
             if mon.waitForAbort(1) or (not _addon_enabled() and not _pvr_available()):
                 break
         mon.waitForAbort(2)
-        for _ in range(5):                      # Kodi sometimes drops an enable right after a disable
+        for _ in range(3):                      # Kodi sometimes drops an enable right after a disable
             _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
-            if mon.waitForAbort(2) or _addon_enabled():
+            # a big list keeps the client "starting" for seconds: re-sending enable then recreated the client in
+            # the middle of its start ("Start aborted") and froze Kodi -> give it 10 s before trying again
+            up = False
+            for _ in range(10):
+                if mon.waitForAbort(1):
+                    return False
+                if _addon_enabled() or _pvr_available():
+                    up = True
+                    break
+            if up:
                 break
         for _ in range(45):                     # 5000+ channels take a while on slow boxes
             if mon.waitForAbort(1) or _pvr_available():
