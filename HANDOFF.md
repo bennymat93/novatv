@@ -150,3 +150,4 @@ release as v1.1.0 only after the full suite is green twice. Progress log: see "v
 - [1.2.0 release started] UI round + Drive + audit. TV rows on first run wait for the channel groups (iptv.wait_groups, ~2 min once after install).
 - [1.2.1] Google Drive live (client in resources/gdrive_client.json, gitignored; backup BN-signing-key/gdrive_client.json; project benny-423922, app 'BN Stream' in production; privacy docs/privacy.html). Player self-heal per version (bn_player_ver). release.py: push_site after tests.
 - [1.2.1 fix] Kodi freeze/crash in 'Free channels' = PVR client disabled while still loading + enable re-sent after 2 s during a big start. configure_pvr now waits for the client to be up + 15 s, and gives an enable 10 s. 5/5 PASS.
+- [1.2.2] home_panels (make_build): rounded 8% panel in CategoryLabel (every row type, height per type) + behind menu 9000 (brand/skin/bn_panel.png -> media/bn/panel.png); search tile 560x315.
