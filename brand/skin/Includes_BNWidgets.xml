@@ -8,28 +8,29 @@
 			<include content="CategoryLabel">
 				<param name="label">$PARAM[widget_header]</param>
 				<param name="list_id" value="$PARAM[list_id]"/>
+				<param name="panel_height" value="385"/>
 			</include>
 			<control type="list" id="$PARAM[list_id]">
-				<left>305</left>
+				<left>425</left>
 				<top>115</top>
-				<width>800</width>
-				<height>470</height>
+				<width>560</width>
+				<height>330</height>
 				<onright>$PARAM[list_id]</onright>
 				<visible>Integer.IsGreater(Container($PARAM[list_id]).NumItems,0) | Container($PARAM[list_id]).IsUpdating</visible>
 				<include content="WidgetListCommon">
 					<param name="list_id" value="$PARAM[list_id]"/>
 				</include>
-				<itemlayout width="800" height="460">
+				<itemlayout width="560" height="325">
 					<control type="image">
-						<left>10</left><top>10</top><width>780</width><height>439</height>
+						<left>8</left><top>8</top><width>544</width><height>306</height>
 						<texture background="true" colordiffuse="C8FFFFFF">$INFO[ListItem.Icon]</texture>
 						<aspectratio>keep</aspectratio>
 					</control>
 				</itemlayout>
-				<focusedlayout width="800" height="460">
+				<focusedlayout width="560" height="325">
 					<!-- no frame: the field itself grows and brightens when focused -->
 					<control type="image">
-						<left>10</left><top>10</top><width>780</width><height>439</height>
+						<left>8</left><top>8</top><width>544</width><height>306</height>
 						<texture background="true" colordiffuse="$VAR[BNSearchFocus]">$INFO[ListItem.Icon]</texture>
 						<aspectratio>keep</aspectratio>
 						<animation effect="zoom" start="100" end="107" center="auto" time="220" tween="cubic" easing="out" condition="Control.HasFocus($PARAM[list_id])">Conditional</animation>
@@ -45,6 +46,7 @@
 			<include content="CategoryLabel">
 				<param name="label">$PARAM[widget_header]</param>
 				<param name="list_id" value="$PARAM[list_id]"/>
+				<param name="panel_height" value="470"/>
 			</include>
 			<include content="BusyListSpinner">
 				<param name="list_id" value="$PARAM[list_id]"/>

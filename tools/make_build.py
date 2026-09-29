@@ -110,6 +110,48 @@ HOME_WIDGETS = [
 ]
 
 
+PANEL = '<texture colordiffuse="14FFFFFF" border="26">bn/panel.png</texture>'   # 8% white: a bit lighter than the screen
+
+
+def home_panels(skin):
+    """a rounded panel a little lighter than the screen behind every home row and behind the main menu"""
+    xml = os.path.join(skin, 'xml')
+    os.makedirs(os.path.join(skin, 'media', 'bn'), exist_ok=True)
+    shutil.copy(os.path.join(SKIN_SRC, 'bn_panel.png'), os.path.join(skin, 'media', 'bn', 'panel.png'))
+    p = os.path.join(xml, 'Includes_Home.xml')
+    s = open(p, encoding='utf-8').read()
+    if 'bn/panel.png' not in s:
+        # the row header (CategoryLabel) is part of every row type: the panel goes into it, sized per row type
+        s = s.replace('<param name="item_treshold">0</param>',
+                      '<param name="item_treshold">0</param>\n\t\t<param name="panel_height">455</param>', 1)
+        s = s.replace('<control type="group" id="$PARAM[list_id]665">\n\t\t\t\t<left>75</left>\n\t\t\t\t<top>80</top>',
+                      '<control type="group" id="$PARAM[list_id]665">\n\t\t\t\t<left>75</left>\n\t\t\t\t<top>80</top>'
+                      '\n\t\t\t\t<control type="image">\n\t\t\t\t\t<left>-40</left>\n\t\t\t\t\t<top>-14</top>'
+                      '\n\t\t\t\t\t<width>1440</width>\n\t\t\t\t\t<height>$PARAM[panel_height]</height>\n\t\t\t\t\t' + PANEL +
+                      '\n\t\t\t\t</control>', 1)
+        # each row type: panel height = its list (top 115 + height) - header top 80 + a margin
+        out, pos = [], 0
+        for m in re.finditer(r'<include name="(Widget\w+)">(.*?)</include>\s*\n\s*(?=<include name=|</includes>)', s, re.S):
+            body = m.group(2)
+            h = re.search(r'<control type="(?:fixed)?list" id="\$PARAM\[list_id\]">.*?<height>(\d+)</height>', body, re.S)
+            if h and '<include content="CategoryLabel">' in body:
+                body2 = body.replace('<include content="CategoryLabel">',
+                                     '<include content="CategoryLabel">\n\t\t\t\t<param name="panel_height" value="%d"/>'
+                                     % (int(h.group(1)) + 60), 1)
+                out.append(s[pos:m.start(2)] + body2)
+                pos = m.end(2)
+        s = ''.join(out) + s[pos:]
+    open(p, 'w', encoding='utf-8').write(s)
+    h = os.path.join(xml, 'Home.xml')
+    t = open(h, encoding='utf-8').read()
+    anchor = '<control type="fixedlist" id="9000">'
+    if 'bn/panel.png' not in t and anchor in t:
+        t = t.replace(anchor, '<control type="image">\n\t\t\t\t\t\t<left>12</left>\n\t\t\t\t\t\t<top>228</top>'
+                              '\n\t\t\t\t\t\t<width>518</width>\n\t\t\t\t\t\t<height>520</height>\n\t\t\t\t\t\t' + PANEL +
+                              '\n\t\t\t\t\t</control>\n\t\t\t\t\t' + anchor, 1)
+        open(h, 'w', encoding='utf-8').write(t)
+
+
 def home_widgets(skin):
     """the home screen rows of every main-menu item, all from NovaTV (no third-party add-on in the widgets)"""
     for inc, fn, first, rows in HOME_WIDGETS:
@@ -575,6 +617,7 @@ def main():
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     home_widgets(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    home_panels(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     patch_skin_search(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     fix_startup(STAGE)
     bn_skin(STAGE)
