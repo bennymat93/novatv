@@ -475,6 +475,83 @@ def _main_rank(label):
     return next((i for i, k in enumerate(MAIN) if low.startswith(k)), len(MAIN))
 
 
+ALIAS = {'UK': 'GB'}
+
+
+def _flags():
+    try:
+        with open(os.path.join(MEDIA, 'flags', 'countries.json'), encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _by_country():
+    """{country code: [(name, logo)]} of the merged list (Israel has its own row)"""
+    out = {}
+    try:
+        text = open(MERGED_M3U, encoding='utf-8', errors='replace').read()
+    except OSError:
+        return out
+    for line in text.splitlines():
+        if not line.startswith('#EXTINF'):
+            continue
+        attrs = dict(re.findall(r'([\w-]+)="([^"]*)"', line))
+        cc = ALIAS.get(country(attrs), country(attrs))
+        if cc and cc != 'IL':
+            out.setdefault(cc, []).append((line.rsplit(',', 1)[1].strip(), attrs.get('tvg-logo', '')))
+    return out
+
+
+def countries_list(handle, url):
+    """Channels of the world: one tile per country (its flag), most channels first"""
+    import xbmcplugin
+    from .common import ui_lang
+    names, col = _flags(), {'he': 0, 'en': 1, 'ru': 2}[ui_lang()]
+    wait_groups()
+    by = _by_country()
+    for cc in sorted(by, key=lambda c: -len(by[c])):
+        flag = os.path.join(MEDIA, 'flags', cc.lower() + '.png')
+        if cc not in names or not os.path.exists(flag):
+            continue
+        li = xbmcgui.ListItem(names[cc][col])
+        li.setArt({'icon': flag, 'thumb': flag})
+        li.getVideoInfoTag().setPlot('%d' % len(by[cc]))
+        xbmcplugin.addDirectoryItem(handle, url(a='tv_country', cc=cc), li, True)
+    xbmcplugin.setContent(handle, 'files')
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+
+
+def country_channels(handle, cc):
+    """the channels of one country: played through the TV service (EPG, numbers) when it has them"""
+    import xbmcplugin
+    pvr = {c['label']: c for c in _rpc('PVR.GetChannels', channelgroupid='alltv', properties=['icon', 'channelnumber'])
+           .get('result', {}).get('channels', [])}
+    for name, logo in _by_country().get(cc, []):
+        c = pvr.get(name)
+        if not c:
+            continue
+        li = xbmcgui.ListItem(re.sub(r'\s*\((?:\d{3,4}[pi])\)|\s*\[[^\]]*\]', '', name).strip())
+        art = c.get('icon') or logo or 'DefaultTVShows.png'
+        li.setArt({'icon': art, 'thumb': art, 'poster': art})
+        li.setProperty('IsPlayable', 'false')
+        xbmcplugin.addDirectoryItem(handle, 'plugin://plugin.video.nova/?a=tv_play&id=%d' % c['channelid'], li, False)
+    xbmcplugin.setContent(handle, 'videos')
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+
+
+def wait_groups(timeout=180):
+    """the first start after installing builds the channel list (~2 min): a home row asked for channels then
+    waits for the TV service instead of answering an empty row the skin keeps"""
+    mon = monitor()
+    for _ in range(timeout):
+        if group_id('Israel') is not None:
+            return True
+        if mon.waitForAbort(1):
+            return False
+    return False
+
+
 def group_id(name):
     """PVR group id by its name (Israel, News, ...), None when missing"""
     for g in _rpc('PVR.GetChannelGroups', channeltype='tv').get('result', {}).get('channelgroups', []):
@@ -490,6 +567,8 @@ def channel_list(handle, group=None, gname=None, widget=False):
     # no waiting here: the home rows carry r=$INFO[Window(Home).Property(BN.PVRReady)] in their path, and the service
     # sets that property once the TV service has its channels -> Kodi reloads the rows by itself
     if gname:
+        if widget:
+            wait_groups()
         group = group_id(gname)
         if group is None:
             xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

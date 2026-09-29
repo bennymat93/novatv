@@ -247,8 +247,7 @@ class Flow:
                             mon.waitForAbort(1)
                             if not self.same_video() or not p.isPlayingVideo():
                                 return              # the video is closing: never touch the player mid-close (crash)
-                            shown = len(p.getAvailableSubtitleStreams()) > before or \
-                                'BN AI' in (xbmc.getInfoLabel('VideoPlayer.SubtitlesName') or '')
+                            shown = len(p.getAvailableSubtitleStreams()) > before or _current_sub_is(name)
                             log('AI subtitles loaded up to %ds (%s)%s' % (ready, 'button' if self.forced else 'auto',
                                                                           '' if shown else ' - Kodi did not list the track'))
                             loaded_upto = ready
@@ -287,6 +286,16 @@ class Flow:
                 return
             if mon.waitForAbort(5):
                 return
+
+
+def _current_sub_is(name):
+    """the active subtitle track is the file just loaded (a replaced file of the same name keeps the track count)"""
+    try:
+        r = json.loads(xbmc.executeJSONRPC(json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'Player.GetProperties',
+                                                        'params': {'playerid': 1, 'properties': ['currentsubtitle']}})))
+        return name.split(' ')[0] in ((r.get('result') or {}).get('currentsubtitle') or {}).get('name', '')
+    except Exception:
+        return False
 
 
 class Player(xbmc.Player):
@@ -583,12 +592,19 @@ def main():
 
     def pvr_ready_job():
         # the TV & Radio home rows reload once the TV service has its channels (their path includes this property)
+        # ready = the channel groups are loaded too (PVR.HasTVChannels turns true before them: rows came back empty)
+        from resources.lib import iptv
         mon = monitor()
         for _ in range(600):
-            if xbmc.getCondVisibility('PVR.HasTVChannels'):
+            try:
+                gid = iptv.group_id('Israel')
+                n = len(iptv._rpc('PVR.GetChannels', channelgroupid=gid).get('result', {}).get('channels', [])) if gid else 0
+            except Exception:
+                n = 0
+            if n:
                 xbmcgui.Window(10000).setProperty('BN.PVRReady', '1')
                 return
-            if mon.waitForAbort(1):
+            if mon.waitForAbort(2):
                 return
     later(1, pvr_ready_job)
 

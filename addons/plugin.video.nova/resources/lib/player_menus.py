@@ -9,9 +9,7 @@ subtitles() the subtitles menu of the spec + our three generation actions + the 
 appearance() subtitle size / colour / outline / background / opacity / position / encoding, applied live
 """
 import io
-import json
 import os
-import re
 import time
 import zipfile
 
@@ -19,7 +17,7 @@ import xbmc
 import xbmcgui
 
 from . import playerctl, substore, subfix, syncmath
-from .common import ADDON, PROFILE, T, log
+from .common import ADDON, PROFILE, log
 
 WIN = xbmcgui.Window(10000)
 GOLD = 'FFE8BE5A'

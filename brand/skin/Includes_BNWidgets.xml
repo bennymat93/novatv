@@ -22,20 +22,17 @@
 				<itemlayout width="800" height="460">
 					<control type="image">
 						<left>10</left><top>10</top><width>780</width><height>439</height>
-						<texture background="true">$INFO[ListItem.Icon]</texture>
+						<texture background="true" colordiffuse="C8FFFFFF">$INFO[ListItem.Icon]</texture>
 						<aspectratio>keep</aspectratio>
 					</control>
 				</itemlayout>
 				<focusedlayout width="800" height="460">
-					<control type="image">
-						<left>0</left><top>0</top><width>800</width><height>459</height>
-						<texture colordiffuse="button_focus" border="24">masks/landscape.png</texture>
-						<visible>Control.HasFocus($PARAM[list_id])</visible>
-					</control>
+					<!-- no frame: the field itself grows and brightens when focused -->
 					<control type="image">
 						<left>10</left><top>10</top><width>780</width><height>439</height>
-						<texture background="true">$INFO[ListItem.Icon]</texture>
+						<texture background="true" colordiffuse="$VAR[BNSearchFocus]">$INFO[ListItem.Icon]</texture>
 						<aspectratio>keep</aspectratio>
+						<animation effect="zoom" start="100" end="107" center="auto" time="220" tween="cubic" easing="out" condition="Control.HasFocus($PARAM[list_id])">Conditional</animation>
 					</control>
 				</focusedlayout>
 				<content target="$PARAM[widget_target]">$PARAM[content_path]</content>

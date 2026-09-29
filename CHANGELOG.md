@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.2.0
+**Main menu:** "טלוויזיה ורדיו" and "מועדפים" entries. The default colours are BN gold.
+
+**Movies and Series home screens:**
+- A big centred search tile.
+- Top rated, as big posters.
+- "By category", "by year" and "by language" as tiles: modern gold line icons with the name under them. 11 languages.
+
+**TV & Radio home screen:**
+- Israeli channels as 3D posters, main channels first.
+- "Channels of the world": one tile per country (accurate 3D flag and name), which opens that country's channels.
+- Israeli radio.
+
+**Search all sources** is shown as a search-box tile.
+
+**AI subtitles** no longer contain sound descriptions ([מוזיקה], [Music], ♪, (צחוק)). All_Subs also removes them from downloaded subtitles.
+
+**Google Drive** (sign in with a code on the TV): backups and restore, sync of favourites, history and IPTV sources between devices, subtitle upload, and a BN Stream folder under Videos. It is active once the build's OAuth client is set.
+
+**Audit fixes:**
+- All_Subs no longer sends viewing data to a third-party repository.
+- All_Subs debug flood and the dead Subscene source are off.
+- Invalid POV setting fixed.
+- A false "subtitles failed" message after a successful AI load is gone.
+- Unused code removed.
+
 ## 1.1.2
 - Episode search is exact. Root cause: the episode's "search all sources" and the "POV found nothing" fallback searched only the show name (or show + episode name), so a Season 1 and a Season 2 Episode 5 search were the same query with the same results and cache key, and nothing filtered by season/episode.
   - Now the season/episode is passed along, the query states it in the show's language, and only exact matches are listed (new `epmatch.py`: S2E5 / S02E05 / 2x05 / Season 2 Episode 5 / Hebrew / Russian, whole numbers, ranges excluded, show name required).

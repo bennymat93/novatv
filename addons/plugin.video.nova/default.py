@@ -9,7 +9,7 @@ import xbmcgui
 from resources.lib.common import monitor
 import xbmcplugin
 
-from resources.lib.common import (ADDON, T, tmdb, art, load, save, now_str, MEDIA, ui_lang)
+from resources.lib.common import (T, tmdb, art, load, save, now_str, MEDIA)
 from resources.lib import accounts, iptv, radio, backup, libraries, providers, status, sysupdate
 
 HANDLE = int(sys.argv[1])
@@ -207,6 +207,7 @@ def tvradio():
     """TV & Radio (main menu): Israeli channels first, every channel group, the guide, radio"""
     folder(T('israel'), url(a='tv_list', gname='Israel'), 'DefaultTVShows.png')
     folder(T('channels'), url(a='tv_root'), 'DefaultTVShows.png')
+    folder(T('world'), url(a='tv_countries'), 'DefaultCountry.png')
     folder(T('radio'), url(a='radio_root'), 'DefaultMusicGenres.png')
     end(cache=False)
 
@@ -453,6 +454,8 @@ def router(p):
         'tv_do': lambda: iptv.action(p['do']),
         'tv_list': lambda: iptv.channel_list(HANDLE, p.get('group'), p.get('gname'), p.get('w') == '1'),
         'tv_play': lambda: iptv.play_channel(p['id']),
+        'tv_countries': lambda: iptv.countries_list(HANDLE, url),
+        'tv_country': lambda: iptv.country_channels(HANDLE, p['cc']),
         'radio_root': lambda: radio.menu(HANDLE, url, folder, end),
         'radio_list': lambda: radio.listing(HANDLE, url, end, **p),
         'noop': lambda: HANDLE >= 0 and xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=False),

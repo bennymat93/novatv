@@ -99,7 +99,7 @@ HOME_WIDGETS = [
         ('BNCategoryWidget', 'a=langs&m=tv', 'לפי שפה')]),
     ('Custom1Widgets', 'script-fentastic-widget_custom1.xml', 23011,
         [('WidgetListBigPoster', 'a=tv_list&gname=Israel&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצי ישראל')] +
-        [('WidgetListPoster', 'a=tv_list&gname=%s&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]' % g, label) for g, label in TV_GROUPS] +
+        [('BNCategoryWidget', 'a=tv_countries&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצים מהעולם')] +
         [('WidgetListPoster', 'a=radio_list&by=country&v=IL', 'רדיו ישראל')]),
     ('Custom2Widgets', 'script-fentastic-widget_custom2.xml', 24011, [
         ('WidgetListPoster', 'a=favs&kind=movie', 'סרטים מועדפים'),
@@ -190,6 +190,7 @@ def patch_guisettings(path):
 
 
 POV_SETTINGS = {
+    'results.xml_style': '0',                # base build stored "List Contrast Default" (not in the list) -> 2 warnings per POV call
     'subtitles.subs_action': '0',           # base build stored "2" (invalid: Off|Auto) -> 7 warnings per start
     'auto_play_movie': 'true', 'auto_play_episode': 'true',          # calculated link choice, no list
     'autoplay_quality_movie': '720p, 1080p, 4K', 'autoplay_quality_episode': '720p, 1080p, 4K',
@@ -255,7 +256,13 @@ PRESETS = {   # first-run prompts would block the hub's background searches
                              # Hebrew on every YouTube video even without the AI server
                              'kodion.subtitle.languages.num': '2'},
     'plugin.video.archive.org': {'context': 'video'},
-    'service.subtitles.All_Subs': {'telegram': 'false'},   # needs a personal Telegram login; opened a blocking dialog
+    'service.subtitles.All_Subs': {
+        'telegram': 'false',                    # needs a personal Telegram login; opened a blocking dialog
+        'subscene': 'false',                    # sub-scene.com answers 403 to every search (6 retries per video)
+        'show_debug': 'false',                  # thousands of DEBUG lines at warning level per session
+        # sends what the viewer watches to a third-party repository through obfuscated code: off (privacy)
+        'write_heb_embedded_taglines_to_twilight_repo': 'false',
+        'auto_remove_hi_tags': 'true'},         # no [music] / (laughs) descriptions in downloaded subtitles either
 }
 
 

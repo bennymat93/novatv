@@ -53,6 +53,7 @@ STRINGS = {
     'guide':       ('מדריך שידורים', 'TV Guide', 'Телепрограмма'),
     'iptv_src':    ('מקורות IPTV', 'IPTV sources', 'Источники IPTV'),
     'israel':      ('ישראל', 'Israel', 'Израиль'),
+    'world':       ('ערוצים מהעולם', 'Channels of the world', 'Каналы мира'),
     'russia':      ('רוסיה', 'Russia', 'Россия'),
     'top_world':   ('הפופולריות בעולם', 'Top worldwide', 'Популярные в мире'),
     'watched_at':  ('נצפה', 'Watched', 'Просмотрено'),

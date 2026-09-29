@@ -6,7 +6,6 @@ keys, but it still *plays* any video. NovaTV therefore reads the lists itself fr
 public web endpoint (the one youtube.com uses) and hands playback to the YouTube add-on.
 Stdlib + requests only; every failure returns an empty list.
 """
-import json
 
 PLAY = 'plugin://plugin.video.youtube/play/?video_id=%s'
 VIDEOS_TAB = 'EgZ2aWRlb3PyBgQKAjoA'
