@@ -97,11 +97,11 @@ def main():
 
     msg = 'v%s: %s%s' % (v, a.notes, TRAILER)
     run('git', 'add', '-A')
-    run('git', 'commit', '-q', '-m', msg)
+    run('git', 'commit', '-q', '--allow-empty', '-m', msg)
     run(PY, 'tools/make_guide.py')                     # version history now contains this release
     shutil.copy(os.path.join(ROOT, 'docs', 'guide.html'), os.path.join(ROOT, 'site', 'guide.html'))
     run('git', 'add', 'docs')
-    run('git', 'commit', '-q', '-m', 'Guide: regenerate for v%s%s' % (v, TRAILER))
+    run('git', 'commit', '-q', '--allow-empty', '-m', 'Guide: regenerate for v%s%s' % (v, TRAILER))
     run('git', 'push', '-q', 'origin', 'main')
     ghp = os.path.join(ROOT, 'work', 'ghp')
     for n in os.listdir(ghp):
@@ -110,7 +110,7 @@ def main():
             shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
     shutil.copytree(os.path.join(ROOT, 'site'), ghp, dirs_exist_ok=True)
     run('git', 'add', '-A', cwd=ghp)
-    run('git', 'commit', '-q', '-m', 'Site v%s%s' % (v, TRAILER), cwd=ghp)
+    run('git', 'commit', '-q', '--allow-empty', '-m', 'Site v%s%s' % (v, TRAILER), cwd=ghp)
     run('git', 'push', '-q', 'origin', 'gh-pages', cwd=ghp)
     d = os.path.join(ROOT, 'dist')
     assets = [os.path.join(d, n) for n in ('BN-Stream-21.3-arm64-v8a.apk', 'BN-Stream-21.3-armeabi-v7a.apk',
