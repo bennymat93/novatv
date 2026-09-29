@@ -107,6 +107,7 @@ S = {
     'searching': ('מחפש בכל המקורות...', 'Searching all sources...', 'Поиск по всем источникам...'),
     'more': ('עוד תוצאות מ-%s', 'More from %s', 'Ещё из %s'),
     'none': ('לא נמצא באף מקור', 'Not found in any source', 'Ничего не найдено'),
+    'no_exact': ('אין התאמה מדויקת לעונה/פרק %s', 'No exact matches for %s', 'Нет точных совпадений для %s'),
     'pov_none': ('לא נמצאו מקורות ב-POV – מחפש בשאר המקורות', 'POV found no sources – searching all other sources',
                  'POV ничего не нашёл – ищу в остальных источниках'),
     'pick': ('נמצא במקורות נוספים', 'Found in other sources', 'Найдено в других источниках'),
@@ -248,7 +249,26 @@ def run_search(q, providers=None, per_timeout=12):
     deadline = time.time() + per_timeout
     for th in threads:
         th.join(max(0.1, deadline - time.time()))
-    return [(p, results.get(p[0]) or []) for p in providers if results.get(p[0])]
+    done = dict(results)            # snapshot: a provider answering after the deadline is ignored, never merged later
+    return [(p, done.get(p[0]) or []) for p in providers if done.get(p[0])]
+
+
+def exact(found, want, show=''):
+    """keep only results of the wanted season/episode (and show, when known); providers left with nothing are dropped"""
+    from . import epmatch
+    if want == (None, None):
+        return found
+    out = []
+    for p, items in found:
+        items = epmatch.filter_items(want, items, show=show)
+        if items:
+            out.append((p, items))
+    return out
+
+
+def se_label(want):
+    return ' '.join(x for x in ('S%02d' % want[0] if want[0] is not None else '',
+                                'E%02d' % want[1] if want[1] is not None else '') if x)
 
 
 def _live_matches(q):
@@ -283,9 +303,14 @@ def _add_foreign(handle, p, it):
     xbmcplugin.addDirectoryItem(handle, it['file'], li, is_dir)
 
 
-def hub_results(handle, q, media_item, per_provider=8):
-    """one merged list: movies & series (TMDb -> POV), every add-on, live channels, radio"""
+def hub_results(handle, q, media_item, per_provider=8, season=None, episode=None):
+    """one merged list: movies & series (TMDb -> POV), every add-on, live channels, radio.
+    An episode search (season/episode given, or written in q) lists only exact season/episode matches."""
     from .common import tmdb
+    from . import epmatch
+    want = epmatch.wanted(q, season, episode)
+    if want != (None, None):
+        return hub_episode(handle, q, want, season, episode)
     tm = {}
 
     def tmdb_work():
@@ -364,7 +389,7 @@ def ensure_pov_hook():
         return False
 
 
-def play_with_fallback(pov_url, query, alt_query='', timeout=240):
+def play_with_fallback(pov_url, query, alt_query='', timeout=240, season=None, episode=None, show='', alt_show=''):
     """POV plays it if it can. When POV reports "no results" (patched by make_build) the other
     providers are searched for the same title and the user picks from the merged list."""
     ensure_pov_hook()
@@ -390,20 +415,39 @@ def play_with_fallback(pov_url, query, alt_query='', timeout=240):
     else:
         return False
     xbmcgui.Dialog().notification('NovaTV', s('pov_none'), xbmcgui.NOTIFICATION_INFO, 4000)
-    return fallback_pick(query, alt_query)
+    return fallback_pick(query, alt_query, season, episode, show, alt_show)
 
 
-def fallback_pick(query, alt_query=''):
+def hub_episode(handle, q, want, season=None, episode=None):
+    """episode search: every source, the text states the episode, and only exact matches are listed"""
+    from . import epmatch
+    explicit = season not in (None, '') or episode not in (None, '')
+    query = epmatch.query_for(q, season, episode) if explicit else q
+    found = exact(run_search(query), want, show=q if explicit else '')
+    if not found:
+        _header(handle, s('no_exact') % se_label(want))
+        return
+    for p, items in found:
+        _header(handle, '%s (%d)' % (name_of(p), len(items)))
+        for it in items:
+            _add_foreign(handle, p, it)
+
+
+def fallback_pick(query, alt_query='', season=None, episode=None, show='', alt_show=''):
+    want = (int(season), int(episode)) if season not in (None, '') and episode not in (None, '') else (None, None)
     pd = xbmcgui.DialogProgressBG()
     pd.create('NovaTV', s('searching'))
-    found = run_search(query)
+    found = exact(run_search(query), want, show)
     if alt_query and alt_query.lower() != query.lower():
         seen = {p[0] for p, _ in found}
-        found += [(p, i) for p, i in run_search(alt_query) if p[0] not in seen]
+        found += [(p, i) for p, i in exact(run_search(alt_query), want, alt_show) if p[0] not in seen]
     pd.close()
+    if not found and want != (None, None):
+        xbmcgui.Dialog().ok('NovaTV', s('no_exact') % se_label(want))
+        return False
     rows, labels = [], []
     for p, items in found:
-        for it in items[:10]:
+        for it in (items if want != (None, None) else items[:10]):   # every exact match is listed
             rows.append(it)
             labels.append('%s  [COLOR grey]· %s[/COLOR]' % (it['label'], name_of(p).split(' – ')[0]))
     if not rows:

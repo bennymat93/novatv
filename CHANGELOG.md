@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2
+- Episode search is exact. Root cause: the episode's "search all sources" and the "POV found nothing" fallback searched only the show name (or show + episode name), so a Season 1 and a Season 2 Episode 5 search were the same query with the same results and cache key, and nothing filtered by season/episode.
+  - Now the season/episode is passed along, the query states it in the show's language, and only exact matches are listed (new `epmatch.py`: S2E5 / S02E05 / 2x05 / Season 2 Episode 5 / Hebrew / Russian, whole numbers, ranges excluded, show name required).
+  - "No exact matches" when nothing fits.
+- The YouTube cache key is the normalised query and the fallback answer expires after 6 h.
+- A source answering after the search deadline is dropped.
+
 ## 1.1.1
 - AI subtitle server reachable outside home: when the saved address and the home network do not answer, NovaTV uses the server's Tailscale address (setting "Subtitle server outside home", default the PC in the owner's tailnet). Needs Tailscale on the Kodi device, signed in to the same account.
 

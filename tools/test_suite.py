@@ -836,6 +836,31 @@ def t_player_panels():
         httpd.shutdown()
 
 
+
+def t_episode_search():
+    """episode search inside Kodi: search S1E1, then S2E5 - the second list holds only exact S2E5 results of the show"""
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(ROOT, 'addons', 'plugin.video.nova'))
+    from resources.lib import epmatch
+    from urllib.parse import urlencode
+
+    def listing(s, e):
+        t = time.time()
+        r = rpc('Files.GetDirectory', directory=NOVA + '?' + urlencode({'a': 'hub_search', 'q': 'Кухня', 's': s, 'e': e}),
+                media='files', timeout=120)
+        rows = [f['label'] for f in (r.get('result') or {}).get('files') or []]
+        return [l for l in rows if not l.startswith('[COLOR gold]')], rows, time.time() - t
+
+    first, _, t1 = listing(1, 1)
+    second, rows, t2 = listing(2, 5)
+    expect(second or any('S02E05' in l for l in rows), 'no results and no "no exact matches" row: %s' % rows[:3])
+    bad = [l for l in second if epmatch.parse(re.sub(r'\[/?[A-Z]+[^\]]*\]', '', l).split('  ·')[0]) != (2, 5)]
+    expect(not bad, 'non-matching results in the S2E5 search: %s' % bad[:3])
+    leaked = [l for l in second if l in first]
+    expect(not leaked, 'results of the S1E1 search leaked into S2E5: %s' % leaked[:3])
+    return 'S1E1: %d results in %.1fs; S2E5: %d exact results in %.1fs, none from S1' % (len(first), t1, len(second), t2)
+
+
 def t_system_update():
     """System Update: every part refreshed, report with Auto-Fix under each error, the fix works"""
     prof = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova')
@@ -1471,7 +1496,7 @@ TESTS = [
     ('History + UI speed', t_history_and_speed), ('IPTV merge / dedupe / numbering', t_iptv),
     ('Free libraries menu', t_libraries), ('Backup', t_backup), ('Free channels (iptv-org)', t_free_channels),
     ('Merged playlist integrity', t_m3u_integrity), ('Locked profile round-trip', t_preset),
-    ('Search all sources (hub)', t_hub_search), ('Central library + Russian', t_central_library),
+    ('Search all sources (hub)', t_hub_search), ('Episode search: exact S/E, no stale results', t_episode_search), ('Central library + Russian', t_central_library),
     ('POV -> other sources fallback', t_pov_fallback),
     ('Startup log clean', t_startup_clean), ('Startup ready message + status', t_startup_status),
     ('AI subtitle server', t_ai_server), ('AI Hebrew subtitles end-to-end', t_ai_subs_end_to_end),

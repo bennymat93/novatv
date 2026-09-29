@@ -77,8 +77,17 @@ def _continuation(data):
     return next((c.get('token') for c in _walk(data, 'continuationCommand') if c.get('token')), '')
 
 
+CACHE_MAX_AGE = 6 * 3600      # the last good answer is a fallback for a YouTube hiccup, never older than this
+
+
+def norm_query(q):
+    """cache key part: the whole query, case/space-normalised (different searches never share an entry)"""
+    return ' '.join((q or '').lower().split())
+
+
 def _cached(key, fetch):
-    """one retry, then the last good answer: a single YouTube hiccup must not show an empty list"""
+    """one retry, then the last good answer of THIS key (at most CACHE_MAX_AGE old):
+    a single YouTube hiccup must not show an empty list, and nothing stale is ever shown"""
     import time
     try:
         from .common import load, save
@@ -90,17 +99,23 @@ def _cached(key, fetch):
             if value and value[0] if isinstance(value, tuple) else value:
                 if save:
                     cache = load('yt_cache.json', {})
-                    cache[key] = value
+                    now = time.time()
+                    cache = {k: v for k, v in cache.items()              # drop old / old-format entries
+                             if isinstance(v, dict) and now - v.get('t', 0) < CACHE_MAX_AGE}
+                    cache[key] = {'t': now, 'v': value}
                     save('yt_cache.json', cache)
                 return value
         except Exception:
             pass
         time.sleep(1)
-    return load('yt_cache.json', {}).get(key) if load else None
+    hit = load('yt_cache.json', {}).get(key) if load else None
+    if isinstance(hit, dict) and time.time() - hit.get('t', 0) < CACHE_MAX_AGE:
+        return hit['v']
+    return None
 
 
 def search(q, limit=30):
-    res = _cached('s:' + q, lambda: _items(_post('search', {'query': q}))[:limit])
+    res = _cached('s:' + norm_query(q), lambda: _items(_post('search', {'query': q}))[:limit])
     return res or []
 
 

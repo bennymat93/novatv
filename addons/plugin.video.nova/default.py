@@ -235,13 +235,13 @@ def list_(m, path, page='1', **filters):
     end('movies' if m == 'movie' else 'tvshows')
 
 
-def hub_search(q=''):
+def hub_search(q='', s=None, e=None):
     if not q:
         q = xbmcgui.Dialog().input(providers.s('hub_search'))
     if not q:
         return end()
     xbmcplugin.setPluginCategory(HANDLE, q)
-    providers.hub_results(HANDLE, q, media_item)
+    providers.hub_results(HANDLE, q, media_item, season=s, episode=e)
     end('videos', cache=False)
 
 
@@ -250,6 +250,9 @@ def play(m, id, q, alt='', s=None, e=None):
         pov = POV + urlencode({'mode': 'play_media', 'mediatype': 'movie', 'tmdb_id': id})
     else:
         pov = POV + urlencode({'mode': 'play_media', 'mediatype': 'episode', 'tmdb_id': id, 'season': s, 'episode': e})
+        from resources.lib import epmatch       # other sources: the text states the episode, results match it exactly
+        return providers.play_with_fallback(pov, epmatch.query_for(q, s, e), epmatch.query_for(alt, s, e) if alt else '',
+                                            season=s, episode=e, show=q, alt_show=alt)
     providers.play_with_fallback(pov, q, alt)
 
 
@@ -305,9 +308,9 @@ def episodes(tv_id, s):
                   'episode': e['episode_number']}
         manual = dict(params, autoplay='false')
         li.addContextMenuItems([(T('choose_src'), 'PlayMedia(%s)' % (POV + urlencode(manual))),
-                                (providers.s('hub_search'), 'Container.Update(%s)' % url(a='hub_search', q=show.get('name') or ''))])
-        target = url(a='play', m='episode', id=tv_id, s=s, e=e['episode_number'],
-                     q='%s %s' % (show.get('name') or '', e.get('name') or ''),
+                                (providers.s('hub_search'), 'Container.Update(%s)' % url(a='hub_search', q=show.get('name') or '',
+                                                                                         s=s, e=e['episode_number']))])
+        target = url(a='play', m='episode', id=tv_id, s=s, e=e['episode_number'], q=show.get('name') or '',
                      alt=show.get('original_name') if show.get('original_name') != show.get('name') else '')
         xbmcplugin.addDirectoryItem(HANDLE, target, li, False)
     end('episodes', cache=False)
@@ -423,7 +426,7 @@ def router(p):
         'sources': lambda: providers.sources_screen(HANDLE, url),
         'prov_toggle': lambda: (providers.toggle(p['id']), refresh()),
         'prov_install_all': lambda: (providers.install_all(), refresh()),
-        'hub_search': lambda: hub_search(p.get('q', '')),
+        'hub_search': lambda: hub_search(p.get('q', ''), p.get('s'), p.get('e')),
         'status': lambda: status.listing(HANDLE),
         'sysreport': lambda: sysupdate.listing(HANDLE, url),
         'sysupdate': system_update,
