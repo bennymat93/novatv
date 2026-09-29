@@ -60,6 +60,7 @@ def main():
     shutil.rmtree(SITE, ignore_errors=True)
     os.makedirs(os.path.join(SITE, 'repo'))
     os.makedirs(os.path.join(SITE, 'builds'))
+    shutil.copy(os.path.join(ROOT, 'docs', 'privacy.html'), SITE)   # linked from the Google sign-in screen: always there
     xml = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', '<addons>']
     for ad in ADDONS:
         src = os.path.join(ROOT, 'addons', ad)

@@ -60,6 +60,19 @@ def both(*cmds):
         raise SystemExit('failed: %s' % ', '.join(bad))
 
 
+def push_site(v, message):
+    """site/ (repository, guide, builds) -> gh-pages"""
+    ghp = os.path.join(ROOT, 'work', 'ghp')
+    for n in os.listdir(ghp):
+        if n != '.git':
+            p = os.path.join(ghp, n)
+            shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
+    shutil.copytree(os.path.join(ROOT, 'site'), ghp, dirs_exist_ok=True)
+    run('git', 'add', '-A', cwd=ghp)
+    run('git', 'commit', '-q', '--allow-empty', '-m', message + TRAILER, cwd=ghp)
+    run('git', 'push', '-q', 'origin', 'gh-pages', cwd=ghp)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--version', required=True)
@@ -78,6 +91,7 @@ def main():
     step(v, 'tests', lambda: run(PY, 'tools/test_suite.py', '--version', v, '--stop-on-fail', '--resume'))
     run(PY, 'tools/make_guide.py')                     # now includes this run's test results
     shutil.copy(os.path.join(ROOT, 'docs', 'guide.html'), os.path.join(ROOT, 'site', 'guide.html'))
+    push_site(v, 'Repository v%s (tested; packages follow)' % v)   # the add-on update is live before the packages
     # APKs and the Windows installer build at the same time; then the emulator test runs next to the installed-copy test
     step(v, 'packages', lambda: both([VENV if os.path.exists(VENV) else PY, 'tools/make_apk.py', '--version', v],
                                      [PY, 'tools/make_windows.py', '--version', v]))
@@ -103,15 +117,7 @@ def main():
     run('git', 'add', 'docs')
     run('git', 'commit', '-q', '--allow-empty', '-m', 'Guide: regenerate for v%s%s' % (v, TRAILER))
     run('git', 'push', '-q', 'origin', 'main')
-    ghp = os.path.join(ROOT, 'work', 'ghp')
-    for n in os.listdir(ghp):
-        if n != '.git':
-            p = os.path.join(ghp, n)
-            shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
-    shutil.copytree(os.path.join(ROOT, 'site'), ghp, dirs_exist_ok=True)
-    run('git', 'add', '-A', cwd=ghp)
-    run('git', 'commit', '-q', '--allow-empty', '-m', 'Site v%s%s' % (v, TRAILER), cwd=ghp)
-    run('git', 'push', '-q', 'origin', 'gh-pages', cwd=ghp)
+    push_site(v, 'Site v%s' % v)
     d = os.path.join(ROOT, 'dist')
     assets = [os.path.join(d, n) for n in ('BN-Stream-21.3-arm64-v8a.apk', 'BN-Stream-21.3-armeabi-v7a.apk',
                                            'BN-Stream-Setup-%s.exe' % v, 'NovaTV-%s.zip' % v)]

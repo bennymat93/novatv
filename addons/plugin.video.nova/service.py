@@ -532,9 +532,24 @@ def main():
             xbmc.executebuiltin('Action(reloadkeymaps)')
     except Exception as e:
         log('keymap: %s' % e, xbmc.LOGWARNING)
-    if ADDON.getSetting('bn_player_set') != 'true':
-        xbmc.executebuiltin('Skin.SetString(__chooseplayer,__bnplayer)')   # once: a later choice is kept
-        ADDON.setSetting('bn_player_set', 'true')
+    def bn_player_job():
+        # the BN player is the default with every new version; a viewer's own choice is kept until the next one.
+        # Set once the skin is loaded and read back (set too early / a skin update that rewrote its settings
+        # left installs updated from the repository on another player style).
+        version = ADDON.getAddonInfo('version')
+        if ADDON.getSetting('bn_player_ver') == version and xbmc.getInfoLabel('Skin.String(__chooseplayer)'):
+            return
+        mon = monitor()
+        for _ in range(60):
+            if xbmc.getCondVisibility('Window.IsVisible(home)'):
+                xbmc.executebuiltin('Skin.SetString(__chooseplayer,__bnplayer)')
+                if not mon.waitForAbort(1) and xbmc.getInfoLabel('Skin.String(__chooseplayer)') == '__bnplayer':
+                    ADDON.setSetting('bn_player_ver', version)
+                    log('player style: BN player (version %s)' % version)
+                    return
+            if mon.waitForAbort(2):
+                return
+    threading.Thread(target=bn_player_job, daemon=True).start()
     try:        # YouTube's local server port inside a range Windows reserved -> no YouTube playback
         from resources.lib import ytport
         ytport.check(fix=True)

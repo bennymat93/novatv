@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+- **Google Drive is active.** OAuth client "BN Stream Kodi" (TV sign-in), the app is published, and there is a privacy policy page (docs/privacy.html -> site). Verified against a real Drive: sign-in with a code, a 6 MB resumable backup upload, a byte-identical restore, sync overwrite and delete.
+- **The BN player comes back after updates.** It is set once per version, after the skin has loaded, and read back. Before, a one-time flag set too early, or a skin update, left installs updated from the repository on another player style. The viewer's own choice is kept until the next version.
+- release.py pushes the repository right after the tests, before the APKs and the installer.
+
 ## 1.2.0
 **Main menu:** "טלוויזיה ורדיו" and "מועדפים" entries. The default colours are BN gold.
 
