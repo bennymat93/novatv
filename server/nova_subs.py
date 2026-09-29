@@ -235,8 +235,27 @@ def wrap(text, width=42):
 RTL = '‫'   # right-to-left embedding keeps punctuation on the correct side
 
 
+# sound descriptions are not dialogue: [Music], [מוזיקה], (צחוק), ♪ ... ♪, *applause*
+SOUND = re.compile(r'\[[^\]\n]{0,40}\]|\([^)\n]{0,40}\)|\*[^*\n]{0,40}\*|[♪♫♬]+[^♪♫♬\n]*[♪♫♬]*|[♪♫♬]')
+SOUND_WORDS = re.compile(r'^\W*(music|מוזיקה|מוסיקה|музыка|applause|מחיאות כפיים|laughter|צחוק|смех|silence|שקט)\W*$', re.I)
+
+
+def speech_only(text):
+    """the spoken words of a cue without sound descriptions; '' when nothing is said"""
+    lines = []
+    for line in (text or '').split('\n'):
+        clean = re.sub(r'\s{2,}', ' ', SOUND.sub('', line.replace(RTL, ''))).strip()
+        clean = re.sub(r'\s+([?!.,:;])', r'\1', clean)              # "איך אתה ?" -> "איך אתה?"
+        if not re.sub(r'[\s\-–—:.,]', '', clean) or SOUND_WORDS.match(clean):
+            continue                                              # only a tag (or its dash) was on this line
+        lines.append(clean)
+    return '\n'.join(lines)
+
+
 def to_srt(cues):
     out = []
+    cues = [dict(c, he=speech_only(c.get('he', ''))) for c in cues]
+    cues = [c for c in cues if c['he']]                  # a cue that was only [מוזיקה] is dropped
     for i, c in enumerate(sorted(cues, key=lambda c: c['start']), 1):
         body = '\n'.join(RTL + l for l in wrap(c['he']).split('\n'))
         out.append('%d\n%s --> %s\n%s\n' % (i, ts(c['start']), ts(c['end']), body))

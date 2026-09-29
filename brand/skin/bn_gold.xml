@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BN Stream default colours: FENtastic's own backgrounds, the blue accent replaced by BN gold (as the BN player) -->
+<colors>
+	<color name="accent_color">FFE8BE5A</color>
+	<color name="selected">FFE8BE5A</color>
+	<color name="button_focus">FFE8BE5A</color>
+	<color name="button_focus2">99E8BE5A</color>
+</colors>

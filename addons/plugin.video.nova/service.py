@@ -581,6 +581,17 @@ def main():
             log('google drive: %s' % e, xbmc.LOGWARNING)
     later(120, gdrive_job)
 
+    def pvr_ready_job():
+        # the TV & Radio home rows reload once the TV service has its channels (their path includes this property)
+        mon = monitor()
+        for _ in range(600):
+            if xbmc.getCondVisibility('PVR.HasTVChannels'):
+                xbmcgui.Window(10000).setProperty('BN.PVRReady', '1')
+                return
+            if mon.waitForAbort(1):
+                return
+    later(1, pvr_ready_job)
+
     def binary_job():
         # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not
         # shipped inside the Android app: install the right build for this device from the Kodi repository

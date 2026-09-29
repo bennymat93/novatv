@@ -13,7 +13,7 @@ import xbmcgui
 from .common import monitor
 import xbmcvfs
 
-from .common import T, load, save, PROFILE, log
+from .common import T, load, save, PROFILE, log, MEDIA
 
 MERGED_M3U = os.path.join(PROFILE, 'nova_channels.m3u')
 MERGED_EPG = os.path.join(PROFILE, 'nova_epg.xml.gz')
@@ -442,20 +442,77 @@ def edit_sources():
         merge()
 
 
-def channel_list(handle, group=None):
-    """Yes/HOT-style list: number, logo, what is on now (with progress) and next."""
+_POSTERS = None
+
+
+def _poster_key(name):
+    """channel name -> key: without resolution / quality / [tags] / (Israel), letters and digits only"""
+    name = re.sub(r'\((?:\d{3,4}[pi]|israel)\)|\[[^\]]*\]', ' ', (name or '').lower())
+    name = re.sub(r'\b(?:hd|fhd|uhd|sd|hevc|israel|\d{3,4}[pi])\b', ' ', name)
+    return re.sub(r'[^0-9a-z\u0590-\u05ff]+', '-', name).strip('-')
+
+
+def channel_poster(label):
+    """the 3D poster made for this channel at build time (tools/make_channel_art.py), '' when none"""
+    global _POSTERS
+    folder = os.path.join(MEDIA, 'channels')
+    if _POSTERS is None:
+        try:
+            with open(os.path.join(folder, 'index.json'), encoding='utf-8') as f:
+                _POSTERS = {_poster_key(k.replace('-', ' ')): v for k, v in json.load(f).items()}
+        except (OSError, ValueError):
+            _POSTERS = {}
+    fn = _POSTERS.get(_poster_key(label))
+    return os.path.join(folder, fn) if fn else ''
+
+
+MAIN = ['kan 11', 'keshet 12', 'channel 13', 'now 14', 'i24news hebrew', 'channel 9', 'channel 24', 'kan educational',
+        'makan 33', 'knesset', 'sport 1', 'sport 2', 'sport 3', 'sport 4', 'sport 5', '5sport', 'one', 'hot', 'yes']
+
+
+def _main_rank(label):
+    low = (label or '').lower()
+    return next((i for i, k in enumerate(MAIN) if low.startswith(k)), len(MAIN))
+
+
+def group_id(name):
+    """PVR group id by its name (Israel, News, ...), None when missing"""
+    for g in _rpc('PVR.GetChannelGroups', channeltype='tv').get('result', {}).get('channelgroups', []):
+        if g['label'].lower() == (name or '').lower():
+            return g['channelgroupid']
+    return None
+
+
+def channel_list(handle, group=None, gname=None, widget=False):
+    """Yes/HOT-style list: number, logo (3D poster for the Israeli channels), what is on now (with progress) and next.
+    widget: the home rows - clean names (no number / resolution), the poster is the picture"""
     import xbmcplugin
+    # no waiting here: the home rows carry r=$INFO[Window(Home).Property(BN.PVRReady)] in their path, and the service
+    # sets that property once the TV service has its channels -> Kodi reloads the rows by itself
+    if gname:
+        group = group_id(gname)
+        if group is None:
+            xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+            return
     props = ['channelnumber', 'icon', 'broadcastnow', 'broadcastnext', 'hidden']
     r = _rpc('PVR.GetChannels', channelgroupid=int(group) if group else 'alltv', properties=props)
-    for c in sorted(r.get('result', {}).get('channels', []), key=lambda c: c.get('channelnumber') or 0):
+    chans = sorted(r.get('result', {}).get('channels', []), key=lambda c: c.get('channelnumber') or 0)
+    if widget:                        # the home row opens with the main channels
+        chans.sort(key=lambda c: _main_rank(c['label']))
+    for c in chans:
         if c.get('hidden'):
             continue
         now, nxt = c.get('broadcastnow') or {}, c.get('broadcastnext') or {}
-        label = '[B]%s[/B]  %s' % (c.get('channelnumber'), c['label'])
-        if now.get('title'):
-            label += '   [COLOR grey]%s[/COLOR]' % now['title']
+        if widget:
+            label = re.sub(r'\s*\((?:\d{3,4}[pi])\)|\s*\[[^\]]*\]', '', c['label']).strip()
+        else:
+            label = '[B]%s[/B]  %s' % (c.get('channelnumber'), c['label'])
+            if now.get('title'):
+                label += '   [COLOR grey]%s[/COLOR]' % now['title']
         li = xbmcgui.ListItem(label)
-        li.setArt({'icon': c.get('icon') or 'DefaultTVShows.png', 'thumb': c.get('icon') or 'DefaultTVShows.png'})
+        poster = channel_poster(c['label'])
+        logo = c.get('icon') or 'DefaultTVShows.png'
+        li.setArt({'icon': poster or logo, 'thumb': poster or logo, 'poster': poster or logo, 'clearlogo': c.get('icon') or ''})
         plot = ''
         if now.get('title'):
             plot = '[B]%s %s[/B]  (%d%%)\n%s' % (now.get('starttime', '')[11:16], now['title'],

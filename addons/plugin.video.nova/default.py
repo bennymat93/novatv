@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 from urllib.parse import parse_qsl, urlencode
 
@@ -111,7 +112,7 @@ def apply_details(li, tag, m, d):
 
 # ------------------------------------------------------------------ root
 def root():
-    folder('[B]%s[/B]' % providers.s('hub_search'), url(a='hub_search'), icon('search'))
+    folder('[B]%s[/B]' % providers.s('hub_search'), url(a='hub_search'), os.path.join(MEDIA, 'search_all.png'))   # a search-box tile
     folder(T('movies'), url(a='media_root', m='movie'), icon('movies'))
     folder(T('series'), url(a='media_root', m='tv'), icon('series'))
     folder(T('tv'), url(a='tv_root'), icon('tv'))
@@ -146,7 +147,8 @@ GENRES = {  # tmdb genre ids (movie, tv)
     'movie': [28, 12, 16, 35, 80, 99, 18, 10751, 14, 36, 27, 10402, 9648, 10749, 878, 53, 10752, 37],
     'tv': [10759, 16, 35, 80, 99, 18, 10751, 10762, 9648, 10763, 10764, 10765, 10766, 10767, 10768, 37],
 }
-LANGS = [('he', 'hebrew'), ('en', 'english'), ('ru', 'russian')]
+LANGS = [('he', 'hebrew'), ('en', 'english'), ('ru', 'russian'), ('fr', 'french'), ('es', 'spanish'), ('ko', 'korean'),
+         ('ja', 'japanese'), ('tr', 'turkish'), ('de', 'german'), ('it', 'italian'), ('hi', 'hindi')]
 
 
 def media_root(m):
@@ -162,17 +164,24 @@ def media_root(m):
     end(cache=False)
 
 
+def _tile(name, fallback):
+    """category tile made at build time (tools/make_category_art.py): symbol / year / language on a card"""
+    import os
+    p = os.path.join(MEDIA, 'cats', name + '.png')
+    return p if os.path.exists(p) else fallback
+
+
 def genres(m):
     for g in tmdb('/genre/%s/list' % m)['genres']:
         folder(g['name'], url(a='list', m=m, path='/discover/%s' % m, with_genres=g['id'],
-                              sort_by='popularity.desc'), icon('genres'))
+                              sort_by='popularity.desc'), _tile('genre_%d' % g['id'], icon('genres')))
     end()
 
 
 def langs(m):
     for code, key in LANGS:
         folder(T(key), url(a='list', m=m, path='/discover/%s' % m, with_original_language=code,
-                           sort_by='popularity.desc'), icon('lang_' + code))
+                           sort_by='popularity.desc'), _tile('lang_' + code, icon('lang_' + code)))
     end()
 
 
@@ -181,8 +190,25 @@ def years(m):
     field = 'primary_release_year' if m == 'movie' else 'first_air_date_year'
     for y in range(datetime.date.today().year, 1949, -1):
         folder(str(y), url(a='list', m=m, path='/discover/%s' % m, sort_by='popularity.desc', **{field: y}),
-               icon('years'))
+               _tile('year_%d' % y, icon('years')))
     end()
+
+
+def w_search(m):
+    """widget: one "search" tile shaped like a search field (movies only / series only)"""
+    tile = os.path.join(MEDIA, 'search_%s.png' % m)
+    li = xbmcgui.ListItem(T('search'))
+    li.setArt({'thumb': tile, 'poster': tile, 'landscape': tile, 'fanart': tile, 'icon': tile})   # the full tile
+    xbmcplugin.addDirectoryItem(HANDLE, url(a='search', m=m), li, True)
+    end(cache=False)
+
+
+def tvradio():
+    """TV & Radio (main menu): Israeli channels first, every channel group, the guide, radio"""
+    folder(T('israel'), url(a='tv_list', gname='Israel'), 'DefaultTVShows.png')
+    folder(T('channels'), url(a='tv_root'), 'DefaultTVShows.png')
+    folder(T('radio'), url(a='radio_root'), 'DefaultMusicGenres.png')
+    end(cache=False)
 
 
 def _fav_ctx(kind, item_id, label, extra=''):
@@ -408,6 +434,8 @@ def router(p):
     simple = {
         'media_root': lambda: media_root(p['m']),
         'genres': lambda: genres(p['m']),
+        'w_search': lambda: w_search(p['m']),
+        'tvradio': tvradio,
         'langs': lambda: langs(p['m']),
         'years': lambda: years(p['m']),
         'search': lambda: search(p['m']),
@@ -423,7 +451,7 @@ def router(p):
         'acc': lambda: accounts.action(p['do']),
         'tv_root': lambda: iptv.menu(HANDLE, url, folder, end),
         'tv_do': lambda: iptv.action(p['do']),
-        'tv_list': lambda: iptv.channel_list(HANDLE, p.get('group')),
+        'tv_list': lambda: iptv.channel_list(HANDLE, p.get('group'), p.get('gname'), p.get('w') == '1'),
         'tv_play': lambda: iptv.play_channel(p['id']),
         'radio_root': lambda: radio.menu(HANDLE, url, folder, end),
         'radio_list': lambda: radio.listing(HANDLE, url, end, **p),

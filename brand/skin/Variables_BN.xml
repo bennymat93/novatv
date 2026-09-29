@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- variables for the BN Details view (View_60_BN.xml) -->
 <includes>
+	<variable name="BNTvRadioLabel">
+		<value condition="String.StartsWith(System.Language,Hebrew)">טלוויזיה ורדיו</value>
+		<value condition="String.StartsWith(System.Language,Russian)">ТВ и радио</value>
+		<value>TV &amp; Radio</value>
+	</variable>
 	<variable name="BNBackdrop">
 		<value condition="!String.IsEmpty(ListItem.Art(fanart))">$INFO[ListItem.Art(fanart)]</value>
 		<value condition="!String.IsEmpty(ListItem.Art(tvshow.fanart))">$INFO[ListItem.Art(tvshow.fanart)]</value>

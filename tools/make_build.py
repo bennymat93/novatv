@@ -33,9 +33,9 @@ NOVA = 'plugin://plugin.video.nova/'
 MENU = {  # include name -> (file, label, nova path, icon, id)
     'MoviesMainMenu': ('script-fentastic-main_menu_movies.xml', '$LOCALIZE[342]', '?a=media_root&amp;m=movie', 'movies.png', 'movies', 19000),
     'TVShowsMainMenu': ('script-fentastic-main_menu_tvshows.xml', '$LOCALIZE[20343]', '?a=media_root&amp;m=tv', 'tv.png', 'tvshows', 22000),
-    'Custom1MainMenu': ('script-fentastic-main_menu_custom1.xml', '$LOCALIZE[19020]', '?a=tv_root', 'livetv.png', 'custom1', 23000),
-    'Custom2MainMenu': ('script-fentastic-main_menu_custom2.xml', '$LOCALIZE[19021]', '?a=radio_root', 'radio.png', 'custom2', 24000),
-    'Custom3MainMenu': ('script-fentastic-main_menu_custom3.xml', 'BN', '', 'favourites.png', 'custom3', 25000),
+    'Custom1MainMenu': ('script-fentastic-main_menu_custom1.xml', '$VAR[BNTvRadioLabel]', '?a=tvradio', 'livetv.png', 'custom1', 23000),
+    'Custom2MainMenu': ('script-fentastic-main_menu_custom2.xml', '$LOCALIZE[1036]', '?a=favs', 'favourites.png', 'custom2', 24000),
+    'Custom3MainMenu': ('script-fentastic-main_menu_custom3.xml', 'BN', '', 'addons.png', 'custom3', 25000),
 }
 HIDE = ['homemenunomusicbutton', 'homemenunomusicvideobutton', 'homemenunotvbutton', 'homemenunoradiobutton',
         'homemenunogamesbutton', 'homemenunopicturesbutton', 'homemenunovideosbutton', 'homemenunoweatherbutton',
@@ -80,6 +80,52 @@ def base_zip():
     return fetch(url, os.path.join(WORK, os.path.basename(url))), url
 
 
+# home widgets per main-menu item: (include name, file, first list id, [(widget type, NovaTV query, header)])
+_W = '[B][COLOR FFE8BE5A]%s[/COLOR][/B]'
+TV_GROUPS = [('News', 'חדשות'), ('Movies', 'סרטים'), ('Series', 'סדרות'), ('Kids', 'ילדים'), ('Sport', 'ספורט'),
+             ('Documentary', 'תיעודי'), ('Music', 'מוזיקה'), ('Russian', 'רוסית')]
+HOME_WIDGETS = [
+    ('MovieWidgets', 'script-fentastic-widget_movies.xml', 19011, [
+        ('BNSearchWidget', 'a=w_search&m=movie', 'חיפוש'),
+        ('WidgetListBigPoster', 'a=list&m=movie&path=/movie/top_rated', 'המדורגים ביותר'),
+        ('BNCategoryWidget', 'a=genres&m=movie', 'לפי קטגוריה'),
+        ('BNCategoryWidget', 'a=years&m=movie', 'לפי שנים'),
+        ('BNCategoryWidget', 'a=langs&m=movie', 'לפי שפה')]),
+    ('TVShowWidgets', 'script-fentastic-widget_tvshows.xml', 22011, [
+        ('BNSearchWidget', 'a=w_search&m=tv', 'חיפוש'),
+        ('WidgetListBigPoster', 'a=list&m=tv&path=/tv/top_rated', 'המדורגות ביותר'),
+        ('BNCategoryWidget', 'a=genres&m=tv', 'לפי קטגוריה'),
+        ('BNCategoryWidget', 'a=years&m=tv', 'לפי שנים'),
+        ('BNCategoryWidget', 'a=langs&m=tv', 'לפי שפה')]),
+    ('Custom1Widgets', 'script-fentastic-widget_custom1.xml', 23011,
+        [('WidgetListBigPoster', 'a=tv_list&gname=Israel&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצי ישראל')] +
+        [('WidgetListPoster', 'a=tv_list&gname=%s&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]' % g, label) for g, label in TV_GROUPS] +
+        [('WidgetListPoster', 'a=radio_list&by=country&v=IL', 'רדיו ישראל')]),
+    ('Custom2Widgets', 'script-fentastic-widget_custom2.xml', 24011, [
+        ('WidgetListPoster', 'a=favs&kind=movie', 'סרטים מועדפים'),
+        ('WidgetListPoster', 'a=favs&kind=series', 'סדרות מועדפות'),
+        ('WidgetListPoster', 'a=favs&kind=channel', 'ערוצים מועדפים'),
+        ('WidgetListPoster', 'a=favs&kind=radio', 'תחנות רדיו מועדפות'),
+        ('WidgetListPoster', 'a=history', 'נצפו לאחרונה')]),
+]
+
+
+def home_widgets(skin):
+    """the home screen rows of every main-menu item, all from NovaTV (no third-party add-on in the widgets)"""
+    for inc, fn, first, rows in HOME_WIDGETS:
+        out = ['<?xml version="1.0" encoding="UTF-8"?>', '<includes>', '    <include name="%s">' % inc]
+        for i, (kind, query, header) in enumerate(rows):
+            out += ['        <include content="%s">' % kind,
+                    '            <param name="content_path" value="%s%s"/>' % (NOVA, '?' + query.replace('&', '&amp;')),
+                    '            <param name="widget_header" value="%s"/>' % (_W % header),
+                    '            <param name="widget_target" value="videos"/>',
+                    '            <param name="list_id" value="%d"/>' % (first + i),
+                    '        </include>']
+        out += ['    </include>', '</includes>', '']
+        with open(os.path.join(skin, 'xml', fn), 'w', encoding='utf-8') as f:
+            f.write(chr(10).join(out))
+
+
 def patch_menu(skin):
     xml = os.path.join(skin, 'xml')
     for inc, (fn, label, path, ic, mid, num) in MENU.items():
@@ -105,6 +151,13 @@ def patch_skin_settings(path):
         f.write(s)
 
 
+def gold_osd(path):
+    """skin setting: the focus colour of the other player styles is BN gold too (was red)"""
+    s = open(path, encoding='utf-8').read()
+    s = re.sub(r'(<setting id="osdbuttonfocuscolor" type="string">)[^<]*(</setting>)', r'\g<1>FFE8BE5A\g<2>', s)
+    open(path, 'w', encoding='utf-8').write(s)
+
+
 def bn_player_default(path):
     """skin setting: the BN player style is the default one"""
     s = open(path, encoding='utf-8').read()
@@ -122,6 +175,7 @@ def patch_guisettings(path):
         rx = re.compile(r'<setting id="%s"[^>]*>[^<]*</setting>' % re.escape(sid))
         line = '<setting id="%s">%s</setting>' % (sid, val)
         s = rx.sub(line, s) if rx.search(s) else s.replace('</settings>', '    %s\n</settings>' % line)
+    setv('lookandfeel.skincolors', 'bn_gold')               # BN gold accent (brand/skin/bn_gold.xml)
     setv('lookandfeel.soundskin', 'resource.uisounds.nova')
     setv('pvrmanager.usebackendchannelnumbers', 'true')
     setv('pvrplayback.switchtofullscreenchanneltypes', '3')
@@ -260,14 +314,17 @@ def bn_skin(stage):
     """BN Details view (id 60) + modern background"""
     skin = os.path.join(stage, 'addons', 'skin.fentastic')
     xml = os.path.join(skin, 'xml')
-    for f in ('View_60_BN.xml', 'Variables_BN.xml'):
+    for f in ('View_60_BN.xml', 'Variables_BN.xml', 'Includes_BNWidgets.xml'):
         shutil.copy(os.path.join(SKIN_SRC, f), xml)
+    shutil.copy(os.path.join(SKIN_SRC, 'bn_gold.xml'), os.path.join(skin, 'colors'))   # default colours: BN gold
     shutil.copy(os.path.join(SKIN_SRC, 'bn_modern.jpg'), os.path.join(skin, 'extras', 'backgrounds'))
     inc = os.path.join(xml, 'Includes.xml')
     s = open(inc, encoding='utf-8').read()
     anchor = '<include file="script-fentastic-widget_movies.xml" />'
     if 'View_60_BN.xml' not in s:
         s = s.replace(anchor, '<include file="View_60_BN.xml" />\n\t<include file="Variables_BN.xml" />\n\t' + anchor, 1)
+    if 'Includes_BNWidgets.xml' not in s:
+        s = s.replace(anchor, '<include file="Includes_BNWidgets.xml" />\n\t' + anchor, 1)
     open(inc, 'w', encoding='utf-8').write(s)
     for win in ('MyVideoNav.xml', 'MyPrograms.xml'):
         p = os.path.join(xml, win)
@@ -510,6 +567,7 @@ def main():
         shutil.copytree(os.path.join(ROOT, 'addons', ad), dst,
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    home_widgets(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     patch_skin_search(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     fix_startup(STAGE)
     bn_skin(STAGE)
@@ -522,6 +580,7 @@ def main():
     apply_brand(STAGE)
     patch_skin_settings(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     bn_player_default(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
+    gold_osd(os.path.join(STAGE, 'userdata', 'addon_data', 'skin.fentastic', 'settings.xml'))
     patch_guisettings(os.path.join(STAGE, 'userdata', 'guisettings.xml'))
     gdrive_source(STAGE)
     patch_pov(os.path.join(STAGE, 'userdata', 'addon_data', 'plugin.video.pov', 'settings.xml'))

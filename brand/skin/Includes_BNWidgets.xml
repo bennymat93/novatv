@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BN home widgets (built on FENtastic's WidgetListPoster structure: CategoryLabel + list, same offsets and navigation)
+     BNSearchWidget   one big search tile, centred (Movies / Series)
+     BNCategoryWidget category tiles: a colour icon with the name under it (genres, years, languages, TV groups) -->
+<includes>
+	<include name="BNSearchWidget">
+		<definition>
+			<include content="CategoryLabel">
+				<param name="label">$PARAM[widget_header]</param>
+				<param name="list_id" value="$PARAM[list_id]"/>
+			</include>
+			<control type="list" id="$PARAM[list_id]">
+				<left>305</left>
+				<top>115</top>
+				<width>800</width>
+				<height>470</height>
+				<onright>$PARAM[list_id]</onright>
+				<visible>Integer.IsGreater(Container($PARAM[list_id]).NumItems,0) | Container($PARAM[list_id]).IsUpdating</visible>
+				<include content="WidgetListCommon">
+					<param name="list_id" value="$PARAM[list_id]"/>
+				</include>
+				<itemlayout width="800" height="460">
+					<control type="image">
+						<left>10</left><top>10</top><width>780</width><height>439</height>
+						<texture background="true">$INFO[ListItem.Icon]</texture>
+						<aspectratio>keep</aspectratio>
+					</control>
+				</itemlayout>
+				<focusedlayout width="800" height="460">
+					<control type="image">
+						<left>0</left><top>0</top><width>800</width><height>459</height>
+						<texture colordiffuse="button_focus" border="24">masks/landscape.png</texture>
+						<visible>Control.HasFocus($PARAM[list_id])</visible>
+					</control>
+					<control type="image">
+						<left>10</left><top>10</top><width>780</width><height>439</height>
+						<texture background="true">$INFO[ListItem.Icon]</texture>
+						<aspectratio>keep</aspectratio>
+					</control>
+				</focusedlayout>
+				<content target="$PARAM[widget_target]">$PARAM[content_path]</content>
+			</control>
+		</definition>
+	</include>
+
+	<include name="BNCategoryWidget">
+		<definition>
+			<include content="CategoryLabel">
+				<param name="label">$PARAM[widget_header]</param>
+				<param name="list_id" value="$PARAM[list_id]"/>
+			</include>
+			<include content="BusyListSpinner">
+				<param name="list_id" value="$PARAM[list_id]"/>
+				<param name="posy" value="200"/>
+			</include>
+			<control type="fixedlist" id="$PARAM[list_id]">
+				<left>0</left>
+				<top>115</top>
+				<right>0</right>
+				<height>410</height>
+				<movement>5</movement>
+				<visible>Integer.IsGreater(Container($PARAM[list_id]).NumItems,0) | Container($PARAM[list_id]).IsUpdating</visible>
+				<include content="WidgetListCommon">
+					<param name="list_id" value="$PARAM[list_id]"/>
+				</include>
+				<itemlayout width="260" height="393">
+					<control type="group">
+						<left>68</left><top>15</top>
+						<control type="image">
+							<width>230</width><height>230</height>
+							<texture background="true">$INFO[ListItem.Icon]</texture>
+							<aspectratio>keep</aspectratio>
+						</control>
+						<control type="label">
+							<top>240</top><width>230</width><height>60</height>
+							<font>font27</font><align>center</align><aligny>center</aligny>
+							<textcolor>unfocused_text</textcolor>
+							<label>$INFO[ListItem.Label]</label>
+						</control>
+					</control>
+				</itemlayout>
+				<focusedlayout width="260" height="393">
+					<control type="group">
+						<depth>DepthContentPopout</depth>
+						<left>68</left><top>15</top>
+						<control type="image">
+							<left>-8</left><top>-8</top><width>246</width><height>246</height>
+							<texture colordiffuse="button_focus" border="20">masks/poster.png</texture>
+							<visible>Control.HasFocus($PARAM[list_id])</visible>
+						</control>
+						<control type="image">
+							<width>230</width><height>230</height>
+							<texture background="true">$INFO[ListItem.Icon]</texture>
+							<aspectratio>keep</aspectratio>
+						</control>
+						<control type="label">
+							<top>240</top><width>230</width><height>60</height>
+							<font>font27</font><align>center</align><aligny>center</aligny>
+							<textcolor>button_focus</textcolor>
+							<label>[B]$INFO[ListItem.Label][/B]</label>
+						</control>
+					</control>
+				</focusedlayout>
+				<content target="$PARAM[widget_target]">$PARAM[content_path]</content>
+			</control>
+		</definition>
+	</include>
+</includes>
