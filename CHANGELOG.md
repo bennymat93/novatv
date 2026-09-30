@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2
+- **Device profiles:** skin zoom removed. Kodi's zoom crops the screen edges: the clock and logo were cut off even at +4 %. Devices that already got a zoom are reset.
+- **System status:** TMDb's capped count now shows "20,000+" instead of a misleading 20,001.
+- **Channels:** 60 channels confirmed gone (404/410/no server) are filtered. The filter now matches URLs with and without headers.
+- **First run:** the app offer waits for the device-type answer; one question at a time.
+
 ## 1.4.1
 - The device-type question and the BN Stream app offer are asked only once, on the first start after installation. The answers are kept in a file written at once; Kodi's add-on settings were not always saved on Android when the app was closed.
 - The app offer never appears inside the BN Stream app itself (better detection).

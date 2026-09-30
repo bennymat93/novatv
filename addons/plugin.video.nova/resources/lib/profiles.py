@@ -16,17 +16,18 @@ LABELS = {
     'phone': ('סמארטפון', 'Smartphone'),
     'tablet': ('טאבלט', 'Tablet'),
 }
-# skinzoom: % added to the skin (bigger targets / text); touch: skin touch mode (on-screen Back, drag scrolling);
+# skinzoom: 0 everywhere - Kodi's zoom enlarges from the centre and crops the edges (clock, logo cut at +4 %, 1.4.2 tests);
+# the 10-foot layout's rows (95 px of 1080 = 9 % of the height) are already larger than 48 dp touch targets; touch: skin touch mode (on-screen Back, drag scrolling);
 # mouse: pointer input; saver: screensaver minutes (0 = never); dim: dim on pause; refresh: switch the display
 # refresh rate to the video's (smooth motion on TVs, off where switching blanks the screen or is impossible);
 # buffer: seconds of video to read ahead (readfactor) - more on flaky mobile links
 PROFILES = {
-    'tv':     {'skinzoom': 0,  'touch': False, 'mouse': False, 'saver': 10, 'dim': True,  'refresh': True,  'readfactor': 400},
-    'pc':     {'skinzoom': 0,  'touch': False, 'mouse': True,  'saver': 10, 'dim': True,  'refresh': False, 'readfactor': 400},
-    'touch':  {'skinzoom': 6,  'touch': True,  'mouse': True,  'saver': 15, 'dim': True,  'refresh': False, 'readfactor': 400},
-    'car':    {'skinzoom': 12, 'touch': True,  'mouse': True,  'saver': 0,  'dim': False, 'refresh': False, 'readfactor': 1000},
-    'phone':  {'skinzoom': 10, 'touch': True,  'mouse': True,  'saver': 5,  'dim': True,  'refresh': False, 'readfactor': 1000},
-    'tablet': {'skinzoom': 6,  'touch': True,  'mouse': True,  'saver': 10, 'dim': True,  'refresh': False, 'readfactor': 500},
+    'tv':     {'skinzoom': 0,   'touch': False, 'mouse': False, 'saver': 10, 'dim': True,  'refresh': True,  'readfactor': 400},
+    'pc':     {'skinzoom': 0,   'touch': False, 'mouse': True,  'saver': 10, 'dim': True,  'refresh': False, 'readfactor': 400},
+    'touch':  {'skinzoom': 0,   'touch': True,  'mouse': True,  'saver': 15, 'dim': True,  'refresh': False, 'readfactor': 400},
+    'car':    {'skinzoom': 0,  'touch': True,  'mouse': True,  'saver': 0,  'dim': False, 'refresh': False, 'readfactor': 1000},
+    'phone':  {'skinzoom': 0,  'touch': True,  'mouse': True,  'saver': 5,  'dim': True,  'refresh': False, 'readfactor': 1000},
+    'tablet': {'skinzoom': 0,   'touch': True,  'mouse': True,  'saver': 10, 'dim': True,  'refresh': False, 'readfactor': 500},
 }
 
 

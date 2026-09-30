@@ -718,6 +718,11 @@ def main():
             from resources.lib import profiles
             if not profiles.current() and 'testkodi' not in xbmcvfs.translatePath('special://xbmc').lower():
                 profiles.wizard()
+            elif profiles.current():
+                # 1.4.0/1.4.1 touch / car / phone profiles zoomed the skin: Kodi then cut off the clock and logo
+                r = profiles._rpc('Settings.GetSettingValue', setting='lookandfeel.skinzoom')
+                if (r.get('result') or {}).get('value'):
+                    profiles._rpc('Settings.SetSettingValue', setting='lookandfeel.skinzoom', value=0)
         except Exception as e:
             log('device profile: %s' % e, xbmc.LOGWARNING)
     later(8, profile_job)

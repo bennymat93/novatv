@@ -5,7 +5,7 @@ own settings (`resources/lib/profiles.py`, `plan()`), no restart. Values below a
 
 | Setting | TV / box + remote | Desktop / laptop | Touch screen | Car screen | Smartphone | Tablet |
 |---|---|---|---|---|---|---|
-| Skin zoom (`lookandfeel.skinzoom`) | 0 | 0 | +6 % | +12 % | +10 % | +6 % |
+| Skin zoom (`lookandfeel.skinzoom`) | 0 | 0 | 0 | 0 | 0 | 0 |
 | Skin touch mode (on-screen Back, drag scrolling) | off | off | on | on | on | on |
 | Mouse / pointer (`input.enablemouse`) | off | on | on | on | on | on |
 | Screensaver | dim, 10 min | dim, 10 min | dim, 15 min | **never** | dim, 5 min | dim, 10 min |
@@ -21,9 +21,10 @@ own settings (`resources/lib/profiles.py`, `plan()`), no restart. Values below a
   (a stray mouse pointer steals focus). Refresh-rate switching gives judder-free 23.976/25/50 fps on TVs; it is off
   elsewhere because laptop panels and phones cannot switch, and some car head units blank the screen for seconds.
 - **Desktop / laptop:** mouse on, keyboard shortcuts (Help > Remote, keyboard and touch), same 10-foot layout.
-- **Touch / phone / tablet:** larger targets (Material and Apple guidance: at least 44–48 dp; +6..+10 % zoom lifts the
-  menu rows from ~81 to ~88+ px at 1080p), FENtastic's touch mode (on-screen Back button in every window, drag scrolling).
-- **Car:** the largest targets (+12 %), never sleeps, no dimming, the deepest read-ahead (tunnels, cell hand-overs).
+- **Touch / phone / tablet:** FENtastic's touch mode (on-screen Back button in every window, drag scrolling). The rows are
+  already large (a menu row is 95 px of 1080 = 9 % of the screen height, above the 44–48 dp guidance). Skin zoom was
+  tested and dropped: Kodi's zoom scales from the centre and cuts the clock and logo off even at +4 % (1.4.2 tests).
+- **Car:** never sleeps, no dimming, the deepest read-ahead (tunnels, cell hand-overs).
   Driving-safe use relies on the head unit's own lock-out; the BN home keeps TV & Radio one step from the start.
 - **Cache:** Kodi holds about 3x `memorysize` in RAM, so a fifth of RAM / 3 keeps the video cache far from low-memory
   kills on 1–2 GB boxes. Values snap to Kodi's own list of sizes.
