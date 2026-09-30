@@ -330,10 +330,15 @@ def configure_pvr(force=False):
             same = f.read() == body
     except Exception:
         same = False
-    with open(sp, 'w', encoding='utf-8') as f:
-        f.write(body)
-    # let Kodi number channels in our tvg-chno order
-    _rpc('Settings.SetSettingValue', setting='pvrmanager.usebackendchannelnumbers', value=True)
+    if not same:
+        # Kodi recreates a running client when its settings file changes: never rewrite an identical file
+        # (two rewrites right after a start = "Start aborted" and a frozen Kodi)
+        with open(sp, 'w', encoding='utf-8') as f:
+            f.write(body)
+    # let Kodi number channels in our tvg-chno order (only when not already set: a settings change restarts PVR too)
+    cur = _rpc('Settings.GetSettingValue', setting='pvrmanager.usebackendchannelnumbers').get('result', {}).get('value')
+    if cur is not True:
+        _rpc('Settings.SetSettingValue', setting='pvrmanager.usebackendchannelnumbers', value=True)
     if not was_installed:
         return install_addon(PVR)   # picks up the settings file on first start
     if same and not force and _addon_enabled():
