@@ -25,6 +25,9 @@
   2. Merge v1.4-work into main.
   3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
 
+## DONE 30/09 ~21:45 – 1.4.2 RELEASED (no skin zoom, 20,000+ counts, +60 dead filtered, one first-run question at a time)
+- Full UI update for existing installs = NovaTV Wizard > Update (the repository alone updates only the add-on code, not the skin)
+
 ## DONE 30/09 ~18:00 – 1.4.1 RELEASED (first-run questions once: common.flag + firstrun.json)
 
 ## DONE 30/09 ~16:45 – 1.4.0 RELEASED
