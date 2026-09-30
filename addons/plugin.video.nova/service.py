@@ -640,6 +640,15 @@ def main():
             log('ticker: %s' % e, xbmc.LOGWARNING)
     later(3, ticker_job)
 
+    def branding_job():
+        # BN name / logo in a plain Kodi: splash, Windows shortcuts, Android offer (resources/lib/branding.py)
+        try:
+            from resources.lib import branding
+            branding.apply()
+        except Exception as e:
+            log('branding: %s' % e, xbmc.LOGWARNING)
+    later(20, branding_job)
+
     def binary_job():
         # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not
         # shipped inside the Android app: install the right build for this device from the Kodi repository

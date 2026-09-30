@@ -6,6 +6,8 @@
     <setting id="open_on_start" label="Open NovaTV on Kodi start" type="bool" default="false"/>
     <setting id="bn_player_ver" type="text" default="" visible="false"/>
     <setting id="help_lang" type="text" default="" visible="false"/>
+    <setting id="brand_ver" type="text" default="" visible="false"/>
+    <setting id="brand_offer" type="text" default="" visible="false"/>
     <setting id="ui_sounds" label="Navigation sounds" type="bool" default="true"/>
     <setting id="ticker" label="News and weather ticker at the bottom of the home screen" type="bool" default="true"/>
     <setting id="ticker_city" label="Weather city" type="text" default="באר שבע"/>
