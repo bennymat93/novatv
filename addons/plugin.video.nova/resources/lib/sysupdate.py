@@ -26,6 +26,8 @@ S = {
     'summary': ('%d עודכנו · %d תקינים · %d שגיאות', '%d updated · %d OK · %d errors', 'обновлено %d · в порядке %d · ошибок %d'),
     'fix': ('תיקון אוטומטי', 'Auto-Fix', 'Автоисправление'),
     'fix_all': ('תקן את כל השגיאות', 'Auto-Fix all errors', 'Исправить все ошибки'),
+    'rollback': ('שחזר את המצב שלפני העדכון', 'Roll back to before the update', 'Откатить к состоянию до обновления'),
+    'backing': ('גיבוי ההגדרות לפני העדכון', 'Backing up the settings first', 'Резервная копия настроек'),
     'again': ('הרץ עדכון מערכת שוב', 'Run System Update again', 'Запустить обновление снова'),
     'fixed': ('תוקן', 'Fixed', 'Исправлено'),
     'not_fixed': ('עדיין לא תקין', 'Still not working', 'Всё ещё не работает'),
@@ -289,6 +291,13 @@ def run():
     from . import accounts
     pd = xbmcgui.DialogProgress()
     pd.create('BN Stream – ' + s('title'), s('running'))
+    pd.update(0, s('backing'))
+    try:                                   # settings, favourites, history, IPTV sources: rollback point
+        from . import backup
+        from .common import PROFILE
+        backup.make_zip(os.path.join(PROFILE, 'pre_update.zip'))
+    except Exception as e:
+        log('pre-update backup: %s' % e, xbmc.LOGWARNING)
     rows = []
     jobs = [(s('internet'), check_internet), (s('repos'), 'repos'), (s('autoupd'), check_autoupdate)]
     jobs += [(name, (lambda a=aid, n=name: check_addon(a, n))) for aid, name in core_addons()]
@@ -355,8 +364,17 @@ def listing(handle, url):
             if r['ok'] is False:
                 add('        [B][COLOR gold]» %s[/COLOR][/B]  [COLOR grey]%s[/COLOR]' % (s('fix'), r['name']),
                     url(a='sysfix', id=r['id']), r['detail'])
+    from .common import PROFILE
+    if rep and any(r['ok'] is False for r in rep['rows']) and os.path.exists(os.path.join(PROFILE, 'pre_update.zip')):
+        add('[COLOR FFE8BE5A]%s[/COLOR]' % s('rollback'), url(a='sysrollback'))
     add('[COLOR FF5AB4E8]%s[/COLOR]' % s('again'), url(a='sysupdate'))
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+
+
+def rollback():
+    from . import backup
+    from .common import PROFILE
+    backup.restore_zip(os.path.join(PROFILE, 'pre_update.zip'))
 
 
 def do_fix(rid):

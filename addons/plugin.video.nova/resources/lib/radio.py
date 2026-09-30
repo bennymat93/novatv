@@ -34,6 +34,27 @@ def _get(path, **params):
     return cache.get(ck, [])
 
 
+_POSTERS = None
+
+
+def poster(name):
+    """the station's 3D poster (tools/make_radio_art.py, same style as the Israeli TV channels) or None"""
+    global _POSTERS
+    import json
+    import os
+    import re
+    from .common import MEDIA
+    if _POSTERS is None:
+        try:
+            with open(os.path.join(MEDIA, 'radio', 'index.json'), encoding='utf-8') as f:
+                _POSTERS = json.load(f)
+        except Exception:
+            _POSTERS = {}
+    key = re.sub(r'[^0-9a-z֐-׿]+', '-', (name or '').lower()).strip('-')
+    fn = _POSTERS.get(key)
+    return os.path.join(MEDIA, 'radio', fn) if fn else None
+
+
 def menu(handle, url, folder, end):
     folder(T('israel'), url(a='radio_list', by='country', v='IL'), 'DefaultMusicGenres.png')
     folder(T('russia'), url(a='radio_list', by='country', v='RU'), 'DefaultMusicGenres.png')
@@ -65,7 +86,8 @@ def listing(handle, url, end, by, v):
             continue
         seen.add(name.lower())
         li = xbmcgui.ListItem(name)
-        li.setArt({'thumb': s.get('favicon') or 'DefaultAudio.png', 'icon': s.get('favicon') or 'DefaultAudio.png'})
+        pic = poster(' '.join(name.split())) or s.get('favicon') or 'DefaultAudio.png'
+        li.setArt({'thumb': pic, 'icon': pic, 'poster': pic})
         tag = li.getMusicInfoTag()
         tag.setTitle(name)
         tag.setGenres([g for g in (s.get('tags') or '').split(',') if g][:3])

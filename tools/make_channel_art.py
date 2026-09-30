@@ -114,6 +114,15 @@ def _rounded(size, radius):
     return m
 
 
+def visual(text):
+    """Pillow draws characters left to right: Hebrew must be reordered for display (python-bidi)"""
+    try:
+        from bidi.algorithm import get_display
+        return get_display(text)
+    except ImportError:
+        return text
+
+
 def poster(logo, name):
     base = Image.new('RGB', (W, H), (8, 10, 16))
     # background: deep radial glow behind the card
@@ -173,6 +182,7 @@ def poster(logo, name):
     # channel name under the card
     d = ImageDraw.Draw(base)
     f = _font(46)
+    name = visual(name)
     text = name if d.textlength(name, font=f) < W - 60 else name[:22] + '…'
     tw = d.textlength(text, font=f)
     d.text(((W - tw) / 2 + 2, cy + ch + 72), text, font=f, fill=(0, 0, 0, 180))

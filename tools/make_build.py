@@ -110,7 +110,7 @@ HOME_WIDGETS = [
     ('Custom1Widgets', 'script-fentastic-widget_custom1.xml', 23011,
         [('WidgetListBigPoster', 'a=tv_list&gname=Israel&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצים ישראליים')] +
         [('BNCategoryWidget', 'a=tv_countries&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצים מהעולם')] +
-        [('WidgetListPoster', 'a=radio_list&by=country&v=IL', 'רדיו ישראל')]),
+        [('WidgetListBigPoster', 'a=radio_list&by=country&v=IL', 'רדיו ישראל')]),
     ('Custom2Widgets', 'script-fentastic-widget_custom2.xml', 24011, [
         ('WidgetListPoster', 'a=favs&kind=movie', 'סרטים מועדפים'),
         ('WidgetListPoster', 'a=favs&kind=series', 'סדרות מועדפות'),

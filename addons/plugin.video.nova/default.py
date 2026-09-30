@@ -482,6 +482,7 @@ def router(p):
         'sysreport': lambda: sysupdate.listing(HANDLE, url),
         'sysupdate': system_update,
         'sysfix': lambda: (sysupdate.do_fix(p['id']), refresh()),
+        'sysrollback': sysupdate.rollback,
         'ai_subs_now': ai_subs_now,
         'subs_menu': subs_menu,
         'sync_menu': lambda: _pm().sync(),
@@ -518,13 +519,17 @@ def router(p):
 
 
 ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto', 'gd', 'gd_play',
-           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'ai_subs_now', 'subs_menu', 'sync_menu',
+           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'sysrollback', 'ai_subs_now', 'subs_menu', 'sync_menu',
            'settings_menu', 'audio_menu', 'subs_pick', 'next_episode'}
 
 
 def system_update():
-    sysupdate.run()
-    xbmc.executebuiltin('Container.Update(%s)' % url(a='sysreport'))
+    rep = sysupdate.run()
+    xbmcgui.Dialog().notification('BN Stream', sysupdate.summary(rep), xbmcgui.NOTIFICATION_INFO, 6000)
+    if xbmc.getCondVisibility('Window.IsActive(videos)'):
+        xbmc.executebuiltin('Container.Update(%s)' % url(a='sysreport'))
+    else:                   # started from the home-screen button: open the report (with the Auto-Fix rows)
+        xbmc.executebuiltin('ActivateWindow(Videos,%s,return)' % url(a='sysreport'))
 
 
 def ai_subs_now():
