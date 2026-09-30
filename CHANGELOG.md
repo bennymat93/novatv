@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.4.0
+**Look:**
+- Each main-menu item and each home row (title + content) has its own panel, with a dark gap between panels.
+- Only a focused row's name is gold.
+- "ערוצים ישראליים" (renamed).
+- Channel count on every country flag.
+- Content counts as "סרטים - N" (real TMDb totals).
+- Build version next to the logo.
+- The date "30.09.26, יום רביעי" next to the clock.
+- A news + weather ticker at the bottom (ynet / Walla, Open-Meteo; city in settings; can be turned off).
+- Radio stations have 3D posters in the Israeli-channel style.
+
+**Menu:**
+- "עזרה" is the last item:
+  - user guide and troubleshooting table (HE/EN toggle), with free-text search;
+  - live speed test;
+  - About.
+- System Update button between Settings and Search. It backs up first, has Auto-Fix per failure, and can roll back.
+
+**Devices:**
+- First-run wizard: TV/box, PC, touch, car, phone, tablet. Zoom, touch mode, cache by memory, decoding, screensaver and refresh rate are applied at once (docs/DEVICE_PROFILES.md).
+- In a plain Kodi:
+  - the BN splash;
+  - Windows "BN Stream" shortcuts;
+  - a one-time offer on Android to install the BN Stream app.
+
+**Live TV:**
+- Unlicensed restream servers removed.
+- The main Israeli channels play from licensed sources with automatic failover: the official stream first, then Idan+ and its backups.
+- Free TV guide for Israel and the 12 largest countries (epgshare01). Titles are translated to Hebrew, with a cache. Guide language setting.
+- HLS goes through inputstream.adaptive.
+
+**Weak connections:**
+- Adaptive streams start at 1.5 Mbps and climb.
+- Weak-network test (tools/netsim.py) at 1.5 / 3 / 5 Mbps: 0 stalls (it was 9 per minute at 1.5 Mbps).
+
+**Subtitles:**
+- Downloaded subtitles are aligned to the speech automatically: offset + 23.976/24/25 fps drift (server/subalign.py).
+- AI subtitles are timed by word timestamps.
+- The AI cache is per file, not per title.
+- The manual sync offset is remembered per video.
+
+**Tests:**
+- New: weak network, 1.4.0 features.
+- The stream checker (tools/stream_check.py) produces reports/channels_report.md.
+- 200 unit tests.
+
 ## 1.3.0
 **Two new main-menu sections**, built like the existing ones (curated YouTube channels, key-free, played by the bundled YouTube add-on):
 - **"ידע וטכנולוגיה":**
