@@ -623,6 +623,23 @@ def main():
                 return
     later(1, pvr_ready_job)
 
+    def ticker_job():
+        # bottom news + weather ticker (resources/lib/ticker.py); the skin shows it while BN.Ticker is set
+        from resources.lib import ticker
+        from resources.lib.common import ui_lang
+        win = xbmcgui.Window(10000)
+
+        def on():
+            v = ADDON.getSetting('ticker') != 'false'
+            win.setProperty('BN.Ticker', '1' if v else '')
+            return v
+        try:
+            ticker.run(monitor(), on, lambda: ADDON.getSetting('ticker_city') or 'באר שבע',
+                       lambda: 'he' if ui_lang() == 'he' else 'en')
+        except Exception as e:
+            log('ticker: %s' % e, xbmc.LOGWARNING)
+    later(3, ticker_job)
+
     def binary_job():
         # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not
         # shipped inside the Android app: install the right build for this device from the Kodi repository

@@ -20,13 +20,13 @@ S = {
     'addons': ('תוספים', 'Add-ons', 'Дополнения'),
     'services': ('שירותים וחיבורים', 'Services & connections', 'Сервисы и подключения'),
     'content': ('תוכן זמין', 'Available content', 'Доступный контент'),
-    'movies': ('סרטים בקטלוג (TMDb, בערך)', 'Movies in the catalogue (TMDb, approx.)', 'Фильмы в каталоге (TMDb, ок.)'),
-    'tv': ('סדרות בקטלוג (TMDb, בערך)', 'TV shows in the catalogue (TMDb, approx.)', 'Сериалы в каталоге (TMDb, ок.)'),
-    'live': ('ערוצי טלוויזיה חיים', 'Live TV channels', 'ТВ-каналы'),
-    'radio': ('תחנות רדיו (ישראל, רוסיה, עברית)', 'Radio stations (Israel, Russia, Hebrew)', 'Радиостанции (Израиль, Россия, иврит)'),
-    'sources': ('מקורות וידאו בספרייה', 'Video sources in the library', 'Видеоисточники'),
-    'russian': ('ערוצי אולפנים רוסיים רשמיים', 'Official Russian studio channels', 'Официальные каналы киностудий'),
-    'soviet': ('סרטים סובייטיים (ארכיון)', 'Soviet films (Internet Archive)', 'Советские фильмы (Архив)'),
+    'movies': ('סרטים', 'Movies', 'Фильмы'),
+    'tv': ('סדרות', 'TV shows', 'Сериалы'),
+    'live': ('ערוצי טלוויזיה', 'TV channels', 'ТВ-каналы'),
+    'radio': ('תחנות רדיו', 'Radio stations', 'Радиостанции'),
+    'sources': ('מקורות וידאו', 'Video sources', 'Видеоисточники'),
+    'russian': ('ערוצי אולפנים רוסיים', 'Russian studio channels', 'Каналы киностудий'),
+    'soviet': ('סרטים סובייטיים', 'Soviet films', 'Советские фильмы'),
     'favs': ('מועדפים', 'Favourites', 'Избранное'),
     'hist': ('נצפו', 'Watched', 'Просмотрено'),
     'internet': ('אינטרנט', 'Internet', 'Интернет'),
@@ -95,16 +95,18 @@ def content_rows():
     rows, got = [], {}
 
     def tm(key, path):
-        # /discover caps total_results at 10,000 pages; the newest id is the size of the catalogue
+        # every title TMDb lists (total_results is the real number; only the pages are capped)
         try:
-            got[key] = int(tmdb(path).get('id') or 0)
+            got[key] = int(tmdb(path).get('total_results') or 0) or None
         except Exception:
             got[key] = None
 
     def radio():
         from .radio import _get
-        got['radio'] = sum(len(_get('/stations/' + p)) for p in
-                           ('bycountrycodeexact/IL', 'bycountrycodeexact/RU', 'bylanguageexact/hebrew')) or None
+        seen = set()                     # one station listed by country AND by language counts once
+        for p in ('bycountrycodeexact/IL', 'bycountrycodeexact/RU', 'bylanguageexact/hebrew'):
+            seen.update(x.get('stationuuid') for x in _get('/stations/' + p))
+        got['radio'] = len(seen - {None}) or None
 
     def soviet():
         try:
@@ -114,8 +116,8 @@ def content_rows():
             got['soviet'] = int(r['response']['numFound'])
         except Exception:
             got['soviet'] = None
-    jobs = [threading.Thread(target=tm, args=('movies', '/movie/latest'), daemon=True),
-            threading.Thread(target=tm, args=('tv', '/tv/latest'), daemon=True),
+    jobs = [threading.Thread(target=tm, args=('movies', '/discover/movie'), daemon=True),
+            threading.Thread(target=tm, args=('tv', '/discover/tv'), daemon=True),
             threading.Thread(target=radio, daemon=True), threading.Thread(target=soviet, daemon=True)]
     [j.start() for j in jobs]
     [j.join(25) for j in jobs]
@@ -156,7 +158,8 @@ def as_text(data):
     for sec in ('content', 'services', 'addons'):
         out.append('[B][COLOR FFE8BE5A]%s[/COLOR][/B]' % s(sec))
         for name, ok, detail in data[sec]:
-            out.append('%s  [B]%s[/B]   %s' % (_mark(ok), name, detail))
+            out.append('%s  [B]%s[/B] - %s' % (_mark(ok), name, detail) if sec == 'content' else
+                       '%s  [B]%s[/B]   %s' % (_mark(ok), name, detail))
         out.append('')
     return '\n'.join(out)
 
@@ -183,7 +186,7 @@ def listing(handle):
         li = xbmcgui.ListItem('[B][COLOR FFE8BE5A]%s[/COLOR][/B]' % s(sec))
         xbmcplugin.addDirectoryItem(handle, 'plugin://plugin.video.nova/?a=noop', li, False)
         for name, ok, detail in data[sec]:
-            li = xbmcgui.ListItem('%s  %s   [COLOR grey]%s[/COLOR]' % (_mark(ok), name, detail))
+            li = xbmcgui.ListItem(('%s  %s - %s' if sec == 'content' else '%s  %s   [COLOR grey]%s[/COLOR]') % (_mark(ok), name, detail))
             li.getVideoInfoTag().setPlot(detail or '')
             xbmcplugin.addDirectoryItem(handle, 'plugin://plugin.video.nova/?a=noop', li, False)
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

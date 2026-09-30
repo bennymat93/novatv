@@ -557,6 +557,7 @@ def countries_list(handle, url):
         li = xbmcgui.ListItem(names[cc][col])
         li.setArt({'icon': flag, 'thumb': flag})
         li.getVideoInfoTag().setPlot('%d' % len(by[cc]))
+        li.setProperty('count', '%d' % len(by[cc]))          # badge on the tile (Includes_BNWidgets)
         xbmcplugin.addDirectoryItem(handle, url(a='tv_country', cc=cc), li, True)
     xbmcplugin.setContent(handle, 'files')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

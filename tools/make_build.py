@@ -108,7 +108,7 @@ HOME_WIDGETS = [
         ('BNCategoryWidget', 'a=years&m=tv', 'לפי שנים'),
         ('BNCategoryWidget', 'a=langs&m=tv', 'לפי שפה')]),
     ('Custom1Widgets', 'script-fentastic-widget_custom1.xml', 23011,
-        [('WidgetListBigPoster', 'a=tv_list&gname=Israel&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצי ישראל')] +
+        [('WidgetListBigPoster', 'a=tv_list&gname=Israel&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצים ישראליים')] +
         [('BNCategoryWidget', 'a=tv_countries&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצים מהעולם')] +
         [('WidgetListPoster', 'a=radio_list&by=country&v=IL', 'רדיו ישראל')]),
     ('Custom2Widgets', 'script-fentastic-widget_custom2.xml', 24011, [
@@ -209,6 +209,55 @@ def home_panels(skin):
         open(h, 'w', encoding='utf-8').write(t)
 
 
+def ticker_skin(stage):
+    """bottom ticker: Kodi's RSS control fed by the NovaTV service (resources/lib/ticker.py) - it swaps text only between
+    scroll laps and keeps the last good text offline"""
+    NL, TB = chr(10), chr(9)
+    with open(os.path.join(stage, 'userdata', 'RssFeeds.xml'), 'w', encoding='utf-8') as f:
+        f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + NL + '<rssfeeds>' + NL +
+                '  <set id="1" rtl="true">' + NL + '    <feed updateinterval="10">http://127.0.0.1:51153/ticker.rss</feed>' + NL +
+                '  </set>' + NL + '</rssfeeds>' + NL)
+    h = os.path.join(stage, 'addons', 'skin.fentastic', 'xml', 'Home.xml')
+    t = open(h, encoding='utf-8').read()
+    anchor = '<description>KODI-RD-IL - Kodi Version</description>'
+    if 'BN-TICKER' not in t and anchor in t:
+        i = t.rfind('<control type="label">', 0, t.find(anchor))
+        t = t[:i] + ('<control type="group"><!-- BN-TICKER -->' + NL + TB * 3 + '<left>500</left><right>0</right><bottom>0</bottom><height>46</height>'
+                     + NL + TB * 3 + '<visible>!String.IsEmpty(Window(Home).Property(BN.Ticker)) + System.GetBool(lookandfeel.enablerssfeeds)</visible>'
+                     + NL + TB * 3 + '<control type="image"><texture colordiffuse="B3FFFFFF">colors/black.png</texture></control>'
+                     + NL + TB * 3 + '<control type="rss" id="1777"><left>20</left><right>20</right><height>46</height><font>font12</font>'
+                     + '<urlset>1</urlset><titlecolor>FFE8BE5A</titlecolor><headlinecolor>FFE0E0E0</headlinecolor><textcolor>FFE0E0E0</textcolor>'
+                     + '<scrollspeed>70</scrollspeed></control>' + NL + TB * 2 + '</control>' + NL + TB * 2) + t[i:]
+        open(h, 'w', encoding='utf-8').write(t)
+
+
+def header_info(skin):
+    """the build version beside the logo and the date beside the clock ("30.09.26, יום רביעי"), both read live:
+    System.AddonVersion (the add-on is the build's version source) and System.Date (Kodi's own weekday names, so
+    Hebrew in Hebrew and English in English)"""
+    NL, TB = chr(10), chr(9)
+    xml = os.path.join(skin, 'xml')
+    h = os.path.join(xml, 'Home.xml')
+    t = open(h, encoding='utf-8').read()
+    logo = '<texture>special://skin/media/kodirdil/group_logo/kodirdil-vendor_logo.png</texture>' + NL + TB * 2 + '</control>'
+    if 'BN-VERSION' not in t and logo in t:
+        t = t.replace(logo, logo + NL + TB * 2 + '<control type="label"><!-- BN-VERSION -->' + NL + TB * 3 +
+                      '<left>150</left><top>52</top><width>200</width><height>30</height>' + NL + TB * 3 +
+                      '<font>font12</font><textcolor>FFC9A24A</textcolor><align>left</align><aligny>center</aligny>' + NL + TB * 3 +
+                      '<label>v$INFO[System.AddonVersion(plugin.video.nova)]</label>' + NL + TB * 2 + '</control>', 1)
+        open(h, 'w', encoding='utf-8').write(t)
+    i = os.path.join(xml, 'Includes.xml')
+    t = open(i, encoding='utf-8').read()
+    clock = '<control type="label">' + NL + TB * 6 + '<font>font_clock</font>'
+    if 'BN-DATE' not in t and clock in t:
+        t = t.replace(clock, '<control type="label"><!-- BN-DATE: same family as the clock, secondary size and colour -->' + NL + TB * 6 +
+                      '<font>font_clock_small</font><height>100</height><width>auto</width><aligny>center</aligny>' + NL + TB * 6 +
+                      '<textcolor>FFB8B8B8</textcolor><shadowcolor>text_shadow</shadowcolor>' + NL + TB * 6 +
+                      '<label>$INFO[System.Date(dd.mm.yy)], $INFO[System.Date(DDDD)]  </label>' + NL + TB * 5 + '</control>' + NL + TB * 5 +
+                      clock, 1)
+        open(i, 'w', encoding='utf-8').write(t)
+
+
 def home_widgets(skin):
     """the home screen rows of every main-menu item, all from NovaTV (no third-party add-on in the widgets)"""
     for inc, fn, first, rows in HOME_WIDGETS:
@@ -283,6 +332,7 @@ def patch_guisettings(path):
     setv('subtitles.charset', 'UTF-8')
     # a new video starts without subtitles: they are chosen (or generated) for that video, never carried over
     s = re.sub(r'<showsubtitles>\w+</showsubtitles>', '<showsubtitles>false</showsubtitles>', s)
+    setv('lookandfeel.enablerssfeeds', 'true')             # the BN news + weather ticker (RssFeeds.xml set 1)
     setv('locale.keyboardlayouts', 'Hebrew QWERTY|English QWERTY|Russian ЙЦУКЕН')
     with open(path, 'w', encoding='utf-8') as f:
         f.write(s)
@@ -679,6 +729,8 @@ def main():
     fix_startup(STAGE)
     bn_skin(STAGE)
     home_panels(os.path.join(STAGE, 'addons', 'skin.fentastic'))   # after bn_skin: BN widget rows too
+    header_info(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    ticker_skin(STAGE)
     ai_subs_buttons(STAGE)
     all_subs_guards(STAGE)
     youtube_keystore(STAGE)

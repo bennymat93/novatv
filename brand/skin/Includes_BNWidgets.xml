@@ -68,6 +68,12 @@
 							<texture background="true">$INFO[ListItem.Icon]</texture>
 							<aspectratio>keep</aspectratio>
 						</control>
+						<!-- channel count (country tiles): a small dark badge in the bottom corner of the tile -->
+						<control type="group">
+							<left>8</left><top>186</top><visible>!String.IsEmpty(ListItem.Property(count))</visible>
+							<control type="image"><width>80</width><height>36</height><texture colordiffuse="BF000000" border="12">bn/panel.png</texture></control>
+							<control type="label"><width>80</width><height>36</height><font>font12</font><align>center</align><aligny>center</aligny><textcolor>unfocused_text</textcolor><label>$INFO[ListItem.Property(count)]</label></control>
+						</control>
 						<control type="label">
 							<top>240</top><width>230</width><height>60</height>
 							<font>font27</font><align>center</align><aligny>center</aligny>
@@ -90,11 +96,25 @@
 							<texture background="true">$INFO[ListItem.Icon]</texture>
 							<aspectratio>keep</aspectratio>
 						</control>
+						<!-- channel count (country tiles): a small dark badge in the bottom corner of the tile -->
+						<control type="group">
+							<left>8</left><top>186</top><visible>!String.IsEmpty(ListItem.Property(count))</visible>
+							<control type="image"><width>80</width><height>36</height><texture colordiffuse="BF000000" border="12">bn/panel.png</texture></control>
+							<control type="label"><width>80</width><height>36</height><font>font12</font><align>center</align><aligny>center</aligny><textcolor>unfocused_text</textcolor><label>$INFO[ListItem.Property(count)]</label></control>
+						</control>
 						<control type="label">
 							<top>240</top><width>230</width><height>60</height>
 							<font>font27</font><align>center</align><aligny>center</aligny>
 							<textcolor>button_focus</textcolor>
 							<label>[B]$INFO[ListItem.Label][/B]</label>
+							<visible>Control.HasFocus($PARAM[list_id])</visible>
+						</control>
+						<control type="label">
+							<top>240</top><width>230</width><height>60</height>
+							<font>font27</font><align>center</align><aligny>center</aligny>
+							<textcolor>unfocused_text</textcolor>
+							<label>$INFO[ListItem.Label]</label>
+							<visible>!Control.HasFocus($PARAM[list_id])</visible>
 						</control>
 					</control>
 				</focusedlayout>
