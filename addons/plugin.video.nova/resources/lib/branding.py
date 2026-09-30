@@ -97,9 +97,15 @@ def windows_shortcuts():
 
 def android_offer():
     """one offer per install (setting brand_offer); yes -> backup, then open the download page"""
-    from .common import flag
+    from .common import flag, monitor
     if flag('brand_offer') == 'done':
         return
+    mon = monitor()
+    for _ in range(600):               # one question at a time: after the device-type wizard, never on top of it
+        if flag('device_profile') and not xbmc.getCondVisibility('System.HasActiveModalDialog'):
+            break
+        if mon.waitForAbort(2):
+            return
     flag('brand_offer', 'done')             # asked once per installation, whatever the answer
     if not xbmcgui.Dialog().yesno(_s('offer_t'), _s('offer').replace('[CR]', '\n'), nolabel=_s('no'), yeslabel=_s('yes')):
         return
