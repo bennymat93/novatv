@@ -343,8 +343,17 @@ def configure_pvr(force=False):
         return install_addon(PVR)   # picks up the settings file on first start
     if same and not force and _addon_enabled():
         return True                 # the client refreshes the files itself - no restart
-    # existing install: restart the client, but never overlap restarts (that aborts a big channel load)
     mon = monitor()
+    if not same and _addon_enabled():
+        # a changed settings file makes Kodi recreate the client by itself: a disable/enable on top of that
+        # restarted it twice ("Start aborted") and froze Kodi -> just wait until the recreated client is up
+        for _ in range(90):
+            if mon.waitForAbort(1):
+                return False
+            if _pvr_available():
+                return True
+        return _pvr_available()
+    # existing install: restart the client, but never overlap restarts (that aborts a big channel load)
     # a client disabled while it is still loading channels / EPG crashed Kodi ("Dll Destroyed" seconds after
     # "PVR Manager: Started"): let the running client finish its load first
     for _ in range(60):
