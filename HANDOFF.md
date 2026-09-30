@@ -25,6 +25,28 @@
   2. Merge v1.4-work into main.
   3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
 
+## STATE 30/09 12:15 (check first; newer than the section above)
+- 1.4.0 development is on **main** in `C:\Users\benny\kodi-build` (v1.4-work was merged; the worktree kodi-build-14 is no longer used).
+- Done + unit-tested (200 tests):
+  - panels, rename, gold on focus, count badge, counts, header version/date, ticker (RefreshRSS);
+  - radio posters, System Update icon + rollback, Help + speed test, branding, device profiles + wizard;
+  - subtitle auto-align (server/subalign.py + /align + guard v10 + per-video manual offset);
+  - netsim + weak-network test (inputstream.adaptive start 1.5 Mbps: 0 stalls at 1.5/3/5 Mbps);
+  - free TV guide (resources/lib/epg.py, epgshare01);
+  - Israeli channel failover (resources/lib/livefail.py; restream hosts iptvhd/freeott/mcquack dropped).
+- Docs: PLAN.md, docs/DECISIONS.md, docs/DEVICE_PROFILES.md, KNOWN_ISSUES.md.
+- Running:
+  - the full suite on the 1.4.0 build (`work/full14.log`; "IPTV merge" fail to inspect);
+  - `tools/stream_check.py` (`work/streams.json`, resumable).
+- Next:
+  1. Check the fails.
+  2. Rebuild with the EPG + failover changes and verify in Kodi (live channels via `?a=live`, the guide shows).
+  3. Write `reports/channels_report.md` from streams.json.
+  4. CHANGELOG.
+  5. Final full suite.
+  6. `python tools/release.py --version 1.4.0 --notes ...` (full: repository, then APK + Windows, then GitHub).
+- Owner asked for status every 6 min and for HANDOFF before the quota.
+
 ## (older) NOW RUNNING
 `python tools/release.py --version 1.3.0 --notes "..."`: log in `work/release_130c.log`, state in `work/release_state.json`.
 - If it STOPPED:
