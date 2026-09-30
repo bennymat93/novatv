@@ -306,6 +306,9 @@ def install_addon(addon_id, timeout=120):
     return xbmc.getCondVisibility('System.HasAddon(%s)' % addon_id)
 
 
+NL = chr(10)
+
+
 def configure_pvr(force=False):
     """Write IPTV Simple instance settings first, then install (fresh) or restart (existing).
 
@@ -315,77 +318,55 @@ def configure_pvr(force=False):
     was_installed = xbmc.getCondVisibility('System.HasAddon(%s)' % PVR)
     data_dir = xbmcvfs.translatePath('special://profile/addon_data/%s/' % PVR)
     os.makedirs(data_dir, exist_ok=True)
-    settings = {
-        'kodi_addon_instance_name': 'NovaTV', 'kodi_addon_instance_enabled': 'true',
-        'm3uPathType': '0', 'm3uPath': MERGED_M3U, 'm3uCache': 'true', 'startNum': '1',
-        'numberByOrder': 'false', 'epgPathType': '0', 'epgPath': MERGED_EPG, 'epgCache': 'true',
-        'epgTimeShift': '0', 'logoPathType': '1', 'logoFromEpg': '1', 'catchupEnabled': 'true',
-        'm3uRefreshMode': '1', 'm3uRefreshIntervalMins': '60',
-    }
-    xml = ['<settings version="2">'] + ['    <setting id="%s">%s</setting>' % (k, v) for k, v in settings.items()] + ['</settings>']
-    body = '\n'.join(xml)
     sp = os.path.join(data_dir, 'instance-settings-1.xml')
     try:
         with open(sp, encoding='utf-8') as f:
-            same = f.read() == body
+            old = f.read()
     except Exception:
-        same = False
+        old = ''
+
+    def body(interval):
+        settings = {
+            'kodi_addon_instance_name': 'NovaTV', 'kodi_addon_instance_enabled': 'true',
+            'm3uPathType': '0', 'm3uPath': MERGED_M3U, 'm3uCache': 'true', 'startNum': '1',
+            'numberByOrder': 'false', 'epgPathType': '0', 'epgPath': MERGED_EPG, 'epgCache': 'true',
+            'epgTimeShift': '0', 'logoPathType': '1', 'logoFromEpg': '1', 'catchupEnabled': 'true',
+            'm3uRefreshMode': '1', 'm3uRefreshIntervalMins': interval,
+        }
+        return NL.join(['<settings version="2">'] + ['    <setting id="%s">%s</setting>' % (k, v) for k, v in settings.items()]
+                         + ['</settings>'])
+    # the refresh interval 60 <-> 59 minutes is the "restart" switch: a changed settings file makes Kodi recreate the
+    # client by itself, once and cleanly. Disabling / enabling the add-on instead restarted the PVR manager twice
+    # ("Start aborted") and froze or crashed Kodi (4 patterns seen in tests).
+    current = '59' if '>59<' in old else '60'
+    new = body(current)
+    same = old == new
+    enabled = was_installed and _addon_enabled()
+    if enabled and same and force:
+        new, same = body('59' if current == '60' else '60'), False
     if not same:
-        # Kodi recreates a running client when its settings file changes: never rewrite an identical file
-        # (two rewrites right after a start = "Start aborted" and a frozen Kodi)
-        with open(sp, 'w', encoding='utf-8') as f:
-            f.write(body)
+        tmp = sp + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            f.write(new)
+        os.replace(tmp, sp)                    # one change event, never a half-written file
     # let Kodi number channels in our tvg-chno order (only when not already set: a settings change restarts PVR too)
     cur = _rpc('Settings.GetSettingValue', setting='pvrmanager.usebackendchannelnumbers').get('result', {}).get('value')
     if cur is not True:
         _rpc('Settings.SetSettingValue', setting='pvrmanager.usebackendchannelnumbers', value=True)
     if not was_installed:
         return install_addon(PVR)   # picks up the settings file on first start
-    if same and not force and _addon_enabled():
-        return True                 # the client refreshes the files itself - no restart
     mon = monitor()
-    if not same and _addon_enabled():
-        # a changed settings file makes Kodi recreate the client by itself: a disable/enable on top of that
-        # restarted it twice ("Start aborted") and froze Kodi -> just wait until the recreated client is up
-        for _ in range(90):
-            if mon.waitForAbort(1):
-                return False
-            if _pvr_available():
-                return True
-        return _pvr_available()
-    # existing install: restart the client, but never overlap restarts (that aborts a big channel load)
-    # a client disabled while it is still loading channels / EPG crashed Kodi ("Dll Destroyed" seconds after
-    # "PVR Manager: Started"): let the running client finish its load first
-    for _ in range(60):
-        if _pvr_available() or mon.waitForAbort(1):
-            break
-    if mon.waitForAbort(15):
-        return False
-    for attempt in range(4):
-        _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
-        for _ in range(20):                     # wait until the add-on is off and the PVR manager stopped
-            if mon.waitForAbort(1) or (not _addon_enabled() and not _pvr_available()):
-                break
-        mon.waitForAbort(2)
-        for _ in range(3):                      # Kodi sometimes drops an enable right after a disable
-            _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
-            # a big list keeps the client "starting" for seconds: re-sending enable then recreated the client in
-            # the middle of its start ("Start aborted") and froze Kodi -> give it 10 s before trying again
-            up = False
-            for _ in range(10):
-                if mon.waitForAbort(1):
-                    return False
-                if _addon_enabled() or _pvr_available():
-                    up = True
-                    break
-            if up:
-                break
-        for _ in range(45):                     # 5000+ channels take a while on slow boxes
-            if mon.waitForAbort(1) or _pvr_available():
-                return True
-        log('PVR did not come up (attempt %d) - restarting IPTV client' % (attempt + 1))
+    if not enabled:
+        _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
+    elif same:
+        return True                 # nothing changed: the client refreshes the files itself
+    for _ in range(120):            # Kodi recreates the client by itself; 5000+ channels take a while on slow boxes
+        if mon.waitForAbort(1):
+            return False
+        if _pvr_available():
+            return True
+    log('PVR did not come up within 2 min', xbmc.LOGWARNING)
     return False
-
 
 def _jsonrpc(method, **params):
     try:

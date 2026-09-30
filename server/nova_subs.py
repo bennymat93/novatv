@@ -85,6 +85,29 @@ def duration(src):
         return 0.0
 
 
+LEAD = 0.12         # show a line this much before the first word (reading starts with the voice, never after it)
+LINGER = 0.6        # keep it this long after the last word (but never into the next line)
+MIN_SHOW = 1.0
+
+
+def cue_times(segs):
+    """exact on-screen times per segment from Whisper's word timestamps (segment times drift by up to a second,
+    mostly late: they include leading silence/breath). [(start, end)] in chunk seconds, never overlapping."""
+    out = []
+    for s in segs:
+        words = [w for w in (getattr(s, 'words', None) or []) if (w.word or '').strip()]
+        a = words[0].start if words else s.start
+        b = words[-1].end if words else s.end
+        out.append([max(0.0, a - LEAD), b])
+    for i, c in enumerate(out):
+        nxt = out[i + 1][0] if i + 1 < len(out) else None
+        end = max(c[1] + LINGER, c[0] + MIN_SHOW)
+        if nxt is not None:
+            end = min(end, nxt - 0.05)
+        c[1] = max(end, c[0] + 0.3)
+    return [tuple(c) for c in out]
+
+
 def audio_chunk(src, start, length):
     """Decode [start, start+length) to 16 kHz mono float32 via ffmpeg (seeks over HTTP)."""
     import numpy as np
@@ -323,16 +346,24 @@ def youtube_captions(yid, stats):
 
 
 def job_key(j):
-    return _job_key(j) + ('_mt' if j.get('mode') == 'mt' else '')   # machine-translation results cached apart
+    # t2 = word-timestamp timing (older cached results were up to ~1 s late); '_mt' = machine translation apart
+    return _job_key(j) + '_t2' + ('_mt' if j.get('mode') == 'mt' else '')
+
+
+def _release(j):
+    """the file itself: two releases of one episode differ in intro / cuts / frame rate, so their timings differ
+    (debrid links change tokens and ids, the file name stays)"""
+    name = re.sub(r'[?#].*$', '', j.get('url') or '').rstrip('/').split('/')[-1]
+    return '_' + hashlib.md5(name.encode()).hexdigest()[:8] if name else ''
 
 
 def _job_key(j):
     if youtube_id(j):
         return 'yt_' + youtube_id(j)          # the query of the proxy URL IS the video: never strip it
     if j.get('tmdb') and int(j.get('episode') or 0) > 0:
-        return 'tmdb%s_s%se%s' % (j['tmdb'], j.get('season'), j.get('episode'))
+        return 'tmdb%s_s%se%s' % (j['tmdb'], j.get('season'), j.get('episode')) + _release(j)
     if j.get('tmdb'):
-        return 'tmdb%s' % j['tmdb']
+        return 'tmdb%s' % j['tmdb'] + _release(j)
     base = re.sub(r'[?#].*$', '', j['url'])     # debrid links carry changing tokens
     return 'u' + hashlib.md5(base.encode()).hexdigest()[:16]
 
@@ -414,7 +445,7 @@ class Job:
                 with _gpu_lock:
                     segs, info = m.transcribe(  # noqa
 audio, language=lang, beam_size=5, vad_filter=True,
-                                              condition_on_previous_text=False)
+                                              condition_on_previous_text=False, word_timestamps=True)
                     segs = [s for s in segs if s.text.strip()]
                 lang = lang or info.language
                 self.stats['lang'] = lang
@@ -423,9 +454,8 @@ audio, language=lang, beam_size=5, vad_filter=True,
                     lines = [s.text.strip() for s in segs]
                     he = translate(lines, lang, ctx, self.stats)
                     ctx['prev'] = lines[-6:]
-                    for s, h in zip(segs, he):
-                        self.cues.append({'start': st + s.start, 'end': st + max(s.end, s.start + 0.8),
-                                          'src': s.text.strip(), 'he': h})
+                    for (a, b), s, h in zip(cue_times(segs), segs, he):
+                        self.cues.append({'start': st + a, 'end': st + b, 'src': s.text.strip(), 'he': h})
                 done_chunks.add(st)
                 with open(part, 'w', encoding='utf-8') as f:
                     json.dump({'cues': self.cues, 'lang': lang, 'done': sorted(done_chunks)}, f, ensure_ascii=False)

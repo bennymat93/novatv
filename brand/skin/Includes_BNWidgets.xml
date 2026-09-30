@@ -8,7 +8,6 @@
 			<include content="CategoryLabel">
 				<param name="label">$PARAM[widget_header]</param>
 				<param name="list_id" value="$PARAM[list_id]"/>
-				<param name="panel_height" value="385"/>
 			</include>
 			<control type="list" id="$PARAM[list_id]">
 				<left>425</left>
@@ -46,7 +45,6 @@
 			<include content="CategoryLabel">
 				<param name="label">$PARAM[widget_header]</param>
 				<param name="list_id" value="$PARAM[list_id]"/>
-				<param name="panel_height" value="470"/>
 			</include>
 			<include content="BusyListSpinner">
 				<param name="list_id" value="$PARAM[list_id]"/>

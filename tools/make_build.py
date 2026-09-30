@@ -153,41 +153,59 @@ def extra_menus(skin):
 
 
 def home_panels(skin):
-    """a rounded panel a little lighter than the screen behind every home row and behind the main menu"""
+    """a rounded panel a little lighter than the screen behind every home row (its title + its content) and behind each
+    main-menu item on its own; a strip of the dark screen always shows between two panels (they never overlap)"""
+    NL, TB = chr(10), chr(9)
     xml = os.path.join(skin, 'xml')
     os.makedirs(os.path.join(skin, 'media', 'bn'), exist_ok=True)
     shutil.copy(os.path.join(SKIN_SRC, 'bn_panel.png'), os.path.join(skin, 'media', 'bn', 'panel.png'))
-    p = os.path.join(xml, 'Includes_Home.xml')
-    s = open(p, encoding='utf-8').read()
-    if 'bn/panel.png' not in s:
-        # the row header (CategoryLabel) is part of every row type: the panel goes into it, sized per row type
-        s = s.replace('<param name="item_treshold">0</param>',
-                      '<param name="item_treshold">0</param>\n\t\t<param name="panel_height">455</param>', 1)
-        s = s.replace('<control type="group" id="$PARAM[list_id]665">\n\t\t\t\t<left>75</left>\n\t\t\t\t<top>80</top>',
-                      '<control type="group" id="$PARAM[list_id]665">\n\t\t\t\t<left>75</left>\n\t\t\t\t<top>80</top>'
-                      '\n\t\t\t\t<control type="image">\n\t\t\t\t\t<left>-40</left>\n\t\t\t\t\t<top>-14</top>'
-                      '\n\t\t\t\t\t<width>1440</width>\n\t\t\t\t\t<height>$PARAM[panel_height]</height>\n\t\t\t\t\t' + PANEL +
-                      '\n\t\t\t\t</control>', 1)
-        # each row type: panel height = its list (top 115 + height) - header top 80 + a margin
+
+    def img(left, top, width, height, ind):
+        pad = NL + TB * ind
+        return (pad + '<control type="image">' + pad + TB + '<left>%d</left><top>%d</top><width>%d</width><height>%d</height>'
+                % (left, top, width, height) + pad + TB + PANEL + pad + '</control>')
+    # rows sit in a vertical grouplist (usecontrolcoords, itemgap G between the header group and the list and between
+    # rows): row pitch = 80 + 90 + G + 115 + H + G - 80 + ... = H + 285 + 2G. The panel starts at the header - 14 and
+    # ends GAP before the next row's panel. FENtastic's G -160 left no room: G -120 opens 80 px per row.
+    G, GAP = -120, 24
+    for fn in ('Includes_Home.xml', 'Includes_BNWidgets.xml'):
+        p = os.path.join(xml, fn)
+        if not os.path.exists(p):
+            continue
+        s = open(p, encoding='utf-8').read()
+        if 'bn/panel.png' in s or 'panel_height' in s and fn == 'Includes_BNWidgets.xml':
+            continue
+        if fn == 'Includes_Home.xml':
+            s = s.replace('<itemgap>-160</itemgap>', '<itemgap>%d</itemgap>' % G, 1)
+            s = s.replace('<param name="item_treshold">0</param>',
+                          '<param name="item_treshold">0</param>' + NL + TB * 2 + '<param name="panel_height">455</param>', 1)
+            s = s.replace('<control type="group" id="$PARAM[list_id]665">' + NL + TB * 4 + '<left>75</left>' + NL + TB * 4 + '<top>80</top>',
+                          '<control type="group" id="$PARAM[list_id]665">' + NL + TB * 4 + '<left>75</left>' + NL + TB * 4 + '<top>80</top>'
+                          + NL + TB * 4 + '<control type="image">' + NL + TB * 5 + '<left>-40</left><top>-14</top><width>1440</width>'
+                          + '<height>$PARAM[panel_height]</height>' + NL + TB * 5 + PANEL + NL + TB * 4 + '</control>', 1)
         out, pos = [], 0
-        for m in re.finditer(r'<include name="(Widget\w+)">(.*?)</include>\s*\n\s*(?=<include name=|</includes>)', s, re.S):
-            body = m.group(2)
+        for m in re.finditer(r'<include name="(?:Widget|BN)\w+">(.*?)</include>\s*\n\s*(?=<include name=|</includes>)', s, re.S):
+            body = m.group(1)
             h = re.search(r'<control type="(?:fixed)?list" id="\$PARAM\[list_id\]">.*?<height>(\d+)</height>', body, re.S)
             if h and '<include content="CategoryLabel">' in body:
-                body2 = body.replace('<include content="CategoryLabel">',
-                                     '<include content="CategoryLabel">\n\t\t\t\t<param name="panel_height" value="%d"/>'
-                                     % (int(h.group(1)) + 60), 1)
-                out.append(s[pos:m.start(2)] + body2)
-                pos = m.end(2)
+                body = body.replace('<include content="CategoryLabel">', '<include content="CategoryLabel">' + NL + TB * 4 +
+                                    '<param name="panel_height" value="%d"/>' % (int(h.group(1)) + 285 + 2 * G - GAP), 1)
+                out.append(s[pos:m.start(1)] + body)
+                pos = m.end(1)
         s = ''.join(out) + s[pos:]
-    open(p, 'w', encoding='utf-8').write(s)
+        open(p, 'w', encoding='utf-8').write(s)
+    # main menu: one panel per item (items 90/95 high: panel 76, >= 14 dark between), the gold focus box on the same rectangle
     h = os.path.join(xml, 'Home.xml')
     t = open(h, encoding='utf-8').read()
-    anchor = '<control type="fixedlist" id="9000">'
-    if 'bn/panel.png' not in t and anchor in t:
-        t = t.replace(anchor, '<control type="image">\n\t\t\t\t\t\t<left>12</left>\n\t\t\t\t\t\t<top>228</top>'
-                              '\n\t\t\t\t\t\t<width>518</width>\n\t\t\t\t\t\t<height>520</height>\n\t\t\t\t\t\t' + PANEL +
-                              '\n\t\t\t\t\t</control>\n\t\t\t\t\t' + anchor, 1)
+    a = t.find('<control type="fixedlist" id="9000">')
+    if a > 0 and 'bn/panel.png' not in t:
+        end = t.find('</itemlayout>', a)
+        body = t[a:end]
+        body = re.sub(r'(<(?:item|focused)layout height="(?:90|95)">)', lambda m: m.group(1) + img(0, 7, 395, 76, 8), body)
+        body = body.replace('<width>395</width>' + NL + TB * 9 + '<height>95</height>',
+                            '<width>395</width>' + NL + TB * 9 + '<height>76</height>')
+        body = body.replace('<top>0</top>' + NL + TB * 9 + '<width>395</width>', '<top>7</top>' + NL + TB * 9 + '<width>395</width>')
+        t = t[:a] + body + t[end:]
         open(h, 'w', encoding='utf-8').write(t)
 
 
@@ -657,10 +675,10 @@ def main():
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     extra_menus(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     home_widgets(os.path.join(STAGE, 'addons', 'skin.fentastic'))
-    home_panels(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     patch_skin_search(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     fix_startup(STAGE)
     bn_skin(STAGE)
+    home_panels(os.path.join(STAGE, 'addons', 'skin.fentastic'))   # after bn_skin: BN widget rows too
     ai_subs_buttons(STAGE)
     all_subs_guards(STAGE)
     youtube_keystore(STAGE)
