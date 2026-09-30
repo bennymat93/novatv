@@ -617,7 +617,7 @@ def t_ai_no_audio():
 def _server_state(fragment):
     try:
         import urllib.request
-        for jid in ('u' + __import__('hashlib').md5((MEDIA + fragment).encode()).hexdigest()[:16],):
+        for jid in ('u' + __import__('hashlib').md5((MEDIA + fragment).encode()).hexdigest()[:16] + '_t2',)   # server job_key suffix (word-timestamp timing):
             r = json.loads(urllib.request.urlopen('http://127.0.0.1:8765/jobs/' + jid, timeout=5).read())
             return r.get('state')
     except Exception:
