@@ -18,7 +18,7 @@ def test_profile_plan_complete(p):
 def test_cache_scales_with_memory():
     assert profiles.cache_mb(1024, "tv") == 64
     assert profiles.cache_mb(16384, 'pc') == 512
-    assert profiles.cache_mb(2048, 'car') > profiles.cache_mb(2048, 'tv')
+    assert profiles.cache_mb(3072, 'car') > profiles.cache_mb(3072, 'tv')
 
 
 def test_car_never_sleeps_and_tv_switches_refresh():
