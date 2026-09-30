@@ -199,12 +199,17 @@ def _topics():
     return topics
 
 
+def _help():
+    from resources.lib import helpcenter
+    return helpcenter
+
+
 def w_search(m, action='search'):
     """widget: one "search" tile shaped like a search field (movies / series / a learning section)"""
     tile = os.path.join(MEDIA, 'search_%s.png' % m)
     li = xbmcgui.ListItem(T('search'))
     li.setArt({'thumb': tile, 'poster': tile, 'landscape': tile, 'fanart': tile, 'icon': tile})   # the full tile
-    target = url(a=action, m=m) if action == 'search' else url(a=action, s=m)
+    target = url(a=action, m=m) if action == 'search' else (url(a=action) if m == 'help' else url(a=action, s=m))
     xbmcplugin.addDirectoryItem(HANDLE, target, li, True)
     end(cache=False)
 
@@ -448,6 +453,16 @@ def router(p):
         'topic_top': lambda: _topics().show_top(HANDLE, p['s']),
         'topic_search': lambda: _topics().show_search(HANDLE, p['s'], p.get('q', '')),
         'w_topic_search': lambda: w_search(p['s'], action='topic_search'),
+        'help': lambda: _help().root(HANDLE, url, folder, end),
+        'help_cats': lambda: _help().cats(HANDLE, url),
+        'help_guide': lambda: _help().guide(HANDLE, url, folder, end),
+        'help_trouble': lambda: _help().trouble(HANDLE, url, folder, end),
+        'help_search': lambda: _help().do_search(HANDLE, url, folder, end, p.get('q', '')),
+        'w_help_search': lambda: w_search('help', action='help_search'),
+        'help_show': lambda: _help().show(p['kind'], p['id']),
+        'help_about': lambda: _help().about(),
+        'help_lang': lambda: _help().toggle(),
+        'speedtest': lambda: __import__('resources.lib.speedtest', fromlist=['x']).run_dialog(),
         'tvradio': tvradio,
         'langs': lambda: langs(p['m']),
         'years': lambda: years(p['m']),
@@ -519,7 +534,7 @@ def router(p):
 
 
 ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto', 'gd', 'gd_play',
-           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'sysrollback', 'ai_subs_now', 'subs_menu', 'sync_menu',
+           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'sysrollback', 'help_show', 'help_about', 'help_lang', 'speedtest', 'ai_subs_now', 'subs_menu', 'sync_menu',
            'settings_menu', 'audio_menu', 'subs_pick', 'next_episode'}
 
 

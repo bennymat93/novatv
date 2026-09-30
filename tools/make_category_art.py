@@ -27,7 +27,7 @@ GENRES = {28: 0xE945, 12: 0xE774, 16: 0xE790, 35: 0xE76E, 80: 0xE928, 99: 0xE722
 TOPICS = {'power': 0xEC4A, 'control': 0xE9E9, 'tech': 0xE950, 'top': 0xE734, 'puppy': 0xE7BE, 'obedience': 0xEB95,
           'leash': 0xE805, 'recall': 0xE81C, 'behavior': 0xE9D9, 'tricks': 0xEA86, 'sport': 0xE7C1,
           # help center tiles
-          'guide': 0xE736, 'trouble': 0xE90F, 'hsearch': 0xE721, 'about': 0xE946, 'profile': 0xE7F4, 'update': 0xE895}
+          'guide': 0xE736, 'trouble': 0xE90F, 'hsearch': 0xE721, 'about': 0xE946, 'profile': 0xE7F4, 'update': 0xE895, 'speed': 0xE701}
 # language code -> (text in its own script, font)
 LANGS = {'he': ('עב', 'segoeuisl.ttf', True), 'en': ('EN', 'segoeuisl.ttf', False), 'ru': ('РУ', 'segoeuisl.ttf', False),
          'fr': ('FR', 'segoeuisl.ttf', False), 'es': ('ES', 'segoeuisl.ttf', False), 'de': ('DE', 'segoeuisl.ttf', False),

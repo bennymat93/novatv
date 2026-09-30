@@ -11,7 +11,7 @@ import re
 HERE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'help')
 STR = {
     'guide': ('מדריך למשתמש', 'User guide'), 'trouble': ('פתרון בעיות', 'Troubleshooting'),
-    'search': ('חיפוש בעזרה', 'Search help'), 'about': ('אודות', 'About'),
+    'search': ('חיפוש בעזרה', 'Search help'), 'about': ('אודות', 'About'), 'speed': ('בדיקת מהירות', 'Speed test'),
     'toggle': ('English', 'עברית'), 'problem': ('בעיה', 'Problem'), 'causes': ('סיבות אפשריות', 'Possible causes'),
     'fix': ('פתרון מוצע', 'Suggested fix'), 'none': ('לא נמצאו תוצאות', 'No results'),
     'build': ('Build', 'Build'), 'version': ('גרסה', 'Version'), 'built': ('תאריך בנייה', 'Build date'),
@@ -75,6 +75,7 @@ def root(handle, url, folder, end):
     folder(s('guide'), url(a='help_guide'), tile('guide'))
     folder(s('trouble'), url(a='help_trouble'), tile('trouble'))
     folder(s('search'), url(a='help_search'), os.path.join(MEDIA, 'search_help.png'))
+    folder(s('speed'), url(a='speedtest'), tile('speed'))
     folder(s('about'), url(a='help_about'), tile('about'))
     folder('[COLOR grey]%s ⇄ %s[/COLOR]' % ('עברית' if lang == 'he' else 'English', s('toggle')), url(a='help_lang'),
            'DefaultAddonLanguage.png')
@@ -87,11 +88,11 @@ def cats(handle, url):
     import xbmcplugin
     from .common import MEDIA
     for key, a, icon in (('guide', 'help_guide', 'guide'), ('trouble', 'help_trouble', 'trouble'),
-                         ('about', 'help_about', 'about')):
+                         ('speed', 'speedtest', 'speed'), ('about', 'help_about', 'about')):
         tile = os.path.join(MEDIA, 'cats', 'topic_%s.png' % icon)
         li = xbmcgui.ListItem(s(key))
         li.setArt({'icon': tile, 'thumb': tile})
-        xbmcplugin.addDirectoryItem(handle, url(a=a), li, True)
+        xbmcplugin.addDirectoryItem(handle, url(a=a), li, a != 'speedtest')     # the test is an action, not a folder
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
@@ -149,16 +150,19 @@ def toggle():
 def about_text():
     import platform
     import xbmc
-    from .common import ADDON, _rpc_raw
+    from .common import ADDON
     lang = _lang()
     i = 0 if lang == 'he' else 1
     built = ''
     try:
-        built = open(xbmc.translatePath('special://userdata/novatv_build.txt'), encoding='utf-8').read().strip()
+        import xbmcvfs
+        built = open(xbmcvfs.translatePath('special://userdata/novatv_build.txt'), encoding='utf-8').read().strip()
     except Exception:
         pass
     from . import profiles
-    adds = (_rpc_raw('Addons.GetAddons', properties=['name', 'version', 'enabled']).get('result') or {}).get('addons', [])
+    r = json.loads(xbmc.executeJSONRPC(json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.GetAddons',
+                                                  'params': {'properties': ['name', 'version', 'enabled']}})))
+    adds = (r.get('result') or {}).get('addons', [])
     lines = ['[B][COLOR FFE8BE5A]BN Stream[/COLOR][/B]',
              '%s: %s' % (STR['version'][i], ADDON.getAddonInfo('version')),
              '%s: %s' % (STR['built'][i], built or '-'),
