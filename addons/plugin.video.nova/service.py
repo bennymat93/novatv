@@ -330,6 +330,10 @@ def align_job():
             log('subtitle align %s: %s' % (os.path.basename(f), info))
             if not r.get('srt') or not p.isPlayingVideo() or p.getPlayingFile() != path:
                 continue
+            # the viewer (or the AI flow) chose another subtitle meanwhile: keep that choice
+            if win.getProperty('NovaTV.SubsChosen') == path or win.getProperty('BN.LastSubFile') != f:
+                log('subtitle align: another subtitle was chosen meanwhile - synced copy not loaded')
+                continue
             out = os.path.join(PROFILE, 'aligned')
             os.makedirs(out, exist_ok=True)
             name = os.path.splitext(os.path.basename(f))[0]
