@@ -25,6 +25,18 @@
   2. Merge v1.4-work into main.
   3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
 
+## UPDATE 30/09 ~15:00 – 1.4.0 RELEASE RUNNING
+- `python tools/release.py --version 1.4.0 --notes "..."`: log in work/release_140.log, state in work/release_state.json.
+  - If it stopped: fix the cause and rerun the same command (it resumes).
+- Before the release: full suite 51/52.
+  - The only failure was "Free channels", caused by the guide being built inside the merge. Fixed: the guide is now built in the background (iptv.free_guide / rebuild_guide).
+  - Re-checked: IPTV merge, Free channels, Merged playlist, System Update, 1.4.0 features: 5/5.
+  - Live failover played Kan 11 / Keshet 12 / Reshet 13 / 14 / Knesset.
+- After it finishes:
+  1. Verify the repository addons.xml = 1.4.0 and the GitHub release assets.
+  2. Run `python tools/channels_report.py` when stream_check ends, and commit reports/.
+  3. Report to the owner (Hebrew).
+
 ## UPDATE 30/09 ~13:00
 - Fixed:
   - backup included its own pre_update.zip, which grew to 37 GB and hung System Update: zips/parts are now excluded;
