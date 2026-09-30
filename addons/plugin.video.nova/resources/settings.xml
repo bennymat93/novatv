@@ -14,6 +14,7 @@
   </category>
   <category label="Subtitles">
     <setting id="ai_subs" label="AI Hebrew subtitles when none found" type="bool" default="true"/>
+    <setting id="auto_align" label="Sync downloaded subtitles to the speech automatically" type="bool" default="true"/>
     <setting id="status_on_start" label="Show the system status table when BN starts" type="bool" default="true"/>
     <setting id="ai_prepare" label="Pause at start until Hebrew subtitles are ready" type="bool" default="true"/>
     <setting id="ai_wait" label="Seconds to wait for human subtitles" type="slider" range="5,5,90" option="int" default="25"/>

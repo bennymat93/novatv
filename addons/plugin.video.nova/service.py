@@ -288,6 +288,61 @@ class Flow:
                 return
 
 
+def _read_sub(path):
+    data = open(path, 'rb').read()
+    for enc in ('utf-8-sig', 'cp1255', 'latin-1'):
+        try:
+            return data.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return ''
+
+
+def align_job():
+    """a subtitle placed by All_Subs (guard v10 sets BN.LastSubFile) is timed for some release, not necessarily this
+    file: the subtitle server aligns it to this video's speech (offset + frame-rate drift, server/subalign.py) and the
+    synced copy replaces it. Only .srt; nothing happens when the server is away or the file is already in sync."""
+    import requests
+    win, mon, seen = xbmcgui.Window(10000), monitor(), ''
+    while not mon.waitForAbort(2):
+        f = win.getProperty('BN.LastSubFile')
+        if not f or f == seen:
+            continue
+        seen = f
+        from resources.lib.player_menus import _pl
+        p = _pl()                     # the process's ONE Player (per-call Players crashed Kodi)
+        try:
+            if not f.lower().endswith('.srt') or ADDON.getSetting('auto_align') == 'false' or not p.isPlayingVideo():
+                continue
+            path = p.getPlayingFile()
+            tag = p.getVideoInfoTag()
+            spec = {'url': path, 'title': tag.getTVShowTitle() or tag.getTitle(), 'season': tag.getSeason(),
+                    'episode': tag.getEpisode(), 'tmdb': tag.getUniqueID('tmdb'), 'srt': _read_sub(f)}
+            yid = youtube_id(path + ' ' + xbmc.getInfoLabel('Player.FilenameAndPath'))
+            if yid:
+                spec['youtube_id'] = yid
+            base = ADDON.getSetting('sub_server').rstrip('/')
+            if not base:
+                continue
+            r = requests.post(base + '/align', json=spec, timeout=240).json()
+            info = r.get('info') or {}
+            log('subtitle align %s: %s' % (os.path.basename(f), info))
+            if not r.get('srt') or not p.isPlayingVideo() or p.getPlayingFile() != path:
+                continue
+            out = os.path.join(PROFILE, 'aligned')
+            os.makedirs(out, exist_ok=True)
+            name = os.path.splitext(os.path.basename(f))[0]
+            name = re.sub(r'\.(he|heb|iw)$', '', name)[:80] + ' BN sync.he.srt'
+            dst = os.path.join(out, name)
+            with open(dst, 'w', encoding='utf-8') as fh:
+                fh.write(r['srt'])
+            p.setSubtitles(dst)
+            drift = '' if info.get('scale', 1) == 1 else ', fps %.3f' % info['scale']
+            xbmcgui.Dialog().notification('NovaTV', T('synced') % (info.get('offset', 0), drift), xbmcgui.NOTIFICATION_INFO, 4000)
+        except Exception as e:
+            log('subtitle align: %s' % e, xbmc.LOGWARNING)
+
+
 def _current_sub_is(name):
     """the active subtitle track is the file just loaded (a replaced file of the same name keeps the track count)"""
     try:
@@ -648,6 +703,7 @@ def main():
         except Exception as e:
             log('branding: %s' % e, xbmc.LOGWARNING)
     later(20, branding_job)
+    later(5, align_job)
 
     def binary_job():
         # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not

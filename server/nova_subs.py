@@ -506,6 +506,14 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {'error': 'not found'})
 
     def do_POST(self):
+        if self.path.strip('/') == 'align':
+            spec = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
+            try:
+                srt, info = align(spec)
+                return self._send(200, {'srt': srt, 'info': info})
+            except Exception as e:
+                log('align failed:', e)
+                return self._send(500, {'error': str(e)[:200]})
         if self.path.strip('/') != 'jobs':
             return self._send(404, {'error': 'not found'})
         spec = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
@@ -517,6 +525,36 @@ class Handler(BaseHTTPRequestHandler):
             threading.Thread(target=JOBS[jid].run, daemon=True).start()
             log('job', jid, spec.get('title'), 'S%sE%s' % (spec.get('season'), spec.get('episode')))
         self._send(200, JOBS[jid].info())
+
+
+SPEECH = {}                 # job key -> (speech intervals, analysed seconds): one analysis per video
+ALIGN_SECONDS = 1500        # the first 25 minutes carry enough dialogue to find offset and frame-rate drift
+
+
+def speech_of(spec):
+    """speech intervals (seconds) of the video's audio: Silero VAD (bundled with faster-whisper)"""
+    key = _job_key(spec)
+    if key not in SPEECH:
+        from faster_whisper.vad import VadOptions, get_speech_timestamps
+        audio = audio_chunk(resolve_source(spec), 0, ALIGN_SECONDS)
+        if not len(audio):
+            raise RuntimeError('no audio could be read from this video')
+        ts = get_speech_timestamps(audio, VadOptions(min_silence_duration_ms=300, speech_pad_ms=100))
+        SPEECH[key] = ([(t['start'] / 16000.0, t['end'] / 16000.0) for t in ts], len(audio) / 16000.0)
+    return SPEECH[key]
+
+
+def align(spec):
+    """POST /align {url | youtube_id, srt}: the subtitle re-timed to the speech (offset + frame-rate drift)"""
+    import subalign
+    if not spec.get('srt'):
+        raise ValueError('srt required')
+    t = time.time()
+    intervals, dur = speech_of(spec)
+    new, info = subalign.align_srt(spec['srt'], intervals, dur)
+    info['seconds'] = round(time.time() - t, 1)
+    log('align', _job_key(spec), info)
+    return new, info
 
 
 DISCOVERY_PORT = 8766

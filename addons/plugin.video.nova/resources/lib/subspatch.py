@@ -173,11 +173,18 @@ GENERAL9 = [
 ]
 
 
+MARK10 = '# BN guard v10'
+# the file All_Subs just placed -> NovaTV's service aligns it to the speech (server /align)
+AUTOSUB10 = [('_BN_PLAYER.setSubtitles(sub_file)',
+              "_BN_PLAYER.setSubtitles(sub_file); __import__('xbmcgui').Window(10000).setProperty('BN.LastSubFile', "
+              "str(sub_file))   %s" % MARK10)]
+
+
 def apply(addon_dir):
     """All_Subs: 1 when a file was changed, 0 when the guards were already there; raises if it changed shape"""
     path = os.path.join(addon_dir, 'autosub.py')
     mods = os.path.join(addon_dir, 'resources', 'modules')
-    n = _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | _patch(path, MARK6, AUTOSUB6) | _patch(path, MARK7, AUTOSUB7) | \
+    n = _patch(path, MARK, EDITS) | _patch(path, MARK5, EDITS5) | _patch(path, MARK6, AUTOSUB6) | _patch(path, MARK7, AUTOSUB7) | _patch(path, MARK10, AUTOSUB10) | \
         _patch(os.path.join(mods, 'general.py'), MARK5, GENERAL5) | _patch(os.path.join(mods, 'engine.py'), MARK5, ENGINE5) | \
         _patch(os.path.join(mods, 'engine.py'), MARK8, ENGINE8)
     # general.py first: _BN_PLAYER must exist there before the others import it (replace-all runs after the anchor edit,

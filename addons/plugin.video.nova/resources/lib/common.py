@@ -65,6 +65,7 @@ STRINGS = {
     'empty':       ('אין פריטים', 'Nothing here yet', 'Пока пусто'),
     'ai_start':    ('לא נמצאו כתוביות בעברית – מתחיל תרגום AI', 'No Hebrew subtitles found - starting AI subtitles', 'Субтитры на иврите не найдены - запуск ИИ'),
     'ai_ready':    ('כתוביות AI נטענו', 'AI subtitles loaded', 'ИИ-субтитры загружены'),
+    'synced':      ('הכתוביות סונכרנו לדיבור (%+.1f ש׳%s)', 'Subtitles synced to the speech (%+.1f s%s)', 'Субтитры синхронизированы (%+.1f с%s)'),
     'ai_progress': ('כתוביות AI', 'AI subtitles', 'ИИ-субтитры'),
     'sub_check':   ('בודק כתוביות בעברית...', 'Checking Hebrew subtitles...', 'Проверка субтитров на иврите...'),
     'ai_prepare':  ('מכין כתוביות AI לפני הצפייה', 'Preparing AI subtitles before playback', 'Готовлю ИИ-субтитры перед просмотром'),
