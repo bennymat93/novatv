@@ -35,6 +35,8 @@
     <setting id="gemini_key" label="Gemini API key (optional)" type="text" option="hidden" default=""/>
   </category>
   <category label="Live TV">
+    <setting id="free_epg" label="TV guide for the free channels" type="bool" default="true"/>
+    <setting id="epg_lang" label="TV guide language" type="select" values="he|en|orig" default="he"/>
     <setting id="iptv_refresh_h" label="Refresh every (hours)" type="slider" range="1,1,48" option="int" default="12"/>
   </category>
 </settings>
