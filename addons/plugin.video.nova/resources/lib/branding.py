@@ -44,6 +44,8 @@ def splash():
     dst = xbmcvfs.translatePath('special://home/media')
     os.makedirs(dst, exist_ok=True)
     src = os.path.join(MEDIA, 'bn_splash.jpg')
+    if os.path.exists(os.path.join(dst, 'splash.jpg')):
+        return                            # the full build ships its own BN splash (full resolution): keep it
     for name in ('splash.jpg', 'splash.png'):
         target = os.path.join(dst, name)
         if name.endswith('.png'):

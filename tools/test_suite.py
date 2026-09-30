@@ -205,11 +205,13 @@ def t_branding():
 
 def t_root():
     items = ls(NOVA)
-    expect(len(items) == 13, '%d root items' % len(items))
+    expect(len(items) == 14, '%d root items' % len(items))   # 1.4.0: + device type
     expect('a=hub_search' in items[0]['file'], 'first item is search-all')
-    expect('a=status' in items[-2]['file'], 'system status item missing')
+    tail = ' '.join(i['file'] for i in items[-3:])
+    expect('a=status' in tail, 'system status item missing')
+    expect('a=profile_pick' in tail, 'device type item missing')
     expect('a=sysreport' in items[-1]['file'], 'System Update item missing')
-    return '12 items, search-all first, system status + System Update last'
+    return '14 items, search-all first, system status + device type + System Update last'
 
 
 def t_movies_lists():
@@ -1578,7 +1580,8 @@ def t_v14_features():
     """1.4.0: Help screens, speed-test entry, device profile apply, ticker feed, header labels, update button,
     country count badges, radio posters, splash"""
     out = []
-    items = lambda path: (rpc('Files.GetDirectory', directory=NOVA + path, media='files', timeout=90).get('result') or {}).get('files') or []
+    items = lambda path: (rpc('Files.GetDirectory', directory=NOVA + path, media='files', properties=['thumbnail'],
+                              timeout=90).get('result') or {}).get('files') or []
     for path, n in (('?a=help', 5), ('?a=help_guide', 10), ('?a=help_trouble', 12), ('?a=help_cats', 4)):
         got = len(items(path))
         expect(got >= n, '%s: %d items' % (path, got))
@@ -1595,7 +1598,9 @@ def t_v14_features():
     if tiles:
         expect(all(t.get('label') for t in tiles), 'country tile without a name')
     radio = items('?a=radio_list&by=country&v=IL')
-    posters = sum(1 for r in radio if 'media' in (r.get('thumbnail') or '') and 'radio' in (r.get('thumbnail') or ''))
+    from urllib.parse import unquote
+    posters = sum(1 for r in radio if '.jpg' in unquote(unquote(r.get('thumbnail') or '')) and
+                  'radio' in unquote(unquote(r.get('thumbnail') or '')).replace(chr(92), '/'))
     expect(radio and posters >= len(radio) * 0.5, 'radio posters: %d of %d' % (posters, len(radio)))
     out.append('radio posters %d/%d' % (posters, len(radio)))
     home = os.path.join(DATA, 'media', 'splash.jpg')

@@ -432,6 +432,10 @@ PRESETS = {   # first-run prompts would block the hub's background searches
                              # Hebrew on every YouTube video even without the AI server
                              'kodion.subtitle.languages.num': '2'},
     'plugin.video.archive.org': {'context': 'video'},
+    # weak connections (1.4.0 netsim tests): with the automatic start bandwidth, inputstream.adaptive began at the
+    # last measured speed (1080p) and stalled 9x/min on 1.5 Mbps; start at 1.5 Mbps and climb as the link allows
+    'inputstream.adaptive': {'adaptivestream.type': 'default', 'adaptivestream.bandwidth.init.auto': 'false',
+                             'adaptivestream.bandwidth.init': '1500'},
     'service.subtitles.All_Subs': {
         'telegram': 'false',                    # needs a personal Telegram login; opened a blocking dialog
         'subscene': 'false',                    # sub-scene.com answers 403 to every search (6 retries per video)
