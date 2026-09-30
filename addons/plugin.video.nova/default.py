@@ -124,6 +124,11 @@ def root():
     folder(T('backup_menu'), url(a='bk_menu'), icon('backup'))
     folder('Google Drive', url(a='gd_menu'), 'DefaultNetwork.png')
     folder(status.s('title'), url(a='status'), icon('accounts'))
+    from resources.lib import profiles
+    from resources.lib.common import ui_lang
+    he = ui_lang() == 'he'
+    folder('%s: %s' % ('סוג מכשיר' if he else 'Device type', profiles.label(profiles.current(), 'he' if he else 'en')),
+           url(a='profile_pick'), 'DefaultAddonProgram.png')
     folder('[B]%s[/B]' % sysupdate.s('title'), url(a='sysreport'), icon('accounts'),
            plot=sysupdate.s('running'))
     end(cache=False)
@@ -462,6 +467,7 @@ def router(p):
         'help_show': lambda: _help().show(p['kind'], p['id']),
         'help_about': lambda: _help().about(),
         'help_lang': lambda: _help().toggle(),
+        'profile_pick': lambda: (__import__('resources.lib.profiles', fromlist=['x']).wizard(force=True), refresh()),
         'speedtest': lambda: __import__('resources.lib.speedtest', fromlist=['x']).run_dialog(),
         'tvradio': tvradio,
         'langs': lambda: langs(p['m']),
@@ -534,7 +540,7 @@ def router(p):
 
 
 ACTIONS = {'fav_add', 'fav_rm', 'history_clear', 'acc', 'tv_do', 'tv_play', 'lib_install', 'bk_do', 'bk_restore', 'bk_auto', 'gd', 'gd_play',
-           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'sysrollback', 'help_show', 'help_about', 'help_lang', 'speedtest', 'ai_subs_now', 'subs_menu', 'sync_menu',
+           'play', 'prov_toggle', 'prov_install_all', 'sysupdate', 'sysfix', 'sysrollback', 'help_show', 'help_about', 'help_lang', 'speedtest', 'profile_pick', 'ai_subs_now', 'subs_menu', 'sync_menu',
            'settings_menu', 'audio_menu', 'subs_pick', 'next_episode'}
 
 

@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 
 import xbmc
 import xbmcgui
+import xbmcvfs
 
 from resources.lib.common import monitor
 
@@ -706,6 +707,16 @@ def main():
             log('branding: %s' % e, xbmc.LOGWARNING)
     later(20, branding_job)
     later(5, align_job)
+
+    def profile_job():
+        # first start after installation: which device is this? (resources/lib/profiles.py) - never on the test copy
+        try:
+            from resources.lib import profiles
+            if not profiles.current() and 'testkodi' not in xbmcvfs.translatePath('special://xbmc').lower():
+                profiles.wizard()
+        except Exception as e:
+            log('device profile: %s' % e, xbmc.LOGWARNING)
+    later(8, profile_job)
 
     def binary_job():
         # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not

@@ -7,6 +7,7 @@
     <setting id="bn_player_ver" type="text" default="" visible="false"/>
     <setting id="help_lang" type="text" default="" visible="false"/>
     <setting id="brand_ver" type="text" default="" visible="false"/>
+    <setting id="device_profile" type="text" default="" visible="false"/>
     <setting id="brand_offer" type="text" default="" visible="false"/>
     <setting id="ui_sounds" label="Navigation sounds" type="bool" default="true"/>
     <setting id="ticker" label="News and weather ticker at the bottom of the home screen" type="bool" default="true"/>
