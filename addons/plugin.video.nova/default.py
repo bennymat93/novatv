@@ -468,6 +468,7 @@ def router(p):
         'help_about': lambda: _help().about(),
         'help_lang': lambda: _help().toggle(),
         'profile_pick': lambda: (__import__('resources.lib.profiles', fromlist=['x']).wizard(force=True), refresh()),
+        'live': lambda: __import__('resources.lib.livefail', fromlist=['x']).live(HANDLE, p.get('ch', '')),
         'speedtest': lambda: __import__('resources.lib.speedtest', fromlist=['x']).run_dialog(),
         'tvradio': tvradio,
         'langs': lambda: langs(p['m']),

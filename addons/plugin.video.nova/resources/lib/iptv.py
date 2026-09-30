@@ -193,6 +193,8 @@ def _merge(notify):
     dead = dead_streams()
     if dead:
         channels = [c for c in channels if c.get('url') not in dead]
+    from . import livefail          # unlicensed restream servers out; main Israeli channels with failover
+    channels = [c for c in channels if not livefail.is_restream(c.get('url'))]
     # de-duplicate by normalised name: keep HD/first, remember alternates
     best = {}
     for c in channels:
@@ -202,6 +204,16 @@ def _merge(notify):
         c['group'] = classify(c['name'], c['attrs'].get('group-title', ''), c['attrs'], c.get('src', ''))
         if k not in best or quality > best[k]['q']:
             best[k] = c
+    have = set()
+    for c in best.values():
+        key = livefail.key_for(c['name'])
+        if key and key not in have:
+            c['url'], c['opts'] = 'plugin://plugin.video.nova/?a=live&ch=' + key, []
+            have.add(key)
+    for key, (names, _, _) in livefail.CHANNELS.items():
+        if key not in have:            # only a restream carried it: the licensed sources bring it back
+            best['live:' + key] = {'attrs': {}, 'name': names[0], 'opts': [], 'src': 'BN', 'q': 3, 'group': 'Israel',
+                                   'url': 'plugin://plugin.video.nova/?a=live&ch=' + key}
     used, lines = set(), ['#EXTM3U']
     ordered = sorted(best.values(), key=lambda c: ([b for b, _ in BLOCKS].index(c['group']), c['name'].lower()))
     guide = free_guide(ordered, errors)            # the free TV guide: matched guide ids become the tvg-ids
