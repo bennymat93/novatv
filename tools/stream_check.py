@@ -100,7 +100,10 @@ def deep(url, seconds=60):
     lag = 0.0
     err = ''
     try:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors='replace')
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, errors='replace')
+        dog = threading.Timer(seconds + 45, p.kill)        # a silent hang (no progress lines at all) ends too
+        dog.daemon = True
+        dog.start()
         for line in p.stdout:
             k, _, v = line.strip().partition('=')
             if k == 'out_time_us' and v.isdigit():
@@ -121,7 +124,10 @@ def deep(url, seconds=60):
                 err = 'too slow (media time far behind)'
                 break
         p.wait(timeout=10)
-        err = err or ('' if p.returncode == 0 else _err(p.stderr.read()))
+        dog.cancel()
+        if p.returncode != 0 and not err:
+            err = 'no data (killed after %d s)' % (seconds + 45) if time.time() - t0 >= seconds + 44 else                 _err(subprocess.run(['ffprobe', '-v', 'error', '-rw_timeout', '8000000'] + ff_headers(h) + [base],
+                                    capture_output=True, text=True, errors='replace', timeout=20).stderr)
     except Exception as e:
         err = str(e)[:120]
     played = media
@@ -204,7 +210,7 @@ def main():
         r.update({'name': name, 'cc': cc, 'kind': kind, 'when': int(time.time())})
         res[key] = r
         done[0] += 1
-        if done[0] % 25 == 0:
+        if done[0] % 10 == 0 or kind == 'deep':
             save(res)
             print('%d done' % done[0], flush=True)
     with cf.ThreadPoolExecutor(a.deep_workers) as dx, cf.ThreadPoolExecutor(a.workers) as qx:
