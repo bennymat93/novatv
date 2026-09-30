@@ -335,15 +335,9 @@ def configure_pvr(force=False):
         }
         return NL.join(['<settings version="2">'] + ['    <setting id="%s">%s</setting>' % (k, v) for k, v in settings.items()]
                          + ['</settings>'])
-    # the refresh interval 60 <-> 59 minutes is the "restart" switch: a changed settings file makes Kodi recreate the
-    # client by itself, once and cleanly. Disabling / enabling the add-on instead restarted the PVR manager twice
-    # ("Start aborted") and froze or crashed Kodi (4 patterns seen in tests).
-    current = '59' if '>59<' in old else '60'
-    new = body(current)
+    new = body('60')
     same = old == new
     enabled = was_installed and _addon_enabled()
-    if enabled and same and force:
-        new, same = body('59' if current == '60' else '60'), False
     if not same:
         tmp = sp + '.tmp'
         with open(tmp, 'w', encoding='utf-8') as f:
@@ -356,17 +350,32 @@ def configure_pvr(force=False):
     if not was_installed:
         return install_addon(PVR)   # picks up the settings file on first start
     mon = monitor()
-    if not enabled:
-        _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
-    elif same:
-        return True                 # nothing changed: the client refreshes the files itself
-    for _ in range(120):            # Kodi recreates the client by itself; 5000+ channels take a while on slow boxes
-        if mon.waitForAbort(1):
+
+    def wait(cond, secs):
+        for _ in range(secs):
+            if cond():
+                return True
+            if mon.waitForAbort(1):
+                return False
+        return cond()
+    if enabled:
+        if same and not force:
+            return True             # nothing changed: the client refreshes the files itself
+        # Kodi reads instance settings only when the client is created, so the client must be recreated. Freezes seen
+        # when this overlapped a start (#1, #2, #5): never while loading, and enable only after the stop fully ended.
+        wait(_pvr_available, 120)
+        if mon.waitForAbort(10):
             return False
-        if _pvr_available():
-            return True
-    log('PVR did not come up within 2 min', xbmc.LOGWARNING)
+        _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
+        wait(lambda: not _pvr_available(), 60)
+        if mon.waitForAbort(8):     # PVR manager restart after the disable must finish first
+            return False
+    _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
+    if wait(_pvr_available, 180):   # 5000+ channels take a while on slow boxes
+        return True
+    log('PVR did not come up within 3 min', xbmc.LOGWARNING)
     return False
+
 
 def _jsonrpc(method, **params):
     try:
