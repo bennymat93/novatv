@@ -25,6 +25,15 @@
   2. Merge v1.4-work into main.
   3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
 
+## DONE 30/09 ~16:45 – 1.4.0 RELEASED
+- Repository addons.xml = 1.4.0.
+- GitHub release v1.4.0 assets: arm64 + armv7 APKs, Setup-1.4.0.exe, NovaTV-1.4.0.zip.
+- The emulator test now answers the first-run device wizard (profile tv applied, ready announced).
+- Open / to check next:
+  1. Status counts show 20,001 for movies/series. TMDb /discover total_results looks capped; verify, and use another count if so.
+  2. Some channels are DEAD in reports/channels_report.md (e.g. 5Plus/5Stars from non-listed hosts).
+  3. The laptop video freeze is still waiting for the owner's kodi.log.
+
 ## UPDATE 30/09 ~15:00 – 1.4.0 RELEASE RUNNING
 - `python tools/release.py --version 1.4.0 --notes "..."`: log in work/release_140.log, state in work/release_state.json.
   - If it stopped: fix the cause and rerun the same command (it resumes).
