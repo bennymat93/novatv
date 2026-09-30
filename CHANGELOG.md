@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+- The device-type question and the BN Stream app offer are asked only once, on the first start after installation. The answers are kept in a file written at once; Kodi's add-on settings were not always saved on Android when the app was closed.
+- The app offer never appears inside the BN Stream app itself (better detection).
+
 ## 1.4.0
 **Look:**
 - Each main-menu item and each home row (title + content) has its own panel, with a dark gap between panels.
