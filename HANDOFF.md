@@ -25,6 +25,17 @@
   2. Merge v1.4-work into main.
   3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
 
+## UPDATE 30/09 ~13:00
+- Fixed:
+  - backup included its own pre_update.zip, which grew to 37 GB and hung System Update: zips/parts are now excluded;
+  - the menu crawl skips dialog actions;
+  - IPTV merge test waits for the new list;
+  - stream_check save race.
+- Running:
+  - full suite on the rebuilt 1.4.0 (work/full14.log);
+  - stream_check (work/streams.json).
+- Report tool: `python tools/channels_report.py` -> reports/channels_report.md (guides cached in work/epg_cache).
+
 ## STATE 30/09 12:15 (check first; newer than the section above)
 - 1.4.0 development is on **main** in `C:\Users\benny\kodi-build` (v1.4-work was merged; the worktree kodi-build-14 is no longer used).
 - Done + unit-tested (200 tests):
