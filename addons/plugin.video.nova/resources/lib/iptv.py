@@ -261,14 +261,11 @@ def _merge(notify):
     return len(best), errors
 
 
-def free_guide(channels, errors, top=12):
-    """guide parts + {channel name: guide id} for the free channels (resources/lib/epg.py): Israel and the countries
-    with the most channels (a guide file per country is 0.5-20 MB: not all 120 on a TV box every day)"""
+FREE_GUIDE = os.path.join(PROFILE, 'free_guide.json.gz')     # last built guide: {'ids': {name: id}, 'parts': [...]}
+
+
+def _guide_playlist(channels, top=12):
     from . import epg
-    from .common import ADDON
-    from .mtrans import translate
-    if ADDON.getSetting('free_epg') == 'false':
-        return [], {}
     pl = []
     for c in channels:
         cc = 'IL' if c['group'] == 'Israel' else ALIAS.get(country(c['attrs']), country(c['attrs'])) or ''
@@ -277,17 +274,68 @@ def free_guide(channels, errors, top=12):
     for _, cc in pl:
         count[cc] = count.get(cc, 0) + 1
     keep = {'IL'} | set(sorted((cc for cc in count if cc in epg.FILES and cc != 'IL'), key=lambda cc: -count[cc])[:top])
-    cache = load('epg_tr.json', {})
-    mode = ADDON.getSetting('epg_lang') or 'he'
-    try:
-        parts, ids = epg.build([p for p in pl if p[1] in keep], errors, _fetch, mode,
-                               lambda lines: translate(lines, 'auto', 'iw'), cache)
-    except Exception as e:
-        errors.append('EPG: %s' % e)
+    return [p for p in pl if p[1] in keep]
+
+
+def free_guide(channels, errors):
+    """the LAST built free guide (instant), and a background rebuild when it is older than 12 h or missing.
+    Building it in the merge (13 guide files + translation) held the channel list back for minutes (1.4.0 tests)."""
+    from .common import ADDON
+    if ADDON.getSetting('free_epg') == 'false':
         return [], {}
-    save('epg_tr.json', dict(list(cache.items())[-20000:]))
-    log('free TV guide: %d channels matched, %d guide entries' % (len(ids), len(parts)))
-    return parts, ids
+    try:
+        with gzip.open(FREE_GUIDE, 'rt', encoding='utf-8') as f:
+            last = json.load(f)
+        age = time.time() - os.path.getmtime(FREE_GUIDE)
+    except Exception:
+        last, age = {'ids': {}, 'parts': []}, 1e9
+    if age > 12 * 3600:
+        import threading
+        pl = _guide_playlist(channels)
+        threading.Thread(target=rebuild_guide, args=(pl,), daemon=True).start()
+    return last['parts'], last['ids']
+
+
+def rebuild_guide(pl, max_new=3000):
+    """download + match + translate (at most max_new new strings per round; the cache keeps the rest for later),
+    save it, then rewrite the merged guide and the playlist ids (IPTV Simple reloads the guide on its own cycle)"""
+    from . import epg
+    from .common import ADDON
+    from .mtrans import translate
+    errors = []
+    cache = load('epg_tr.json', {})
+    left = [max_new]
+
+    def tr(lines):
+        if left[0] <= 0:
+            return lines                 # not now: stays in the original language until the next round
+        left[0] -= len(lines)
+        return translate(lines, 'auto', 'iw')
+    try:
+        parts, ids = epg.build(pl, errors, _fetch, ADDON.getSetting('epg_lang') or 'he', tr, cache)
+    except Exception as e:
+        log('free TV guide: %s' % e, xbmc.LOGWARNING)
+        return
+    save('epg_tr.json', dict(list(cache.items())[-30000:]))
+    tmp = FREE_GUIDE + '.tmp'
+    with gzip.open(tmp, 'wt', encoding='utf-8') as f:
+        json.dump({'ids': ids, 'parts': parts}, f, ensure_ascii=False)
+    os.replace(tmp, FREE_GUIDE)
+    log('free TV guide: %d channels matched, %d guide entries%s' % (len(ids), len(parts), ', %s' % errors if errors else ''))
+    try:                                  # apply at once: ids into the playlist, parts into the merged guide
+        text = open(MERGED_M3U, encoding='utf-8').read()
+        out = []
+        for line in text.split('\n'):
+            if line.startswith('#EXTINF'):
+                name = line.rsplit(',', 1)[1].strip()
+                if name in ids:
+                    line = re.sub(r' tvg-id="[^"]*"', '', line).replace('#EXTINF:-1 ', '#EXTINF:-1 tvg-id="%s" ' % ids[name], 1)
+            out.append(line)
+        with open(MERGED_M3U, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(out))
+        merge_epg(sources()['epg'], [], extra=parts)
+    except Exception as e:
+        log('free TV guide apply: %s' % e, xbmc.LOGWARNING)
 
 
 def merge_epg(urls, errors, extra=()):
