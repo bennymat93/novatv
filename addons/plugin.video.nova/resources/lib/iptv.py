@@ -332,6 +332,7 @@ def configure_pvr(force=False):
             'numberByOrder': 'false', 'epgPathType': '0', 'epgPath': MERGED_EPG, 'epgCache': 'true',
             'epgTimeShift': '0', 'logoPathType': '1', 'logoFromEpg': '1', 'catchupEnabled': 'true',
             'm3uRefreshMode': '1', 'm3uRefreshIntervalMins': interval,
+            'useInputstreamAdaptiveforHls': 'true',     # HLS through inputstream.adaptive: quality follows the link speed
         }
         return NL.join(['<settings version="2">'] + ['    <setting id="%s">%s</setting>' % (k, v) for k, v in settings.items()]
                          + ['</settings>'])

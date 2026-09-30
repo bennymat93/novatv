@@ -151,7 +151,12 @@ def run(monitor, enabled, city, lang):
                     t = None              # port busy (a second service copy): try again next round
             if t is not None:
                 t.city, t.lang = city(), lang()
+                first = not t.news and not t.weather
                 t.refresh()
+                if first and (t.news or t.weather):
+                    # Kodi asked for the feed before the service was up and waits a whole interval: reload now
+                    import xbmc
+                    xbmc.executebuiltin('RefreshRSS')
         elif t is not None:
             t.stop()
             t = None

@@ -1520,6 +1520,89 @@ def t_clean_shutdown():
     return 'quit in %.0f s, all services stopped, no dump' % dt
 
 
+WEAK_STREAM = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'   # adaptive HLS, 5 variants up to 1080p
+
+
+def t_weak_network():
+    """playback on 1.5 / 3 / 5 Mbps with latency, jitter and drops (tools/netsim.py via Kodi's proxy setting):
+    inputstream.adaptive must keep playing (few, short stalls) and pick a quality the link can carry"""
+    sys.path.insert(0, os.path.join(ROOT, 'tools'))
+    import netsim
+    strm = os.path.join(ROOT, 'work', 'weak.strm')
+    with open(strm, 'w', encoding='utf-8') as f:
+        f.write('#KODIPROP:inputstream=inputstream.adaptive\n' + WEAK_STREAM + '\n')
+    results = {}
+    try:
+        for mbps in (1.5, 3.0, 5.0):
+            srv, sh = netsim.start(8899, mbps, 80, 40, 0.01)
+            for k, v in (('network.httpproxytype', 0), ('network.httpproxyserver', '127.0.0.1'),
+                         ('network.httpproxyport', 8899), ('network.usehttpproxy', True)):
+                rpc('Settings.SetSettingValue', setting=k, value=v)
+            try:
+                rpc('Player.Open', item={'file': strm})
+                t0 = time.time()
+                pid = _wait_playing(60)
+                start = round(time.time() - t0, 1) if pid is not None else None
+                stalls, stalled, last, heights = 0, 0.0, None, []
+                end = time.time() + 60
+                while pid is not None and time.time() < end:
+                    pr = (rpc('Player.GetProperties', playerid=pid, properties=['time']).get('result') or {}).get('time') or {}
+                    cur = pr.get('hours', 0) * 3600 + pr.get('minutes', 0) * 60 + pr.get('seconds', 0) + pr.get('milliseconds', 0) / 1000.0
+                    if last is not None and cur - last < 0.05:
+                        stalled += 0.5
+                        if stalled == 1.0:
+                            stalls += 1          # counted once per stall of 1 s or more
+                    else:
+                        stalled = 0.0
+                    last = cur
+                    h = rpc('XBMC.GetInfoLabels', labels=['VideoPlayer.VideoResolution'])['result']['VideoPlayer.VideoResolution']
+                    heights.append(h)
+                    time.sleep(0.5)
+                results[mbps] = {'start_s': start, 'stalls': stalls, 'quality': max(set(heights), key=heights.count) if heights else '',
+                                 'mb': round(sh.bytes / 1e6, 1)}
+            finally:
+                _stop_all()
+                rpc('Settings.SetSettingValue', setting='network.usehttpproxy', value=False)
+                srv.shutdown()
+                srv.server_close()
+    finally:
+        rpc('Settings.SetSettingValue', setting='network.usehttpproxy', value=False)
+    json.dump(results, open(os.path.join(ROOT, 'work', 'weak_network.json'), 'w'), indent=1)
+    for mbps, r in results.items():
+        expect(r['start_s'] is not None, '%.1f Mbps: never started' % mbps)
+        expect(r['stalls'] <= 2, '%.1f Mbps: %d stalls in 60 s' % (mbps, r['stalls']))
+    return ', '.join('%.1f Mbps: start %ss, %d stalls, %sp' % (m, r['start_s'], r['stalls'], r['quality']) for m, r in results.items())
+
+
+def t_v14_features():
+    """1.4.0: Help screens, speed-test entry, device profile apply, ticker feed, header labels, update button,
+    country count badges, radio posters, splash"""
+    out = []
+    items = lambda path: (rpc('Files.GetDirectory', directory=NOVA + path, media='files', timeout=90).get('result') or {}).get('files') or []
+    for path, n in (('?a=help', 5), ('?a=help_guide', 10), ('?a=help_trouble', 12), ('?a=help_cats', 4)):
+        got = len(items(path))
+        expect(got >= n, '%s: %d items' % (path, got))
+    out.append('help ok')
+    found = items('?a=help_search&q=' + 'EPG')
+    expect(len(found) >= 2, 'help search EPG: %d' % len(found))
+    lab = rpc('XBMC.GetInfoLabels', labels=['System.AddonVersion(plugin.video.nova)', 'Window(Home).Property(BN.Ticker)'])['result']
+    expect(lab['Window(Home).Property(BN.Ticker)'] == '1', 'ticker flag not set')
+    import urllib.request
+    feed = urllib.request.urlopen('http://127.0.0.1:51153/ticker.rss', timeout=10).read().decode('utf-8')
+    expect(feed.count('<item>') >= 3, 'ticker feed has %d items' % feed.count('<item>'))
+    out.append('ticker %d items' % feed.count('<item>'))
+    tiles = items('?a=tv_countries')
+    if tiles:
+        expect(all(t.get('label') for t in tiles), 'country tile without a name')
+    radio = items('?a=radio_list&by=country&v=IL')
+    posters = sum(1 for r in radio if 'media' in (r.get('thumbnail') or '') and 'radio' in (r.get('thumbnail') or ''))
+    expect(radio and posters >= len(radio) * 0.5, 'radio posters: %d of %d' % (posters, len(radio)))
+    out.append('radio posters %d/%d' % (posters, len(radio)))
+    home = os.path.join(DATA, 'media', 'splash.jpg')
+    expect(os.path.exists(home), 'BN splash not installed')
+    return ', '.join(out)
+
+
 TESTS = [
     ('Add-ons installed & enabled', t_addons_enabled), ('Skin / sounds / language', t_gui),
     ('BN branding', t_branding), ('Main menu', t_root), ('Movie & series lists', t_movies_lists),
@@ -1538,7 +1621,7 @@ TESTS = [
     ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
     ('AI: silent video, nothing loaded', t_ai_no_audio), ('BN subtitle window', t_subs_menu),
     ('BN player', t_bn_player), ('Player panels open', t_player_panels), ('Zero-state soak', t_zero_state_soak), ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
-    ('System Update + Auto-Fix', t_system_update),
+    ('System Update + Auto-Fix', t_system_update), ('1.4.0 features', t_v14_features), ('Weak network (1.5/3/5 Mbps)', t_weak_network),
     ('Static: addon-checker, py3.8, XML', t_static), ('Every NovaTV screen opens', t_menu_crawl),
     ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('YouTube port usable', t_youtube_port), ('No thread leak', t_thread_leak),
     ('Kodi log clean', t_log_errors), ('No tracebacks (any add-on)', t_no_tracebacks),

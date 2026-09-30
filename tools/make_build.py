@@ -210,6 +210,9 @@ def home_panels(skin):
         body = body.replace('<width>395</width>' + NL + TB * 9 + '<height>95</height>',
                             '<width>395</width>' + NL + TB * 9 + '<height>76</height>')
         body = body.replace('<top>0</top>' + NL + TB * 9 + '<width>395</width>', '<top>7</top>' + NL + TB * 9 + '<width>395</width>')
+        # labels start right of the icon (a long focused label ran over it): left 65 / width 315 -> 108 / 272
+        body = re.sub(r'<left>65</left>(\s*<top>0</top>\s*<height>95</height>\s*)<width>315</width>',
+                      r'<left>108</left>\1<width>272</width>', body)
         t = t[:a] + body + t[end:]
         open(h, 'w', encoding='utf-8').write(t)
 
