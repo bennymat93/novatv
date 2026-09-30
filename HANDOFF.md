@@ -107,7 +107,8 @@
   - The AI cache key now includes the release file (`_release`) + `_t2`: a cached subtitle from another release of the same tmdb title caused late subtitles.
   - The server was restarted.
   - Human subtitles (All_Subs) are not auto-aligned. Idea for later: audio VAD cross-correlation on the server.
-- **PVR freeze #5 fixed:** Kodi reads instance settings only at client creation (a file flip alone did nothing: 5 channels). configure_pvr now: wait until up + 10 s, disable, wait until down + 8 s, enable, wait up to 3 min. Free channels passed 3x --repeat.
+- **PVR freeze #5 (fixed, Free channels 3/3 pass):** release run 2 froze: a disable is handled ~40 s later by Kodi and recreates the client itself; our enable collided. Fix: after the disable, wait until the add-on is really off and PVR down, OR the client came back with a new channel count (then no enable). Testing with --only ... --repeat 3, then rerun release.py.
+- (old note) Kodi reads instance settings only at client creation (a file flip alone did nothing: 5 channels). configure_pvr now: wait until up + 10 s, disable, wait until down + 8 s, enable, wait up to 3 min. Free channels passed 3x --repeat.
 
 ## OPEN / NOT DONE YET
 1. **Finish the 1.3.0 release** (running). Then confirm the live repository and send the owner a Hebrew summary.

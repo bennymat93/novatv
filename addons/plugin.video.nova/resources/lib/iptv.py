@@ -366,10 +366,25 @@ def configure_pvr(force=False):
         wait(_pvr_available, 120)
         if mon.waitForAbort(10):
             return False
+        before = _channel_count()
         _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=False)
-        wait(lambda: not _pvr_available(), 60)
-        if mon.waitForAbort(8):     # PVR manager restart after the disable must finish first
+        # Kodi 21 handles the disable asynchronously (~40 s later) and may recreate the client by itself, reading the new
+        # settings. A second action (enable) inside that window = two restarts at once = "Start aborted" + freeze (#5).
+        # So: wait until the add-on is really disabled and PVR really down, or until the client came back by itself.
+        came_back = [False]
+
+        def settled():
+            if _addon_enabled() and _pvr_available() and _channel_count() != before:
+                came_back[0] = True
+                return True
+            return not _addon_enabled() and not _pvr_available()
+        wait(settled, 150)
+        if came_back[0]:
+            return True
+        if mon.waitForAbort(10):
             return False
+        if _addon_enabled():
+            return wait(_pvr_available, 180)
     _rpc('Addons.SetAddonEnabled', addonid=PVR, enabled=True)
     if wait(_pvr_available, 180):   # 5000+ channels take a while on slow boxes
         return True
@@ -386,6 +401,11 @@ def _jsonrpc(method, **params):
 
 def _addon_enabled():
     return bool(_jsonrpc('Addons.GetAddonDetails', addonid=PVR, properties=['enabled']).get('result', {}).get('addon', {}).get('enabled'))
+
+
+def _channel_count():
+    r = _jsonrpc('PVR.GetChannels', channelgroupid='alltv', properties=['channelnumber'], limits={'start': 0, 'end': 1})
+    return ((r.get('result') or {}).get('limits') or {}).get('total', -1)
 
 
 def _pvr_available():
