@@ -181,8 +181,9 @@ def radios():
 
 def save(res):
     with LOCK:
+        snap = dict(res)
         tmp = OUT + '.tmp'
-        json.dump(res, open(tmp, 'w', encoding='utf-8'), ensure_ascii=False)
+        json.dump(snap, open(tmp, 'w', encoding='utf-8'), ensure_ascii=False)
         os.replace(tmp, OUT)
 
 
@@ -211,8 +212,9 @@ def main():
         except Exception as e:                 # never lose a result silently (a timeout inside the check)
             r = {'ok': False, 'start': None, 'error': ('check failed: %s' % e)[:80]}
         r.update({'name': name, 'cc': cc, 'kind': kind, 'when': int(time.time())})
-        res[key] = r
-        done[0] += 1
+        with LOCK:
+            res[key] = r
+            done[0] += 1
         if done[0] % 10 == 0 or kind == 'deep':
             save(res)
             print('%d done' % done[0], flush=True)

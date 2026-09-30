@@ -24,7 +24,8 @@ def _members():
         for d, dirs, files in os.walk(base):
             dirs[:] = [x for x in dirs if x not in SKIP and not (a == 'plugin.video.nova' and x == 'backups')]
             for fn in files:
-                if not fn.endswith(SKIP):
+                # never a backup inside a backup (pre_update.zip lives in this folder: it zipped itself to 37 GB)
+                if not fn.endswith(SKIP) and not fn.endswith(('.zip', '.part', '.tmp')):
                     full = os.path.join(d, fn)
                     yield full, os.path.relpath(full, USERDATA)
     for fn in FILES:

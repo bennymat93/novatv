@@ -1302,7 +1302,7 @@ def t_static():
 
 def t_menu_crawl():
     """every NovaTV screen (3 levels deep) opens without an error and fast enough for a TV remote"""
-    skip = re.compile(r'a=(list|years|seasons|episodes|hub_search|search|sysreport|yt_search|ia_search|radio_list|tv_list|ia_item|kukhnya)\b')
+    skip = re.compile(r'a=(list|years|seasons|episodes|hub_search|search|sysreport|yt_search|ia_search|radio_list|tv_list|ia_item|kukhnya|profile_pick|speedtest|help_about|help_lang|help_show|help_search|sysrollback|live)\b')
     todo, seen, slow, errors, n = [(NOVA, 0)], set(), [], [], 0
     while todo and n < 120:
         path, depth = todo.pop(0)
