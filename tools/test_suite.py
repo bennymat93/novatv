@@ -331,15 +331,19 @@ def t_iptv():
     json.dump({'m3u': [{'name': 'test', 'url': m3u}], 'epg': [],
                'free': {n: False for n in free_list_names()}}, open(iptv_json, 'w'))
     rpc('Addons.ExecuteAddon', addonid='plugin.video.nova', params='?a=tv_do&do=refresh')
-    for _ in range(60):
+    # the new list is in once the test channels are there and the earlier (free) list is gone
+    for _ in range(80):
         time.sleep(3)
         r = rpc('PVR.GetChannels', channelgroupid='alltv', properties=['channelnumber'])
         ch = {c['label']: c['channelnumber'] for c in r.get('result', {}).get('channels', [])}
-        if len(ch) >= 5:
+        if 'Первый канал' in ch and len(ch) < 40:
             break
-    expect(len(ch) == 5, 'channels after dedupe: %s' % ch)
+    mine = {k: v for k, v in ch.items() if k in ('Kan 11 HD', 'Kan 11', 'Keshet 12', 'Первый канал', 'Sport 5', 'Disney Junior')}
+    expect(len(mine) == 5 and 'Kan 11' not in mine, 'channels after dedupe: %s' % mine)
     expect(ch.get('Kan 11 HD') == 11 and ch.get('Keshet 12') == 12, 'Israeli numbering %s' % ch)
-    return ch
+    # 1.4.0: the licensed Israeli channels are always in (livefail.CHANNELS), whatever the playlists carry
+    expect(len(ch) == 5 + 12, 'licensed Israeli channels added: %d channels %s' % (len(ch), sorted(ch)))
+    return mine
 
 
 def t_ai_server():
