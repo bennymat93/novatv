@@ -76,8 +76,8 @@ def label(profile, lang='he'):
 
 
 def current():
-    from .common import ADDON
-    return ADDON.getSetting('device_profile')
+    from .common import flag
+    return flag('device_profile')
 
 
 def platform():
@@ -106,7 +106,8 @@ def apply(profile):
         if 'error' in r:
             bad.append(k)
     xbmc.executebuiltin('Skin.%s(touchmode)' % ('SetBool' if touch else 'Reset'))
-    ADDON.setSetting('device_profile', profile)
+    from .common import flag
+    flag('device_profile', profile)
     log('device profile %s applied (%d settings%s)' % (profile, len(settings), ', not accepted: %s' % bad if bad else ''))
     return bad
 

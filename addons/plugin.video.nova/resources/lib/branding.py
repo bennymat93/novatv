@@ -60,8 +60,8 @@ def splash():
 
 def _is_our_app():
     """our APK (org.bn.stream) or our Windows installer (folder "BN Stream"): the name and logo are already BN"""
-    xbmc_path = xbmcvfs.translatePath('special://xbmc')
-    return 'org.bn.stream' in xbmc_path or 'bn stream' in xbmc_path.lower()
+    paths = ' '.join(xbmcvfs.translatePath(p) for p in ('special://xbmc', 'special://home', 'special://temp')).lower()
+    return 'org.bn.stream' in paths or 'bn stream' in paths or 'bn-stream' in paths
 
 
 def windows_shortcuts():
@@ -97,9 +97,10 @@ def windows_shortcuts():
 
 def android_offer():
     """one offer per install (setting brand_offer); yes -> backup, then open the download page"""
-    if ADDON.getSetting('brand_offer') == 'done':
+    from .common import flag
+    if flag('brand_offer') == 'done':
         return
-    ADDON.setSetting('brand_offer', 'done')
+    flag('brand_offer', 'done')             # asked once per installation, whatever the answer
     if not xbmcgui.Dialog().yesno(_s('offer_t'), _s('offer').replace('[CR]', '\n'), nolabel=_s('no'), yeslabel=_s('yes')):
         return
     try:
@@ -115,7 +116,8 @@ def android_offer():
 def apply():
     """service: once per add-on version"""
     ver = ADDON.getAddonInfo('version')
-    if ADDON.getSetting('brand_ver') == ver:
+    from .common import flag
+    if flag('brand_ver') == ver:
         return
     try:
         splash()
@@ -129,4 +131,4 @@ def apply():
                 android_offer()
         except Exception as e:
             log('branding: %s' % e, xbmc.LOGWARNING)
-    ADDON.setSetting('brand_ver', ver)
+    flag('brand_ver', ver)

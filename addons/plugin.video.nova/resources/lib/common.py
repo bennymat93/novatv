@@ -162,6 +162,21 @@ def save(name, data):
     os.replace(tmp, _path(name))
 
 
+def flag(key, value=None):
+    """one-time answers (device type, app offer) in firstrun.json, written at once. Kodi's add-on settings were
+    not always flushed to disk on Android when the app was closed, so the questions came back on every start."""
+    data = load('firstrun.json', {})
+    if value is None:
+        return data.get(key) or ADDON.getSetting(key)
+    data[key] = value
+    save('firstrun.json', data)
+    try:
+        ADDON.setSetting(key, value)
+    except Exception:
+        pass
+    return value
+
+
 # ---------------------------------------------------------------- TMDb
 TMDB = 'https://api.themoviedb.org/3'
 IMG = 'https://image.tmdb.org/t/p/'
