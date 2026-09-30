@@ -25,6 +25,8 @@
   2. Merge v1.4-work into main.
   3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
 
+## DONE 30/09 ~18:00 – 1.4.1 RELEASED (first-run questions once: common.flag + firstrun.json)
+
 ## DONE 30/09 ~16:45 – 1.4.0 RELEASED
 - Repository addons.xml = 1.4.0.
 - GitHub release v1.4.0 assets: arm64 + armv7 APKs, Setup-1.4.0.exe, NovaTV-1.4.0.zip.
