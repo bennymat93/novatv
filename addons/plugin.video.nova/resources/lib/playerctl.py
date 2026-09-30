@@ -31,11 +31,36 @@ def audio_delay():
     return syncmath.parse_delay(xbmc.getInfoLabel('Player.AudioDelay'))
 
 
-def set_sub_delay(target):
+def video_key(path=None):
+    """the playing video without changing tokens (debrid / CDN query strings)"""
+    import re
+    return re.sub(r'[?#|].*$', '', path or xbmc.getInfoLabel('Player.FilenameAndPath'))[-300:]
+
+
+def remembered_delay(path=None):
+    from .common import load
+    return float(load('sub_offsets.json', {}).get(video_key(path), 0.0))
+
+
+def remember_delay(value, path=None):
+    """the viewer's manual subtitle offset for this video (restored when it plays again); newest 500 kept"""
+    from .common import load, save
+    d = load('sub_offsets.json', {})
+    k = video_key(path)
+    d.pop(k, None)
+    if abs(value) > 0.001:
+        d[k] = round(value, 3)
+    save('sub_offsets.json', dict(list(d.items())[-500:]))
+
+
+def set_sub_delay(target, remember=True):
     d, n = syncmath.steps(sub_delay(), target, syncmath.SUB_STEP)
     if d:
         action('SubtitleDelayPlus' if d == 'plus' else 'SubtitleDelayMinus', n)
-    return sub_delay()
+    now = sub_delay()
+    if remember:
+        remember_delay(now)
+    return now
 
 
 def set_audio_delay(target):

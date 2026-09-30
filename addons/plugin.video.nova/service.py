@@ -410,8 +410,10 @@ class Player(xbmc.Player):
             if monitor().waitForAbort(0.8) or gen != self.gen:
                 return
             try:
-                if abs(playerctl.sub_delay()) > 0.001:
-                    playerctl.set_sub_delay(0.0)
+                # nothing carries over from the previous video - except this video's own remembered manual offset
+                want = playerctl.remembered_delay(self.file)
+                if abs(playerctl.sub_delay() - want) > 0.001:
+                    playerctl.set_sub_delay(want, remember=False)
                 if abs(playerctl.audio_delay()) > 0.001:
                     playerctl.set_audio_delay(0.0)
                 if abs(playerctl.speed() - 1.0) > 0.05:
