@@ -6,7 +6,7 @@
 - Answer the owner in Hebrew, tersely.
 
 ## NOW RUNNING (check first)
-`python tools/release.py --version 1.3.0 --notes "..."`: log in `work/release_130b.log`, state in `work/release_state.json`.
+`python tools/release.py --version 1.3.0 --notes "..."`: log in `work/release_130c.log`, state in `work/release_state.json`.
 - If it STOPPED:
   1. Read the FAIL line, and `work/crash-*.log` (+ `.dmp`) for a freeze.
   2. Fix the root cause.
@@ -96,6 +96,18 @@
   - `--only "a,b" --repeat N` (repeat mode leaves IPTV sources changed between rounds, so ignore IPTV-merge failures in round 2+).
   - Crash dumps are copied to `work/crash-*.dmp`; analyse with `.venv11` + the `minidump` package.
 - **release.py:** `push_site()` publishes the repository right after the tests; commits use `--allow-empty`.
+
+## Added to 1.3.0 (owner request, 30/09 midday)
+- **Panels:** `make_build.home_panels` (runs after bn_skin):
+  - one panel per main-menu item (76 px panel in a 90/95 px item, so there is a dark gap);
+  - one panel per home row inside CategoryLabel (title + content). Height = list H + 285 + 2G - 24.
+  - The widget grouplist itemgap changed from -160 to G=-120, which opens room for the gap.
+  - Verified by screenshot: work/home_panels6.png / 7.png.
+- **Subtitle sync:** server `cue_times()` computes times from Whisper word timestamps (lead 0.12 s, linger 0.6 s, no overlap).
+  - The AI cache key now includes the release file (`_release`) + `_t2`: a cached subtitle from another release of the same tmdb title caused late subtitles.
+  - The server was restarted.
+  - Human subtitles (All_Subs) are not auto-aligned. Idea for later: audio VAD cross-correlation on the server.
+- **PVR freeze #5 fixed:** on a forced refresh, `configure_pvr` flips m3uRefreshIntervalMins 60<->59 (atomic write) and waits for Kodi to recreate the client. No disable/enable any more. The 3 PVR checks passed.
 
 ## OPEN / NOT DONE YET
 1. **Finish the 1.3.0 release** (running). Then confirm the live repository and send the owner a Hebrew summary.
