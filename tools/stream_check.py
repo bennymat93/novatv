@@ -206,7 +206,10 @@ def main():
 
     def run(item, fn, kind):
         key, name, url, cc, _ = item
-        r = fn(url)
+        try:
+            r = fn(url)
+        except Exception as e:                 # never lose a result silently (a timeout inside the check)
+            r = {'ok': False, 'start': None, 'error': ('check failed: %s' % e)[:80]}
         r.update({'name': name, 'cc': cc, 'kind': kind, 'when': int(time.time())})
         res[key] = r
         done[0] += 1
