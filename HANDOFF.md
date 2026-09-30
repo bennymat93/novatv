@@ -5,7 +5,27 @@
 - Read `CLAUDE.md` first (layout, rules, history). This file is the current state, open work and exact next steps.
 - Answer the owner in Hebrew, tersely.
 
-## NOW RUNNING (check first)
+## STATE 30/09 11:30 (check first)
+- **1.3.0 repository is LIVE** (addons.xml = 1.3.0, tests passed). Per the owner, NO APK/installer for 1.3.0: packages come with **1.4.0**.
+- **1.4.0 work** = branch `v1.4-work`, worktree `C:\Users\benny\kodi-build-14` (main checkout stays on 1.3.0 for testkodi).
+  - Task list: PLAN.md.
+  - Owner's prompt file: `C:\Users\benny\.claude\uploads\5c0d8e10-629d-4b39-ba2e-73c6a6c052db\e5c780f6-kodi-build-prompt.md`.
+- Owner decisions:
+  - Phase 3: Israeli TV + IL radio + the first 10 per country deep (60 s); the rest quick; dead ones removed; missing EPG goes to KNOWN_ISSUES.
+  - Phase 6: local throttling proxy (no admin).
+  - Name/logo in a plain Kodi: splash + Windows shortcuts + one-time Android offer.
+  - Speed test in Help (done).
+- Done on v1.4-work (176 unit tests pass):
+  - panels; rename to ערוצים ישראליים; gold only on focus; country count badge; counts 'סרטים - N'; version + date header;
+  - ticker (ticker.py, local RSS :51153); radio posters (make_radio_art.py, bidi);
+  - System Update icon + backup/rollback; Help center (helpcenter.py, resources/help/*.json) + speedtest.py; branding.py.
+- Running: tools/stream_check.py (work/streams.json, resumable) in the worktree.
+- Next:
+  1. Phases 2–7: Phase 2 docs; Phase 3 fallbacks + EPG + report; Phase 4 subtitle auto-align; Phase 5 profiles/wizard; Phase 6 netsim; Phase 7 full suite.
+  2. Merge v1.4-work into main.
+  3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
+
+## (older) NOW RUNNING
 `python tools/release.py --version 1.3.0 --notes "..."`: log in `work/release_130c.log`, state in `work/release_state.json`.
 - If it STOPPED:
   1. Read the FAIL line, and `work/crash-*.log` (+ `.dmp`) for a freeze.
