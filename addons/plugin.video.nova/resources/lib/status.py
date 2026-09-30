@@ -126,6 +126,9 @@ def content_rows():
     nsrc = len([p for p in PROVIDERS if st.get(p[0], {}).get('stable', True)])
 
     def fmt(v):
+        # TMDb reports at most 20,001 results for a listing: at the cap the true number is larger - say so
+        if isinstance(v, int) and v >= 20000:
+            return '{:,}+'.format(v // 10000 * 10000)
         return '{:,}'.format(v) if isinstance(v, int) else '?'
     rows.append((s('movies'), got.get('movies') is not None, fmt(got.get('movies'))))
     rows.append((s('tv'), got.get('tv') is not None, fmt(got.get('tv'))))
