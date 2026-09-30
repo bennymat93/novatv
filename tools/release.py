@@ -79,6 +79,7 @@ def main():
     ap.add_argument('--notes', required=True, help='one line: what changed (commit + release notes)')
     ap.add_argument('--skip-installed-test', action='store_true')
     ap.add_argument('--skip-android-test', action='store_true')
+    ap.add_argument('--repo-only', action='store_true', help='stop after the tested repository is live (no packages)')
     a = ap.parse_args()
     v = a.version
     ax = os.path.join(ROOT, 'addons', 'plugin.video.nova', 'addon.xml')
@@ -92,6 +93,8 @@ def main():
     run(PY, 'tools/make_guide.py')                     # now includes this run's test results
     shutil.copy(os.path.join(ROOT, 'docs', 'guide.html'), os.path.join(ROOT, 'site', 'guide.html'))
     push_site(v, 'Repository v%s (tested; packages follow)' % v)   # the add-on update is live before the packages
+    if a.repo_only:
+        return print('repository v%s is live (--repo-only: no packages)' % v)
     # APKs and the Windows installer build at the same time; then the emulator test runs next to the installed-copy test
     step(v, 'packages', lambda: both([VENV if os.path.exists(VENV) else PY, 'tools/make_apk.py', '--version', v],
                                      [PY, 'tools/make_windows.py', '--version', v]))
