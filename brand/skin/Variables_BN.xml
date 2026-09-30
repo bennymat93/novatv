@@ -15,6 +15,16 @@
 		<value condition="Control.HasFocus(19011) | Control.HasFocus(22011)">FFFFFFFF</value>
 		<value>C8FFFFFF</value>
 	</variable>
+	<variable name="BNUpdateLabel">
+		<value condition="String.StartsWith(System.Language,Hebrew)">עדכון מערכת</value>
+		<value condition="String.StartsWith(System.Language,Russian)">Обновление системы</value>
+		<value>System Update</value>
+	</variable>
+	<variable name="BNHelpLabel">
+		<value condition="String.StartsWith(System.Language,Hebrew)">עזרה</value>
+		<value condition="String.StartsWith(System.Language,Russian)">Помощь</value>
+		<value>Help</value>
+	</variable>
 	<variable name="BNTvRadioLabel">
 		<value condition="String.StartsWith(System.Language,Hebrew)">טלוויזיה ורדיו</value>
 		<value condition="String.StartsWith(System.Language,Russian)">ТВ и радио</value>

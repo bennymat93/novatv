@@ -58,4 +58,5 @@ if __name__ == '__main__':
     tile('חיפוש בכל המקורות', 'מה לחפש?...', os.path.join(OUT, 'search_all.png'))
     tile('חיפוש בידע וטכנולוגיה', 'נושא, הרצאה, קורס...', os.path.join(OUT, 'search_knowledge.png'))
     tile('חיפוש באילוף כלבים', 'נושא אילוף...', os.path.join(OUT, 'search_dogs.png'))
+    tile('חיפוש בעזרה', 'בעיה, הגדרה, כפתור...', os.path.join(OUT, 'search_help.png'))
     print('search tiles written')

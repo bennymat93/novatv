@@ -1,0 +1,29 @@
+{
+ "_help": "Troubleshooting table (עזרה > פתרון בעיות): problem | causes | fix, he + en. Edit freely.",
+ "rows": [
+  {"he": ["הווידאו נעצר לטעינה (Buffering)", "אינטרנט איטי או לא יציב; מקור עמוס; Wi-Fi 2.4GHz רחוק", "עדכון מערכת (מטמון מותאם); חיבור קווי/5GHz; איכות 720p ב-POV; לבחור מקור אחר ברשימה"],
+   "en": ["Video keeps buffering", "Slow or unstable internet; busy source; distant 2.4 GHz Wi-Fi", "System Update (tuned cache); wired / 5 GHz; 720p in POV; pick another source"]},
+  {"he": ["אין מדריך שידורים (EPG)", "הערוץ ללא מקור EPG; המדריך עדיין נטען; שעון המכשיר שגוי", "המתינו כ-2 דקות אחרי הפעלה; עדכון מערכת > מדריך שידורים; בדקו תאריך/שעה ואזור זמן ירושלים"],
+   "en": ["No TV guide (EPG)", "No EPG source for the channel; guide still loading; wrong device clock", "Wait ~2 minutes after start; System Update > TV guide; check date/time and the Jerusalem time zone"]},
+  {"he": ["הכתוביות לא מסונכרנות", "כתובית של גרסה אחרת של הסרט (פתיח/קצב פריימים שונה)", "כתוביות > סנכרון אוטומטי; או סנכרון ידני ב-0.1 שניות / 'סימון'; או יצירת כתוביות AI (מדויקות לקובץ)"],
+   "en": ["Subtitles out of sync", "Subtitle made for another release (different intro / frame rate)", "Subtitles > auto sync; or manual 0.1 s steps / bookmark; or create AI subtitles (exact for the file)"]},
+  {"he": ["אין כתוביות בעברית", "לא נמצאו כתוביות; שרת הכתוביות כבוי או לא נגיש", "כתוביות > יצירת כתוביות AI; ודאו שהמחשב בבית דלוק; מחוץ לבית - Tailscale מחובר"],
+   "en": ["No Hebrew subtitles", "None found; subtitle server off or unreachable", "Subtitles > create AI subtitles; make sure the home PC is on; away from home - Tailscale connected"]},
+  {"he": ["אין קול", "יציאת שמע שגויה; פורמט שמע לא נתמך (Passthrough)", "הגדרות > מערכת > שמע: התקן שמע נכון; כבו Passthrough; בנגן: שמע > רצועה אחרת"],
+   "en": ["No sound", "Wrong audio output; unsupported audio format (passthrough)", "Settings > System > Audio: correct device; turn passthrough off; in the player: Audio > another track"]},
+  {"he": ["הזרם לא מתנגן", "הערוץ/המקור לא זמין כרגע; חסימה גאוגרפית; פג תוקף Real-Debrid", "נסו שוב - הניגון עובר אוטומטית למקור הבא; עדכון מערכת > ערוצים; BN > חשבונות > Real-Debrid"],
+   "en": ["Stream won't play", "Channel/source down; geo-blocked; Real-Debrid expired", "Try again - playback falls back to the next source; System Update > channels; BN > Accounts > Real-Debrid"]},
+  {"he": ["העדכון נכשל", "אין אינטרנט; המאגר לא נגיש; קובץ חבילה פגום", "בדוח העדכון: 'תיקון אוטומטי' ליד הרכיב; אם לא עזר - 'שחזר את המצב שלפני העדכון'"],
+   "en": ["Update failed", "No internet; repository unreachable; broken package", "In the update report: 'Auto-Fix' next to the part; if it fails - 'Roll back to before the update'"]},
+  {"he": ["המגע לא מגיב", "פרופיל מכשיר לא מתאים; מסך מגע לא מוגדר ב-Windows/Android", "BN > הגדרות > סוג מכשיר > מסך מגע; השתמשו בכפתורי החזרה/בית על המסך"],
+   "en": ["Touch not responding", "Wrong device profile; touch screen not set up in Windows/Android", "BN > Settings > Device type > touch screen; use the on-screen Back/Home buttons"]},
+  {"he": ["התמונה חתוכה או קטנה מדי", "Overscan בטלוויזיה; רזולוציה/זום לא מתאימים", "בחרו שוב את סוג המכשיר; הגדרות > תצוגה > כיול מסך; בטלוויזיה: יחס 'Just Scan'/'Screen Fit'"],
+   "en": ["Picture cut off or too small", "TV overscan; wrong resolution/zoom", "Choose the device type again; Settings > Display > calibration; on the TV: 'Just Scan' / 'Screen Fit'"]},
+  {"he": ["התמונה קופאת והכתוביות ממשיכות", "פענוח חומרה לא יציב במכשיר; מנהל התקן גרפי", "BN > הגדרות > סוג מכשיר (מגדיר פענוח חומרה נכון); כבו האצת חומרה בהגדרות > נגן; עדכנו מנהל התקן גרפי"],
+   "en": ["Picture freezes while subtitles continue", "Unstable hardware decoding; graphics driver", "BN > Settings > Device type (sets decoding); turn off hardware acceleration in Settings > Player; update the graphics driver"]},
+  {"he": ["הערוצים לא מופיעים", "שירות הטלוויזיה עדיין נטען (5,000+ ערוצים)", "המתינו כ-2 דקות אחרי הפעלה; עדכון מערכת > PVR"],
+   "en": ["Channels missing", "The TV service is still loading (5,000+ channels)", "Wait ~2 minutes after start; System Update > PVR"]},
+  {"he": ["שורת החדשות ריקה", "אין אינטרנט; המקור לא זמין", "השורה שומרת את הנתונים האחרונים ומתרעננת בין סבבים; כיבוי: הגדרות NovaTV > General"],
+   "en": ["News ticker empty", "No internet; source unavailable", "The ticker keeps the last data and refreshes between laps; turn off: NovaTV settings > General"]}
+ ]
+}

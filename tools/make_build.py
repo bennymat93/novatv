@@ -39,6 +39,8 @@ MENU = {  # include name -> (file, label, nova path, icon, id)
     # learning sections: two more slots cloned from Custom3 by extra_menus()
     'Custom4MainMenu': ('script-fentastic-main_menu_custom4.xml', '$VAR[BNKnowledgeLabel]', '?a=topic_root&amp;s=knowledge', 'bn_knowledge.png', 'custom4', 26000),
     'Custom5MainMenu': ('script-fentastic-main_menu_custom5.xml', '$VAR[BNDogsLabel]', '?a=topic_root&amp;s=dogs', 'bn_dogs.png', 'custom5', 28000),
+    # help: the last item of the main menu
+    'Custom6MainMenu': ('script-fentastic-main_menu_custom6.xml', '$VAR[BNHelpLabel]', '?a=help', 'bn_help.png', 'custom6', 29000),
 }
 HIDE = ['homemenunomusicbutton', 'homemenunomusicvideobutton', 'homemenunotvbutton', 'homemenunoradiobutton',
         'homemenunogamesbutton', 'homemenunopicturesbutton', 'homemenunovideosbutton', 'homemenunoweatherbutton',
@@ -111,6 +113,9 @@ HOME_WIDGETS = [
         [('WidgetListBigPoster', 'a=tv_list&gname=Israel&w=1&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצים ישראליים')] +
         [('BNCategoryWidget', 'a=tv_countries&r=$INFO[Window(Home).Property(BN.PVRReady)]', 'ערוצים מהעולם')] +
         [('WidgetListBigPoster', 'a=radio_list&by=country&v=IL', 'רדיו ישראל')]),
+    ('Custom6Widgets', 'script-fentastic-widget_custom6.xml', 29011, [
+        ('BNSearchWidget', 'a=w_help_search', 'חיפוש בעזרה'),
+        ('BNCategoryWidget', 'a=help_cats', 'עזרה')]),
     ('Custom2Widgets', 'script-fentastic-widget_custom2.xml', 24011, [
         ('WidgetListPoster', 'a=favs&kind=movie', 'סרטים מועדפים'),
         ('WidgetListPoster', 'a=favs&kind=series', 'סדרות מועדפות'),
@@ -127,7 +132,7 @@ def extra_menus(skin):
     """two more main-menu slots (custom4 / custom5), cloned from custom3: widget area, menu entry, includes, icons"""
     NL, TAB = chr(10), chr(9)
     xml = os.path.join(skin, 'xml')
-    for n in ('knowledge', 'dogs'):
+    for n in ('knowledge', 'dogs', 'help'):
         shutil.copy(os.path.join(SKIN_SRC, 'sidemenu_%s.png' % n), os.path.join(skin, 'media', 'icons', 'sidemenu', 'bn_%s.png' % n))
     h = os.path.join(xml, 'Home.xml')
     t = open(h, encoding='utf-8').read()
@@ -136,16 +141,16 @@ def extra_menus(skin):
         b = t.index('</control>', t.index('scrollbar_id" value="25099"')) + len('</control>')
         block = t[a:b]
         clones = ''.join(NL + TAB * 4 + block.replace('CUSTOM 3', 'CUSTOM %d' % k).replace('custom3', 'custom%d' % k)
-                         .replace('Custom3', 'Custom%d' % k).replace('250', {4: '260', 5: '280'}[k]) for k in (4, 5))   # 27000 is taken
+                         .replace('Custom3', 'Custom%d' % k).replace('250', {4: '260', 5: '280', 6: '290'}[k]) for k in (4, 5, 6))   # 27000 is taken
         t = t[:b] + clones + t[b:]
         entry = '<include content="Custom3MainMenu" condition="!Skin.HasSetting(HomeMenuNoCustom3Button)" />'
         t = t.replace(entry, '<include content="Custom4MainMenu" />' + NL + TAB * 7 + '<include content="Custom5MainMenu" />'
-                      + NL + TAB * 7 + entry, 1)
+                      + NL + TAB * 7 + entry + NL + TAB * 7 + '<include content="Custom6MainMenu" />', 1)
         open(h, 'w', encoding='utf-8').write(t)
     inc = os.path.join(xml, 'Includes.xml')
     s = open(inc, encoding='utf-8').read()
     anchor = '<include file="script-fentastic-widget_custom3.xml" />'
-    for k in (4, 5):
+    for k in (4, 5, 6):
         for f in ('script-fentastic-main_menu_custom%d.xml' % k, 'script-fentastic-widget_custom%d.xml' % k):
             if f not in s:
                 s = s.replace(anchor, anchor + NL + TAB + '<include file="%s" />' % f, 1)
@@ -229,6 +234,25 @@ def ticker_skin(stage):
                      + '<urlset>1</urlset><titlecolor>FFE8BE5A</titlecolor><headlinecolor>FFE0E0E0</headlinecolor><textcolor>FFE0E0E0</textcolor>'
                      + '<scrollspeed>70</scrollspeed></control>' + NL + TB * 2 + '</control>' + NL + TB * 2) + t[i:]
         open(h, 'w', encoding='utf-8').write(t)
+
+
+def update_button(skin):
+    """System Update icon between Settings and Search under the logo (same IconButton include as its neighbours)"""
+    NL, TB = chr(10), chr(9)
+    shutil.copy(os.path.join(SKIN_SRC, 'icon_update.png'), os.path.join(skin, 'media', 'icons', 'bn_update.png'))
+    h = os.path.join(skin, 'xml', 'Home.xml')
+    t = open(h, encoding='utf-8').read()
+    anchor = '<param name="icon" value="icons/settings.png" />'
+    i = t.find(anchor)
+    if 'BN-UPDATE' in t or i < 0:
+        return
+    end = t.find('</include>', i) + len('</include>')
+    btn = (NL + TB * 6 + '<include content="IconButton"><!-- BN-UPDATE -->' + NL + TB * 7 + '<param name="control_id" value="808" />'
+           + NL + TB * 7 + '<param name="onclick" value="RunPlugin(plugin://plugin.video.nova/?a=sysupdate)" />'
+           + NL + TB * 7 + '<param name="icon" value="icons/bn_update.png" />'
+           + NL + TB * 7 + '<param name="label" value="$VAR[BNUpdateLabel]" />' + NL + TB * 6 + '</include>')
+    t = t[:end] + btn + t[end:]
+    open(h, 'w', encoding='utf-8').write(t)
 
 
 def header_info(skin):
@@ -730,6 +754,7 @@ def main():
     bn_skin(STAGE)
     home_panels(os.path.join(STAGE, 'addons', 'skin.fentastic'))   # after bn_skin: BN widget rows too
     header_info(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    update_button(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     ticker_skin(STAGE)
     ai_subs_buttons(STAGE)
     all_subs_guards(STAGE)
