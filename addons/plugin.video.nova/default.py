@@ -194,12 +194,18 @@ def years(m):
     end()
 
 
-def w_search(m):
-    """widget: one "search" tile shaped like a search field (movies only / series only)"""
+def _topics():
+    from resources.lib import topics
+    return topics
+
+
+def w_search(m, action='search'):
+    """widget: one "search" tile shaped like a search field (movies / series / a learning section)"""
     tile = os.path.join(MEDIA, 'search_%s.png' % m)
     li = xbmcgui.ListItem(T('search'))
     li.setArt({'thumb': tile, 'poster': tile, 'landscape': tile, 'fanart': tile, 'icon': tile})   # the full tile
-    xbmcplugin.addDirectoryItem(HANDLE, url(a='search', m=m), li, True)
+    target = url(a=action, m=m) if action == 'search' else url(a=action, s=m)
+    xbmcplugin.addDirectoryItem(HANDLE, target, li, True)
     end(cache=False)
 
 
@@ -436,6 +442,12 @@ def router(p):
         'media_root': lambda: media_root(p['m']),
         'genres': lambda: genres(p['m']),
         'w_search': lambda: w_search(p['m']),
+        'topic_root': lambda: _topics().root(HANDLE, url, p['s'], folder, end),
+        'topic_cats': lambda: _topics().categories(HANDLE, url, p['s']),
+        'topic_cat': lambda: _topics().show_category(HANDLE, p['s'], p['c']),
+        'topic_top': lambda: _topics().show_top(HANDLE, p['s']),
+        'topic_search': lambda: _topics().show_search(HANDLE, p['s'], p.get('q', '')),
+        'w_topic_search': lambda: w_search(p['s'], action='topic_search'),
         'tvradio': tvradio,
         'langs': lambda: langs(p['m']),
         'years': lambda: years(p['m']),

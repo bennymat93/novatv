@@ -36,6 +36,9 @@ MENU = {  # include name -> (file, label, nova path, icon, id)
     'Custom1MainMenu': ('script-fentastic-main_menu_custom1.xml', '$VAR[BNTvRadioLabel]', '?a=tvradio', 'livetv.png', 'custom1', 23000),
     'Custom2MainMenu': ('script-fentastic-main_menu_custom2.xml', '$LOCALIZE[1036]', '?a=favs', 'favourites.png', 'custom2', 24000),
     'Custom3MainMenu': ('script-fentastic-main_menu_custom3.xml', 'BN', '', 'addons.png', 'custom3', 25000),
+    # learning sections: two more slots cloned from Custom3 by extra_menus()
+    'Custom4MainMenu': ('script-fentastic-main_menu_custom4.xml', '$VAR[BNKnowledgeLabel]', '?a=topic_root&amp;s=knowledge', 'bn_knowledge.png', 'custom4', 26000),
+    'Custom5MainMenu': ('script-fentastic-main_menu_custom5.xml', '$VAR[BNDogsLabel]', '?a=topic_root&amp;s=dogs', 'bn_dogs.png', 'custom5', 28000),
 }
 HIDE = ['homemenunomusicbutton', 'homemenunomusicvideobutton', 'homemenunotvbutton', 'homemenunoradiobutton',
         'homemenunogamesbutton', 'homemenunopicturesbutton', 'homemenunovideosbutton', 'homemenunoweatherbutton',
@@ -85,6 +88,13 @@ _W = '[B][COLOR FFE8BE5A]%s[/COLOR][/B]'
 TV_GROUPS = [('News', 'חדשות'), ('Movies', 'סרטים'), ('Series', 'סדרות'), ('Kids', 'ילדים'), ('Sport', 'ספורט'),
              ('Documentary', 'תיעודי'), ('Music', 'מוזיקה'), ('Russian', 'רוסית')]
 HOME_WIDGETS = [
+    ('Custom4Widgets', 'script-fentastic-widget_custom4.xml', 26011, [
+        ('BNSearchWidget', 'a=w_topic_search&s=knowledge', 'חיפוש'),
+        ('BNCategoryWidget', 'a=topic_cats&s=knowledge', 'קטגוריות')]),
+    ('Custom5Widgets', 'script-fentastic-widget_custom5.xml', 28011, [
+        ('BNSearchWidget', 'a=w_topic_search&s=dogs', 'חיפוש'),
+        ('WidgetListBigPoster', 'a=topic_top&s=dogs', 'המדורגים ביותר'),
+        ('BNCategoryWidget', 'a=topic_cats&s=dogs', 'קטגוריות')]),
     ('MovieWidgets', 'script-fentastic-widget_movies.xml', 19011, [
         ('BNSearchWidget', 'a=w_search&m=movie', 'חיפוש'),
         ('WidgetListBigPoster', 'a=list&m=movie&path=/movie/top_rated', 'המדורגים ביותר'),
@@ -111,6 +121,35 @@ HOME_WIDGETS = [
 
 
 PANEL = '<texture colordiffuse="14FFFFFF" border="26">bn/panel.png</texture>'   # 8% white: a bit lighter than the screen
+
+
+def extra_menus(skin):
+    """two more main-menu slots (custom4 / custom5), cloned from custom3: widget area, menu entry, includes, icons"""
+    NL, TAB = chr(10), chr(9)
+    xml = os.path.join(skin, 'xml')
+    for n in ('knowledge', 'dogs'):
+        shutil.copy(os.path.join(SKIN_SRC, 'sidemenu_%s.png' % n), os.path.join(skin, 'media', 'icons', 'sidemenu', 'bn_%s.png' % n))
+    h = os.path.join(xml, 'Home.xml')
+    t = open(h, encoding='utf-8').read()
+    if 'Custom4Widgets' not in t:
+        a = t.index('<!-- CUSTOM 3 -->')
+        b = t.index('</control>', t.index('scrollbar_id" value="25099"')) + len('</control>')
+        block = t[a:b]
+        clones = ''.join(NL + TAB * 4 + block.replace('CUSTOM 3', 'CUSTOM %d' % k).replace('custom3', 'custom%d' % k)
+                         .replace('Custom3', 'Custom%d' % k).replace('250', {4: '260', 5: '280'}[k]) for k in (4, 5))   # 27000 is taken
+        t = t[:b] + clones + t[b:]
+        entry = '<include content="Custom3MainMenu" condition="!Skin.HasSetting(HomeMenuNoCustom3Button)" />'
+        t = t.replace(entry, '<include content="Custom4MainMenu" />' + NL + TAB * 7 + '<include content="Custom5MainMenu" />'
+                      + NL + TAB * 7 + entry, 1)
+        open(h, 'w', encoding='utf-8').write(t)
+    inc = os.path.join(xml, 'Includes.xml')
+    s = open(inc, encoding='utf-8').read()
+    anchor = '<include file="script-fentastic-widget_custom3.xml" />'
+    for k in (4, 5):
+        for f in ('script-fentastic-main_menu_custom%d.xml' % k, 'script-fentastic-widget_custom%d.xml' % k):
+            if f not in s:
+                s = s.replace(anchor, anchor + NL + TAB + '<include file="%s" />' % f, 1)
+    open(inc, 'w', encoding='utf-8').write(s)
 
 
 def home_panels(skin):
@@ -616,6 +655,7 @@ def main():
         shutil.copytree(os.path.join(ROOT, 'addons', ad), dst,
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     patch_menu(os.path.join(STAGE, 'addons', 'skin.fentastic'))
+    extra_menus(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     home_widgets(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     home_panels(os.path.join(STAGE, 'addons', 'skin.fentastic'))
     patch_skin_search(os.path.join(STAGE, 'addons', 'skin.fentastic'))

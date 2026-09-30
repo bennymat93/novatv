@@ -23,6 +23,9 @@ GENRES = {28: 0xE945, 12: 0xE774, 16: 0xE790, 35: 0xE76E, 80: 0xE928, 99: 0xE722
           14: 0xF4A5, 36: 0xE825, 27: 0xECAD, 10402: 0xE8D6, 9648: 0xE9CE, 10749: 0xEB51, 878: 0xE99A, 10770: 0xE7F4,
           53: 0xE95E, 10752: 0xEA18, 37: 0xE706, 10759: 0xE945, 10762: 0xE7FC, 10763: 0xE8A1, 10764: 0xE714,
           10765: 0xE99A, 10766: 0xEB51, 10767: 0xE720, 10768: 0xE825}
+# learning sections (resources/topics/*.json 'icon') -> glyph
+TOPICS = {'power': 0xEC4A, 'control': 0xE9E9, 'tech': 0xE950, 'top': 0xE734, 'puppy': 0xE7BE, 'obedience': 0xEB95,
+          'leash': 0xE805, 'recall': 0xE81C, 'behavior': 0xE9D9, 'tricks': 0xEA86, 'sport': 0xE7C1}
 # language code -> (text in its own script, font)
 LANGS = {'he': ('עב', 'segoeuisl.ttf', True), 'en': ('EN', 'segoeuisl.ttf', False), 'ru': ('РУ', 'segoeuisl.ttf', False),
          'fr': ('FR', 'segoeuisl.ttf', False), 'es': ('ES', 'segoeuisl.ttf', False), 'de': ('DE', 'segoeuisl.ttf', False),
@@ -86,6 +89,8 @@ def main():
     icons = ImageFont.truetype(ICONS, 200)
     for gid, cp in GENRES.items():
         gold_text(card(), chr(cp), icons).save(os.path.join(OUT, 'genre_%d.png' % gid), optimize=True)
+    for name, cp in TOPICS.items():
+        gold_text(card(), chr(cp), icons).save(os.path.join(OUT, 'topic_%s.png' % name), optimize=True)
     fy = ImageFont.truetype(os.path.join(F, 'segoeuisl.ttf'), 150)
     for y in range(datetime.date.today().year + 1, 1949, -1):
         gold_text(card(), str(y), fy).save(os.path.join(OUT, 'year_%d.png' % y), optimize=True)

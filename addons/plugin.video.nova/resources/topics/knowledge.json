@@ -1,0 +1,62 @@
+{
+ "_help": "ידע וטכנולוגיה - edit freely. channels: id + name; 'match': a title regex the video must match (for broad channels); min_seconds: shortest video shown (Shorts are always removed).",
+ "min_seconds": 600,
+ "search_scope": "all",
+ "categories": [
+  {
+   "id": "power",
+   "he": "הנדסת חשמל – זרם חזק ומתח גבוה",
+   "en": "Power engineering – high current & high voltage",
+   "ru": "Электроэнергетика – высокое напряжение",
+   "icon": "power",
+   "match": "(?i)power|volt|transform|substation|switchgear|breaker|protection|relay|ground|earth|transmission|distribution|grid|generator|motor|cable|arc flash|fault|short.?circuit|NEC|electric|phase|three.?phase|induction|insulat|lightning|surge|megger|hipot|מתח|חשמל|שנאי|הגנה|הארקה",
+   "channels": [
+    {"id": "UCB3jUEyCLRbCw7QED0vnXYg", "name": "Electrician U"},
+    {"id": "UCtgu8i2WD-WSZuOuI9ZJukQ", "name": "Electrical Engineering Academy"},
+    {"id": "UCk0fGHsCEzGig-rSzkfCjMw", "name": "The Engineering Mindset", "filter": true},
+    {"id": "UCEBb1b_L6zDS3xTUrIALZOw", "name": "MIT OpenCourseWare", "filter": true},
+    {"id": "UClRmLXnc8n6JTkYuqMWce-A", "name": "Power System Analysis"},
+    {"id": "UC8oJL9T1z3Gqn6drDphZY6g", "name": "Mike Holt NEC"},
+    {"id": "UCBkOVp1Cqz4MR0LYR8vKpZg", "name": "ALL ABOUT ELECTRONICS", "filter": true},
+    {"id": "UCeGIXCPaIfucndPf39RGsPw", "name": "מכללת רופין – הרצאות הנדסת חשמל"}
+   ]
+  },
+  {
+   "id": "control",
+   "he": "הנדסת בקרה ואוטומציה תעשייתית",
+   "en": "Control engineering & industrial automation",
+   "ru": "Управление и промышленная автоматизация",
+   "icon": "control",
+   "match": "(?i)control|PID|PLC|SCADA|HMI|ladder|automation|feedback|state.?space|Laplace|transfer function|stability|Kalman|MPC|Modbus|Profinet|Ethernet/IP|OPC|sensor|instrument|VFD|drive|servo|encoder|Ignition|Siemens|Allen.?Bradley|Studio 5000|TIA|בקרה|אוטומציה",
+   "channels": [
+    {"id": "UCm5mt-A4w61lknZ9lCsZtBw", "name": "Steve Brunton", "filter": true},
+    {"id": "UCq0imsn84ShAe9PBOFnoIrg", "name": "Brian Douglas"},
+    {"id": "UC_EeMvTbzA9853Xq0H4LKNQ", "name": "Engineering Educator Academy"},
+    {"id": "UC_YccYdH0DBFp2ah0QuJ1lQ", "name": "Tim Wilborne"},
+    {"id": "UCUKKQwBQZczpYzETkZNxi-w", "name": "RealPars"},
+    {"id": "UCs-a_tI2AYkUSWKKZLH3yPQ", "name": "Inductive Automation"},
+    {"id": "UCs3AEdsXBG3-HYvghcjhdfA", "name": "SolisPLC"}
+   ]
+  },
+  {
+   "id": "tech",
+   "he": "טכנולוגיה וחדשנות",
+   "en": "Technology & innovation",
+   "ru": "Технологии и инновации",
+   "icon": "tech",
+   "channels": [
+    {"id": "UCMOqf8ab-42UUQIdVoKwjlQ", "name": "Practical Engineering"},
+    {"id": "UC1LpsuAUaKoMzzJSEt5WImw", "name": "Asianometry"},
+    {"id": "UCy0tKL1T7wFoYcxCe0xjN6Q", "name": "Technology Connections"},
+    {"id": "UCR1IuLEqb6UEA_zQ81kwXfg", "name": "Real Engineering"},
+    {"id": "UCHnyfMqiRRG1u-2MsSQLbXA", "name": "Veritasium"},
+    {"id": "UCdp4_l1vPmpN-gDbUwhaRUQ", "name": "Branch Education"},
+    {"id": "UClqhvGmHcvWL9w3R48t9QXQ", "name": "Engineering Explained"},
+    {"id": "UCEIwxahdLz7bap-VDs9h35A", "name": "Steve Mould"},
+    {"id": "UC4_i7cYMdM0MkP-2ywVlhKQ", "name": "הטכניון"},
+    {"id": "UC-DIspwMPK5xbqzrTEhlSqQ", "name": "האוניברסיטה הפתוחה"},
+    {"id": "UCx-_jbNcgaZJ2OlPmyuGTSg", "name": "Campus IL"}
+   ]
+  }
+ ]
+}

@@ -861,6 +861,38 @@ def t_episode_search():
     return 'S1E1: %d results in %.1fs; S2E5: %d exact results in %.1fs, none from S1' % (len(first), t1, len(second), t2)
 
 
+
+def t_topics():
+    """learning sections inside Kodi: category tiles, every category opens long videos, search, dogs top rated"""
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(ROOT, 'addons', 'plugin.video.nova'))
+    from resources.lib import topics
+    from urllib.parse import urlencode
+    out, slow = [], []
+    for sec in topics.SECTIONS:
+        cfg = topics.load(sec)
+        tiles = ls(NOVA + '?' + urlencode({'a': 'topic_cats', 's': sec}))
+        expect(len(tiles) == len(cfg['categories']), '%s: %d category tiles' % (sec, len(tiles)))
+        for c in cfg['categories']:
+            t = time.time()
+            r = rpc('Files.GetDirectory', directory=NOVA + '?' + urlencode({'a': 'topic_cat', 's': sec, 'c': c['id']}),
+                    media='files', properties=['duration'], timeout=60)
+            dt = time.time() - t
+            vids = (r.get('result') or {}).get('files') or []
+            expect(vids, '%s/%s: no videos' % (sec, c['id']))
+            expect(all('plugin.video.youtube/play/' in v['file'] for v in vids), '%s/%s: not YouTube videos' % (sec, c['id']))
+            if dt > 12:
+                slow.append('%s/%s %.0fs' % (sec, c['id'], dt))
+            out.append('%s/%s %d' % (sec, c['id'], len(vids)))
+        q = {'knowledge': 'transformer', 'dogs': 'leash'}[sec]
+        found = ls(NOVA + '?' + urlencode({'a': 'topic_search', 's': sec, 'q': q}))
+        expect(found, '%s search "%s": nothing' % (sec, q))
+    top = ls(NOVA + '?' + urlencode({'a': 'topic_top', 's': 'dogs'}))
+    expect(len(top) >= 10, 'dogs top rated: %d' % len(top))
+    expect(not slow, 'slow categories (first load, >12 s): %s' % slow)
+    return '%s; dogs top %d; searches ok' % (', '.join(out), len(top))
+
+
 def t_system_update():
     """System Update: every part refreshed, report with Auto-Fix under each error, the fix works"""
     prof = os.path.join(DATA, 'userdata', 'addon_data', 'plugin.video.nova')
@@ -1497,7 +1529,7 @@ TESTS = [
     ('History + UI speed', t_history_and_speed), ('IPTV merge / dedupe / numbering', t_iptv),
     ('Free libraries menu', t_libraries), ('Backup', t_backup), ('Free channels (iptv-org)', t_free_channels),
     ('Merged playlist integrity', t_m3u_integrity), ('Locked profile round-trip', t_preset),
-    ('Search all sources (hub)', t_hub_search), ('Episode search: exact S/E, no stale results', t_episode_search), ('Central library + Russian', t_central_library),
+    ('Search all sources (hub)', t_hub_search), ('Episode search: exact S/E, no stale results', t_episode_search), ('Learning sections (knowledge, dogs)', t_topics), ('Central library + Russian', t_central_library),
     ('POV -> other sources fallback', t_pov_fallback),
     ('Startup log clean', t_startup_clean), ('Startup ready message + status', t_startup_status),
     ('AI subtitle server', t_ai_server), ('AI Hebrew subtitles end-to-end', t_ai_subs_end_to_end),

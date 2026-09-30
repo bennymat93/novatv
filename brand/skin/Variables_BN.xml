@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- variables for the BN Details view (View_60_BN.xml) -->
 <includes>
+	<variable name="BNKnowledgeLabel">
+		<value condition="String.StartsWith(System.Language,Hebrew)">ידע וטכנולוגיה</value>
+		<value condition="String.StartsWith(System.Language,Russian)">Знания и технологии</value>
+		<value>Knowledge &amp; Technology</value>
+	</variable>
+	<variable name="BNDogsLabel">
+		<value condition="String.StartsWith(System.Language,Hebrew)">אילוף כלבים</value>
+		<value condition="String.StartsWith(System.Language,Russian)">Дрессировка собак</value>
+		<value>Dog Training</value>
+	</variable>
 	<variable name="BNSearchFocus">
 		<value condition="Control.HasFocus(19011) | Control.HasFocus(22011)">FFFFFFFF</value>
 		<value>C8FFFFFF</value>

@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.0
+**Two new main-menu sections**, built like the existing ones (curated YouTube channels, key-free, played by the bundled YouTube add-on):
+- **"ידע וטכנולוגיה":**
+  - A search limited to the section's channels.
+  - Category tiles: הנדסת חשמל – זרם חזק ומתח גבוה, בקרה ואוטומציה תעשייתית, טכנולוגיה וחדשנות.
+- **"אילוף כלבים"** (positive-reinforcement trainers):
+  - Search.
+  - "המדורגים ביותר" (the most-watched long lessons, BIG POSTER).
+  - 7 category tiles: puppies, obedience, leash, recall, behaviour problems, tricks and enrichment, sport.
+- **In-depth only:** knowledge videos ≥ 10 min, dog lessons ≥ 8 min, Shorts never shown.
+- **Content lists:** one editable file per section, `resources/topics/knowledge.json` and `dogs.json`.
+
+**yt.py:** reads the duration, views and date from YouTube's new page format. Before, channel videos came without a duration. Shorts are removed.
+
+**Skin:** two more main-menu slots (Custom4 / Custom5, cloned from Custom3).
+
 ## 1.2.2
 - **Home screen:**
   - Every widget row and the main menu sit on a rounded panel a little lighter than the screen (8% white).

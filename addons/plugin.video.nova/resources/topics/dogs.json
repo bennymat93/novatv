@@ -1,0 +1,31 @@
+{
+ "_help": "אילוף כלבים - positive-reinforcement trainers only. Every category searches all channels by its 'match' title regex; 'top' = the most-watched long lessons of all channels. Edit freely.",
+ "min_seconds": 480,
+ "top": {"he": "המדורגים ביותר", "en": "Top rated", "ru": "Самые популярные", "limit": 40},
+ "channels": [
+  {"id": "UCC17PDLl8y1dP2BRV5vuseg", "name": "Susan Garrett – Dogs That"},
+  {"id": "UCrz5NqpcLxpiy1Wm_ksEV3g", "name": "Absolute Dogs"},
+  {"id": "UCbAPsX6cFnHLCqIkoZbnRBw", "name": "Victoria Stilwell Positively"},
+  {"id": "UCgB9VgeE-JTe7dJPN9Q5n_w", "name": "Dunbar Academy (Ian Dunbar)"},
+  {"id": "UCCBAnindr4Ro9009LRDv3zg", "name": "Fenzi Dog Sports Academy"},
+  {"id": "UC-qnqaajTk6bfs3UZuue6IQ", "name": "Kikopup"},
+  {"id": "UC5QwYlOxcT1higtcJVGzCCg", "name": "McCann Dog Training"},
+  {"id": "UC8eyDoeignJO9h1uAORE4gg", "name": "זיו גמליאל"}
+ ],
+ "categories": [
+  {"id": "puppy", "he": "גורים – יסודות", "en": "Puppy basics", "ru": "Щенки – основы", "icon": "puppy",
+   "match": "(?i)pupp|house.?train|potty|crate|socializ|bit(e|ing)|teeth|גור|צרכים"},
+  {"id": "obedience", "he": "צייתנות בסיסית", "en": "Obedience", "ru": "Послушание", "icon": "obedience",
+   "match": "(?i)obedien|sit|down|stay|place|heel|come|basic|command|focus|impulse|צייתנות|שב|ארצה"},
+  {"id": "leash", "he": "הליכה ברצועה", "en": "Leash walking", "ru": "Прогулка на поводке", "icon": "leash",
+   "match": "(?i)leash|lead|pull|loose|walk|heel|רצועה|הליכה"},
+  {"id": "recall", "he": "קריאה (Recall)", "en": "Recall", "ru": "Подзыв", "icon": "recall",
+   "match": "(?i)recall|come when called|off.?leash|long line|חזרה|קריאה"},
+  {"id": "behavior", "he": "בעיות התנהגות", "en": "Behavior problems", "ru": "Проблемы поведения", "icon": "behavior",
+   "match": "(?i)reactiv|anxi|fear|aggress|separation|bark|lung|guard|resource|jump|frustrat|stress|calm|תגובתיות|חרדה|תוקפנות|נביחות|פחד"},
+  {"id": "tricks", "he": "טריקים והעשרה", "en": "Tricks & enrichment", "ru": "Трюки и обогащение", "icon": "tricks",
+   "match": "(?i)trick|enrich|game|puzzle|shaping|clicker|fun|scent|nose|טריק|משחק|העשרה"},
+  {"id": "sport", "he": "אימון מתקדם וספורט", "en": "Advanced & sport", "ru": "Продвинутый и спорт", "icon": "sport",
+   "match": "(?i)agility|sport|competition|nosework|rally|advanced|precision|heelwork|IGP|flyball|ספורט|אג'יליטי|מתקדם"}
+ ]
+}
