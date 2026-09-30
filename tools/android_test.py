@@ -87,6 +87,9 @@ def main():
                           if 'FATAL' in l or 'Fatal signal' in l)       # our app only, not the emulator's services
             if re.search(r'startup status: \d+ problems', log) or crashed:
                 break
+            # 1.4.0 first-run wizard (device type): answer it like a viewer (Enter = the suggested type) once it shows
+            if 'device profile' not in log and 'skin.fentastic' in log and time.time() - t0 > 60:
+                sh('input keyevent 66')
         crash = adb('logcat', '-d', '-b', 'crash')
         open(os.path.join(ROOT, 'work', 'android', 'crash.log'), 'w', encoding='utf-8').write(crash)
         open(os.path.join(ROOT, 'work', 'android', 'logcat.log'), 'w', encoding='utf-8').write(adb('logcat', '-d', timeout=120))
@@ -97,6 +100,8 @@ def main():
         m = re.search(r'plugin\.video\.nova v([\d.]+) installed', log)
         result('Build unpacked, NovaTV version', bool(m) and m.group(1) == a.version, m.group(1) if m else 'not found')
         result('BN skin loaded', 'skin.fentastic' in log)
+        prof = re.search(r'device profile (\w+) applied', log)
+        result('First-run device wizard answered', bool(prof), prof.group(0) if prof else 'wizard not seen')
         st = re.search(r'startup status: (\d+) problems (.*)', log)
         result('"BN Stream ready" status announced', bool(st), st.group(0)[:120] if st else 'no announcement in %ds' % (time.time() - t0))
         osd = sh('grep -c ai_subs_now %s/addons/skin.fentastic/xml/DialogSubtitles.xml' % HOME).strip()
