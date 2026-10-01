@@ -156,7 +156,8 @@ def load(name, default):
 
 
 def save(name, data):
-    tmp = _path(name + '.tmp')
+    import threading
+    tmp = _path('%s.%d.tmp' % (name, threading.get_ident()))   # parallel savers never share one temp file
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
     os.replace(tmp, _path(name))

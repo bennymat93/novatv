@@ -739,6 +739,19 @@ def main():
             log('binary add-ons: %s' % e, xbmc.LOGWARNING)
     later(30, binary_job)
 
+    def topics_job():
+        # learning sections: channel videos into the cache in the background (instant first open), every 6 h
+        mon2 = monitor()
+        while not mon2.abortRequested():
+            try:
+                from resources.lib import topics
+                topics.prewarm()
+            except Exception as e:
+                log('topics prewarm: %s' % e, xbmc.LOGWARNING)
+            if mon2.waitForAbort(6 * 3600 - 300):
+                return
+    later(40, topics_job)
+
     def startup_job():
         """tell the viewer when everything is up: add-ons, services, how much content"""
         try:

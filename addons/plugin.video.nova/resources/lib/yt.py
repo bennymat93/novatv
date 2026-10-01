@@ -131,25 +131,42 @@ def norm_query(q):
     return ' '.join((q or '').lower().split())
 
 
-def _cached(key, fetch):
+import threading as _threading
+_CACHE_LOCK = _threading.Lock()
+
+
+def _store(key, value, load, save):
+    """read-modify-write of the cache under a lock: parallel channel fetches overwrote each other's entries"""
+    import time
+    with _CACHE_LOCK:
+        cache = load('yt_cache.json', {})
+        now = time.time()
+        cache = {k: v for k, v in cache.items()              # drop old / old-format entries
+                 if isinstance(v, dict) and now - v.get('t', 0) < CACHE_MAX_AGE}
+        cache[key] = {'t': now, 'v': value}
+        save('yt_cache.json', cache)
+
+
+def _cached(key, fetch, fresh=0):
     """one retry, then the last good answer of THIS key (at most CACHE_MAX_AGE old):
-    a single YouTube hiccup must not show an empty list, and nothing stale is ever shown"""
+    a single YouTube hiccup must not show an empty list, and nothing stale is ever shown.
+    fresh: an answer younger than this many seconds is used without asking YouTube again (channel pages change
+    a few times a day; refetching 8 channels x 4 pages on every open made dog categories take 15-41 s)"""
     import time
     try:
         from .common import load, save
     except Exception:
         load = save = None
+    if fresh and load:
+        hit = load('yt_cache.json', {}).get(key)
+        if isinstance(hit, dict) and time.time() - hit.get('t', 0) < fresh and hit.get('v'):
+            return hit['v']
     for attempt in range(2):
         try:
             value = fetch()
             if value and value[0] if isinstance(value, tuple) else value:
                 if save:
-                    cache = load('yt_cache.json', {})
-                    now = time.time()
-                    cache = {k: v for k, v in cache.items()              # drop old / old-format entries
-                             if isinstance(v, dict) and now - v.get('t', 0) < CACHE_MAX_AGE}
-                    cache[key] = {'t': now, 'v': value}
-                    save('yt_cache.json', cache)
+                    _store(key, value, load, save)
                 return value
         except Exception:
             pass
@@ -185,7 +202,7 @@ def channel_videos(channel_id, pages=2):
             if not token:
                 break
         return out
-    return _cached('cv:%s:%d' % (channel_id, pages), fetch) or []
+    return _cached('cv:%s:%d' % (channel_id, pages), fetch, fresh=3 * 3600) or []
 
 
 def playlist_videos(playlist_id):
@@ -199,7 +216,7 @@ def playlist_videos(playlist_id):
             if not token:
                 break
         return out
-    return _cached('pl:%s' % playlist_id, fetch) or []
+    return _cached('pl:%s' % playlist_id, fetch, fresh=3 * 3600) or []
 
 
 def search_videos(q, pages=1):

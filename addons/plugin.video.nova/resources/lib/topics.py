@@ -87,6 +87,13 @@ def _channels_videos(channels, pages=2):
     return [v for lst in lists for v in lst]
 
 
+def prewarm():
+    """service, after start: fetch every channel of both sections into yt.py's 6 h cache, so the first open of any
+    category is instant (cold first loads took 15-41 s for some dog categories in the 1.4.3 tests)"""
+    for section in SECTIONS:
+        _channels_videos(all_channels(section), PAGES[section])
+
+
 def category_videos(section, cat_id):
     cfg = load(section)
     cat = next(c for c in cfg['categories'] if c['id'] == cat_id)
