@@ -25,6 +25,8 @@
   2. Merge v1.4-work into main.
   3. `python tools/release.py --version 1.4.0 --notes ...` (full, with packages).
 
+## DONE 01/10 – 1.4.3 RELEASED (YouTube on iOS: resources/lib/binfix.py replaces wrong-platform binary add-ons; yt cache fresh 3 h + lock; topics prewarm)
+
 ## DONE 30/09 ~21:45 – 1.4.2 RELEASED (no skin zoom, 20,000+ counts, +60 dead filtered, one first-run question at a time)
 - Full UI update for existing installs = NovaTV Wizard > Update (the repository alone updates only the add-on code, not the skin)
 
