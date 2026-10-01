@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.3
+- **YouTube on iPhone / iPad (and Apple TV, Mac, Linux, plain Android Kodi).** Root cause: the build carries the Windows builds of inputstream.adaptive and the TV add-on. On other platforms Kodi could not load them, and they overrode the copy that works there: on iOS / tvOS it is built into Kodi itself. The service only installed the add-on when its folder was missing, so nothing happened. Now a binary add-on built for another platform is removed: the built-in copy is used where Kodi has one, otherwise the right build comes from Kodi's repository.
+- Tested: the simulated wrong-platform build was replaced and YouTube played. YouTube no longer plays at all without inputstream.adaptive (tested), so the fix is to always use the right copy.
+- New test in the suite: wrong-platform binary add-on replaced, YouTube plays.
+
 ## 1.4.2
 - **Device profiles:** skin zoom removed. Kodi's zoom crops the screen edges: the clock and logo were cut off even at +4 %. Devices that already got a zoom are reset.
 - **System status:** TMDb's capped count now shows "20,000+" instead of a misleading 20,001.

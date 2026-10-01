@@ -728,16 +728,16 @@ def main():
     later(8, profile_job)
 
     def binary_job():
-        # platform-specific add-ons (video streams of YouTube, Pluto, ... need inputstream.adaptive) are not
-        # shipped inside the Android app: install the right build for this device from the Kodi repository
+        # platform-specific add-ons (YouTube, Pluto, IPTV need inputstream.adaptive / pvr.iptvsimple). The build zip
+        # carries the Windows builds: on iPhone/iPad/Apple TV/Mac/Linux Kodi ignored them, nothing installed the
+        # right one (the folder existed) and YouTube could not play. Replace a wrong-platform build with this
+        # device's from the Kodi repository; if inputstream.adaptive is still missing, YouTube plays without it.
         try:
-            from resources.lib.iptv import install_addon
-            for aid in ('inputstream.adaptive',):
-                if not xbmc.getCondVisibility('System.HasAddon(%s)' % aid):
-                    log('installing %s for this platform: %s' % (aid, install_addon(aid)))
+            from resources.lib import binfix
+            binfix.ensure(log)
         except Exception as e:
             log('binary add-ons: %s' % e, xbmc.LOGWARNING)
-    later(45, binary_job)
+    later(30, binary_job)
 
     def startup_job():
         """tell the viewer when everything is up: add-ons, services, how much content"""

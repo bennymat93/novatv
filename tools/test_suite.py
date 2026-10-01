@@ -1612,6 +1612,34 @@ def t_v14_features():
     return ', '.join(out)
 
 
+def t_wrong_platform_binary():
+    """1.4.3 (YouTube on iPhone/iPad): a binary add-on built for another platform is replaced, YouTube plays.
+    Simulated: inputstream.adaptive marked android-aarch64 on this Windows box, Kodi restarted."""
+    x = os.path.join(DATA, 'addons', 'inputstream.adaptive', 'addon.xml')
+    rpc('Application.Quit')
+    time.sleep(20)
+    s = open(x, encoding='utf-8').read()
+    open(x, 'w', encoding='utf-8').write(re.sub(r'<platform>[^<]*</platform>', '<platform>android-aarch64</platform>', s))
+    start_kodi()
+    for _ in range(60):
+        time.sleep(5)
+        try:
+            tag = re.search(r'<platform>([^<]*)', open(x, encoding='utf-8').read()).group(1)
+        except (OSError, AttributeError):
+            continue
+        if tag.startswith('windows'):
+            break
+    expect(tag.startswith('windows'), 'wrong-platform build not replaced: %s' % tag)
+    expect(rpc('XBMC.GetInfoBooleans', booleans=['System.AddonIsEnabled(inputstream.adaptive)'])['result']
+           ['System.AddonIsEnabled(inputstream.adaptive)'], 'inputstream.adaptive not enabled')
+    rpc('Player.Open', item={'file': 'plugin://plugin.video.youtube/play/?video_id=aqz-KE-bpKQ'})
+    pid = _wait_playing(60)
+    res = rpc('XBMC.GetInfoLabels', labels=['VideoPlayer.VideoResolution'])['result']['VideoPlayer.VideoResolution']
+    _stop_all()
+    expect(pid is not None, 'YouTube did not play after the replacement')
+    return 'android build replaced by %s, YouTube plays (%sp)' % (tag, res)
+
+
 TESTS = [
     ('Add-ons installed & enabled', t_addons_enabled), ('Skin / sounds / language', t_gui),
     ('BN branding', t_branding), ('Main menu', t_root), ('Movie & series lists', t_movies_lists),
@@ -1630,7 +1658,7 @@ TESTS = [
     ('Subtitles reset on next episode', t_subs_reset_next_episode), ('AI button with nothing playing', t_ai_button_idle),
     ('AI: silent video, nothing loaded', t_ai_no_audio), ('BN subtitle window', t_subs_menu),
     ('BN player', t_bn_player), ('Player panels open', t_player_panels), ('Zero-state soak', t_zero_state_soak), ('Machine translation fallback', t_machine_translation), ('AI server: YouTube captions', t_server_youtube_captions),
-    ('System Update + Auto-Fix', t_system_update), ('1.4.0 features', t_v14_features), ('Weak network (1.5/3/5 Mbps)', t_weak_network),
+    ('System Update + Auto-Fix', t_system_update), ('1.4.0 features', t_v14_features), ('Weak network (1.5/3/5 Mbps)', t_weak_network), ('Wrong-platform binary add-on replaced (YouTube on iOS)', t_wrong_platform_binary),
     ('Static: addon-checker, py3.8, XML', t_static), ('Every NovaTV screen opens', t_menu_crawl),
     ('Skin windows + AI button', t_skin_windows), ('All_Subs guards', t_all_subs_guard), ('YouTube port usable', t_youtube_port), ('No thread leak', t_thread_leak),
     ('Kodi log clean', t_log_errors), ('No tracebacks (any add-on)', t_no_tracebacks),
