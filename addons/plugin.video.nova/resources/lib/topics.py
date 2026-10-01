@@ -81,7 +81,7 @@ def _channels_videos(channels, pages=2):
     """newest videos of every channel, in parallel (each cached 6 h by yt.py)"""
     from concurrent.futures import ThreadPoolExecutor
     from . import yt
-    with ThreadPoolExecutor(6) as ex:
+    with ThreadPoolExecutor(12) as ex:          # all channels of a category at once (cold first open)
         lists = list(ex.map(lambda c: [dict(v, channel=v.get('channel') or c['name'], channel_id=c['id'])
                                        for v in yt.channel_videos(c['id'], pages)], channels))
     return [v for lst in lists for v in lst]
