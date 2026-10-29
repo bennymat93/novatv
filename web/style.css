@@ -3,7 +3,7 @@
 *{box-sizing:border-box}html,body{margin:0}
 body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:100vh;display:flex;flex-direction:column}
 a{color:inherit;text-decoration:none}
-.top{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:auto 1fr minmax(160px,320px) auto;gap:var(--gap);align-items:center;padding:12px 24px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--panel2)}
+.top{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:auto 1fr minmax(160px,300px);gap:var(--gap);align-items:center;padding:12px 24px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--panel2)}
 .brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:18px}.brand img{width:32px;height:32px;border-radius:8px}
 nav{display:flex;gap:4px;overflow-x:auto}nav a{padding:8px 14px;border-radius:999px;color:var(--muted);white-space:nowrap}
 nav a.on,nav a:hover{background:var(--panel2);color:var(--text)}
@@ -35,8 +35,27 @@ h2 small{color:var(--muted);font-weight:400;font-size:13px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .btn{background:var(--accent);color:#000;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
 .btn.ghost{background:var(--panel2);color:var(--text)}
-.foot{color:var(--muted);font-size:12px;text-align:center;padding:16px}
+.foot{color:var(--muted);font-size:12px;text-align:center;padding:16px 16px 84px}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f4f5f8;--panel:#fff;--panel2:#eceef3;--text:#141821;--muted:#5d6676;--accent:#a8780a;--ring:#a8780a44}}
+.menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--gap);margin-top:28px}
+.tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:170px;padding:20px;background:var(--panel);border:1px solid var(--panel2);border-radius:16px;text-align:center;transition:transform .15s,box-shadow .15s}
+.tile:hover,.tile:focus-visible{transform:translateY(-3px);box-shadow:0 0 0 2px var(--ring)}
+.tile .ic{font-size:40px;line-height:1}.tile b{font-size:19px}.tile small{color:var(--muted)}
+.pagehead{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 0 4px}.pagehead h1{margin:0;font-size:26px}
+.backbtn{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--panel2);border-radius:999px;padding:8px 16px;font-weight:600}
+.backbtn:hover{border-color:var(--accent)}
+.card.square .img{aspect-ratio:1/1;background-size:contain;background-origin:content-box;padding:16%;background-color:var(--panel2)}
+.panel{background:var(--panel);border:1px solid var(--panel2);border-radius:16px;padding:20px;margin-top:20px}
+.bnpanel{display:flex;gap:20px;align-items:center}.bnpanel img{width:80px;height:80px;border-radius:16px}.bnpanel p{margin:0;line-height:1.6}
+.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.hint{color:var(--muted);font-size:13px}
+.settings{display:grid;gap:16px;max-width:560px}.settings label{display:grid;gap:6px;font-weight:600}.settings select{width:100%;border-radius:10px}
+.settings .row{display:grid;gap:4px}.settings .row span{color:var(--muted)}
+.radiobar{position:fixed;inset-inline:0;bottom:0;z-index:6;display:flex;align-items:center;gap:12px;padding:10px 24px;background:var(--panel);border-top:1px solid var(--panel2)}
+.radiobar[hidden]{display:none}.radiobar img{width:44px;height:44px;border-radius:8px;object-fit:contain;background:var(--panel2)}
+.rb-t{flex:1;min-width:0;display:grid}.rb-t b,.rb-t span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rb-t span{color:var(--muted);font-size:12px}
 @media (max-width:760px){
+  .menu{grid-template-columns:repeat(2,1fr);gap:12px}.tile{min-height:130px;padding:14px}.tile .ic{font-size:32px}
+  .radiobar{padding:8px 16px}.radiobar .btn{padding:8px 12px}.bnpanel{flex-direction:column;text-align:center}
   .top{grid-template-columns:1fr auto;padding:10px 16px}nav{grid-column:1/-1;order:3}.search{grid-column:1/-1;order:4}
   main{padding:4px 16px 24px}.grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px}
   .detail{grid-template-columns:1fr;padding:16px}.detail img{max-width:160px}
