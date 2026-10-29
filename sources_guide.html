@@ -10,19 +10,19 @@
 @media (prefers-color-scheme:light){:root{--bg:#f6f7f9;--panel:#fff;--line:#e3e6eb;--text:#151922;--muted:#5d6676;--accent:#a8780a;--ok:#1a7f37;--bad:#cf222e}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:17px/1.7 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
-main{max-width:920px;margin:0 auto;padding:24px 16px 64px}
+main{overflow-wrap:break-word;max-width:920px;margin:0 auto;padding:24px 16px 64px}
 h1{font-size:30px;margin:8px 0 4px}h2{font-size:23px;margin:44px 0 10px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:26px 0 6px}
 .lead{color:var(--muted);margin:0 0 20px}
 nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 20px}nav.toc ol{margin:6px 0;padding-inline-start:22px}
 a{color:var(--accent)}
-table{width:100%;border-collapse:collapse;margin:12px 0;background:var(--panel);border-radius:10px;overflow:hidden;font-size:15px}
+table{display:block;overflow-x:auto;width:100%;border-collapse:collapse;margin:12px 0;background:var(--panel);border-radius:10px;overflow:hidden;font-size:15px}
 th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:start;vertical-align:top}th{background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
 ol.steps{padding-inline-start:0;list-style:none;counter-reset:s}
 ol.steps>li{counter-increment:s;position:relative;padding-inline-start:46px;margin:18px 0}
 ol.steps>li::before{content:counter(s);position:absolute;inset-inline-start:0;top:0;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#000;font-weight:700;display:grid;place-items:center}
 figure{margin:10px 0 4px}figure img{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
 figcaption{color:var(--muted);font-size:14px;margin-top:4px}
-code,kbd{direction:ltr;unicode-bidi:embed;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:15px}
+code,kbd{overflow-wrap:anywhere;direction:ltr;unicode-bidi:embed;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:15px}
 pre{direction:ltr;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:14px;line-height:1.5}
 .note{border-inline-start:4px solid var(--accent);background:var(--panel);padding:10px 14px;border-radius:8px;margin:14px 0}
 .check{border-inline-start:4px solid var(--ok);background:var(--panel);padding:10px 14px;border-radius:8px;margin:14px 0}
