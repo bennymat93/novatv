@@ -16,6 +16,9 @@ const L = {
        countries: {IL: 'ישראל', RU: 'רוסיה', US: 'ארה"ב', GB: 'בריטניה', FR: 'צרפת', DE: 'גרמניה', UA: 'אוקראינה', top: 'הכי מושמעות'},
        genres: {Comedy: 'קומדיה', Drama: 'דרמה', Horror: 'אימה', Western: 'מערבון', 'Science Fiction': 'מדע בדיוני',
                 'Film Noir': 'פילם נואר', Animation: 'אנימציה', Silent: 'אילם', '@soviet': 'קולנוע סובייטי'},
+       sorts: {popular: 'הנצפים ביותר', top: 'המדורגים ביותר', new: 'נוספו לאחרונה'}, f_sort: 'מיון', f_genre: 'סוגה', f_decade: 'עשור', f_lang: 'שפה', f_style: 'סגנון', f_country: 'מדינה',
+       ialangs: {English: 'אנגלית', Russian: 'רוסית', French: 'צרפתית', German: 'גרמנית', Spanish: 'ספרדית', Italian: 'איטלקית'},
+       rtags: {news: 'חדשות ודיבור', pop: 'פופ ולהיטים', rock: 'רוק', classical: 'קלאסית', jazz: 'ג׳אז', 'world middle east': 'מזרח תיכון', kids: 'ילדים', jewish: 'יהדות'},
        s_lang: 'שפה', s_theme: 'ערכת צבעים', t_auto: 'לפי המכשיר', t_dark: 'כהה', t_light: 'בהירה',
        s_live: 'רשימת ערוצים בפתיחה', s_radio: 'מדינת רדיו בפתיחה', s_clear: 'מחיקת המועדפים', s_cleared: 'המועדפים נמחקו',
        s_family: 'סינון תוכן למשפחה', s_family_txt: 'פעיל תמיד: תכנים למבוגרים מסוננים מ-Internet Archive.',
@@ -37,6 +40,9 @@ const L = {
        countries: {IL: 'Israel', RU: 'Russia', US: 'USA', GB: 'UK', FR: 'France', DE: 'Germany', UA: 'Ukraine', top: 'Most played'},
        genres: {Comedy: 'Comedy', Drama: 'Drama', Horror: 'Horror', Western: 'Western', 'Science Fiction': 'Sci-fi',
                 'Film Noir': 'Film noir', Animation: 'Animation', Silent: 'Silent', '@soviet': 'Soviet cinema'},
+       sorts: {popular: 'Most watched', top: 'Top rated', new: 'Recently added'}, f_sort: 'Sort', f_genre: 'Genre', f_decade: 'Decade', f_lang: 'Language', f_style: 'Style', f_country: 'Country',
+       ialangs: {English: 'English', Russian: 'Russian', French: 'French', German: 'German', Spanish: 'Spanish', Italian: 'Italian'},
+       rtags: {news: 'News & talk', pop: 'Pop & hits', rock: 'Rock', classical: 'Classical', jazz: 'Jazz', 'world middle east': 'Middle East', kids: 'Kids', jewish: 'Jewish'},
        s_lang: 'Language', s_theme: 'Theme', t_auto: 'Device', t_dark: 'Dark', t_light: 'Light',
        s_live: 'Channel list on open', s_radio: 'Radio country on open', s_clear: 'Clear favorites', s_cleared: 'Favorites cleared',
        s_family: 'Family filter', s_family_txt: 'Always on: adult uploads are filtered from Internet Archive.',
@@ -58,6 +64,9 @@ const L = {
        countries: {IL: 'Израиль', RU: 'Россия', US: 'США', GB: 'Великобритания', FR: 'Франция', DE: 'Германия', UA: 'Украина', top: 'Популярные'},
        genres: {Comedy: 'Комедия', Drama: 'Драма', Horror: 'Ужасы', Western: 'Вестерн', 'Science Fiction': 'Фантастика',
                 'Film Noir': 'Нуар', Animation: 'Мультфильмы', Silent: 'Немое кино', '@soviet': 'Советское кино'},
+       sorts: {popular: 'Самые просматриваемые', top: 'Лучшие по рейтингу', new: 'Недавно добавленные'}, f_sort: 'Сортировка', f_genre: 'Жанр', f_decade: 'Десятилетие', f_lang: 'Язык', f_style: 'Стиль', f_country: 'Страна',
+       ialangs: {English: 'Английский', Russian: 'Русский', French: 'Французский', German: 'Немецкий', Spanish: 'Испанский', Italian: 'Итальянский'},
+       rtags: {news: 'Новости и разговор', pop: 'Поп и хиты', rock: 'Рок', classical: 'Классика', jazz: 'Джаз', 'world middle east': 'Ближний Восток', kids: 'Детям', jewish: 'Еврейское'},
        s_lang: 'Язык', s_theme: 'Тема', t_auto: 'Как на устройстве', t_dark: 'Тёмная', t_light: 'Светлая',
        s_live: 'Список каналов при открытии', s_radio: 'Страна радио при открытии', s_clear: 'Очистить избранное', s_cleared: 'Избранное очищено',
        s_family: 'Семейный фильтр', s_family_txt: 'Всегда включён: материалы для взрослых из Internet Archive отфильтрованы.',
@@ -100,11 +109,14 @@ const ADULT = '(naturis* OR nudis* OR nude OR nudity OR erot* OR porn* OR sex OR
 // same list as the add-on's '@soviet' (exact subject phrases: loose words pulled in war documentaries)
 const SOVIET = '(' + ['Soviet film', 'Soviet films', 'Soviet cinema', 'Soviet movie', 'Soviet animation', 'советский фильм', 'советское кино']
   .map((s) => `subject:("${s}")`).concat(['мосфильм', 'ленфильм', 'Mosfilm', 'Lenfilm', 'союзмультфильм', 'Soyuzmultfilm'].map((s) => `subject:(${s})`)).join(' OR ') + ')';
-async function archive({q = '', collection = 'feature_films', subject = '', rows = 40} = {}) {
+const SORTS = {popular: 'downloads desc', top: 'avg_rating desc', new: 'addeddate desc'};
+async function archive({q = '', collection = 'feature_films', subject = '', rows = 40, sort = 'popular', decade = '', language = ''} = {}) {
   q = q.replace(/[:()[\]{}"^~*?\\/!+-]/g, ' ').trim();
   const what = subject === '@soviet' ? SOVIET : q ? `title:(${q})` : `collection:${collection}` + (subject ? ` AND subject:("${subject}")` : '');
-  const qs = new URLSearchParams({q: `${what} AND mediatype:movies AND NOT subject:${ADULT} AND NOT title:${ADULT}`, rows, output: 'json'});
-  qs.append('sort[]', 'downloads desc');
+  const extra = (decade ? ` AND year:[${decade} TO ${+decade + 9}]` : '') + (language ? ` AND language:(${language})` : '') +
+                (sort === 'top' ? ' AND num_reviews:[3 TO 100000]' : '');      // "top rated" needs a few reviews to mean anything
+  const qs = new URLSearchParams({q: `${what}${extra} AND mediatype:movies AND NOT subject:${ADULT} AND NOT title:${ADULT}`, rows, output: 'json'});
+  qs.append('sort[]', SORTS[sort] || SORTS.popular);
   ['identifier', 'title', 'year'].forEach((f) => qs.append('fl[]', f));
   const r = await fetch('https://archive.org/advancedsearch.php?' + qs);
   return r.ok ? (await r.json()).response.docs : [];
@@ -137,8 +149,9 @@ async function channels(list) {
   const r = await fetch(`https://iptv-org.github.io/iptv/${LISTS[list]}.m3u`);
   return (chCache[list] = r.ok ? parseM3u(await r.text()) : []);
 }
-async function stations(cc, q) {
-  const path = q ? '/stations/search?' + new URLSearchParams({name: q, limit: 60, hidebroken: true, order: 'clickcount', reverse: true})
+async function stations(cc, q, tag) {
+  const path = tag ? `/stations/bytagexact/${encodeURIComponent(tag)}?` + new URLSearchParams({limit: 120, hidebroken: true, order: 'clickcount', reverse: true})
+    : q ? '/stations/search?' + new URLSearchParams({name: q, limit: 60, hidebroken: true, order: 'clickcount', reverse: true})
     : cc === 'top' ? '/stations/topclick/80?hidebroken=true'
       : `/stations/bycountrycodeexact/${cc}?` + new URLSearchParams({limit: 120, hidebroken: true, order: 'clickcount', reverse: true});
   const r = await fetch(RADIO + path);
@@ -300,37 +313,43 @@ function pageHome() {
     view.firstChild.append(a);
   });
 }
-async function pageMovies(genre = '') {
-  page('movies');
-  try {
-    const d = await tmdb('/discover/movie', {sort_by: 'popularity.desc', 'vote_count.gte': 100});
-    const g = section(t('popular'));
-    d.results.forEach((r) => g.append(tmdbCard({...r, media_type: 'movie'})));
-  } catch (e) {
-    chips([['', t('all')], ...Object.entries(t('genres'))], genre, (k) => { location.hash = '#/movies/' + encodeURIComponent(k); });
-    const sk = skeleton();
-    const docs = await archive({collection: 'feature_films', subject: genre, rows: 60}).catch(() => []);
-    sk.remove();
-    const g = section(genre ? t('genres')[genre] : t('classics'), docs.length);
-    docs.forEach((x) => g.append(iaCard(x)));
-    if (!docs.length) empty(g);
-  }
+// inner menu: sort, then genre / decade / language - every choice is kept in the address (#/movies/sort=top&d=1950)
+function filterRow(label, items, cur, onPick) {
+  const row = chips(items, cur, onPick);
+  row.insertAdjacentHTML('afterbegin', `<span class="chiplabel">${esc(label)}</span>`);
 }
-async function pageSeries() {
-  page('tv');
+async function browse(key, arg, collection, tmdbPath) {
+  page(key);
   try {
-    const d = await tmdb('/discover/tv', {sort_by: 'popularity.desc', 'vote_count.gte': 100});
+    const d = await tmdb(tmdbPath, {sort_by: 'popularity.desc', 'vote_count.gte': 100});
     const g = section(t('popular'));
-    d.results.forEach((r) => g.append(tmdbCard({...r, media_type: 'tv'})));
-  } catch (e) {
-    const sk = skeleton();
-    const docs = await archive({collection: 'classic_tv', rows: 80}).catch(() => []);
-    sk.remove();
-    const g = section(t('series_classic'), docs.length);
-    docs.forEach((x) => g.append(iaCard(x)));
-    if (!docs.length) empty(g);
-  }
+    d.results.forEach((r) => g.append(tmdbCard({...r, media_type: key === 'movies' ? 'movie' : 'tv'})));
+    return;
+  } catch (e) {}
+  const f = Object.fromEntries(new URLSearchParams(arg));
+  f.sort = SORTS[f.sort] ? f.sort : 'popular';
+  const go = (k, v) => {
+    const n = {...f, [k]: v};
+    if (!v) delete n[k];
+    location.hash = `#/${key}/` + new URLSearchParams(n);
+  };
+  filterRow(t('f_sort'), Object.entries(t('sorts')), f.sort, (v) => go('sort', v));
+  if (key === 'movies') filterRow(t('f_genre'), [['', t('all')], ...Object.entries(t('genres'))], f.g || '', (v) => go('g', v));
+  // series: television starts in the 1940s, and the archive's classic TV is English / Russian / French / German (audit 29/10)
+  const decades = (key === 'movies' ? [1910, 1920, 1930] : []).concat([1940, 1950, 1960, 1970, 1980, 1990, 2000]).map((y) => [String(y), y + 's']);
+  filterRow(t('f_decade'), [['', t('all')], ...decades], f.d || '', (v) => go('d', v));
+  const langs = Object.entries(t('ialangs')).filter(([k]) => key === 'movies' || ['English', 'Russian', 'French', 'German'].includes(k));
+  filterRow(t('f_lang'), [['', t('all')], ...langs], f.l || '', (v) => go('l', v));
+  const sk = skeleton();
+  const docs = await archive({collection, subject: f.g || '', rows: 60, sort: f.sort, decade: f.d || '', language: f.l || ''}).catch(() => []);
+  sk.remove();
+  const title = [t('sorts')[f.sort], f.g && t('genres')[f.g], f.d && f.d + 's', f.l && t('ialangs')[f.l]].filter(Boolean).join(' · ');
+  const g = section(title, docs.length);
+  docs.forEach((x) => g.append(iaCard(x)));
+  if (!docs.length) empty(g);
 }
+const pageMovies = (arg) => browse('movies', arg, 'feature_films', '/discover/movie');
+const pageSeries = (arg) => browse('tv', arg, 'classic_tv', '/discover/tv');
 async function pageLive(list) {
   list = LISTS[list] ? list : cfg.live;
   page('live');
@@ -343,13 +362,16 @@ async function pageLive(list) {
   if (!items.length) empty(g);
 }
 async function pageRadio(cc) {
-  cc = t('countries')[cc] ? cc : cfg.radio;
+  const tag = cc.startsWith('tag:') ? cc.slice(4) : '';
+  if (!tag) cc = t('countries')[cc] ? cc : cfg.radio;
   page('radio');
-  chips(Object.entries(t('countries')), cc, (k) => { location.hash = '#/radio/' + k; });
+  filterRow(t('f_country'), Object.entries(t('countries')), tag ? '' : cc,
+            (k) => { location.hash = '#/radio/' + k; });
+  filterRow(t('f_style'), Object.entries(t('rtags')), tag, (k) => { location.hash = '#/radio/tag:' + encodeURIComponent(k); });
   const sk = skeleton();
-  const list = await stations(cc).catch(() => []);
+  const list = await (tag ? stations('', '', tag) : stations(cc)).catch(() => []);
   sk.remove();
-  const g = section(t('countries')[cc], list.length);
+  const g = section(tag ? t('rtags')[tag] : t('countries')[cc], list.length);
   list.forEach((s) => g.append(radioCard(s)));
   if (!list.length) empty(g);
 }
@@ -445,7 +467,7 @@ function route() {
   const a = decodeURIComponent(arg);
   markNav(p);
   if (p !== 'search') $('#q').value = '';
-  ({movies: () => pageMovies(a), tv: pageSeries, live: () => pageLive(a), radio: () => pageRadio(a), favs: pageFavs,
+  ({movies: () => pageMovies(a), tv: () => pageSeries(a), live: () => pageLive(a), radio: () => pageRadio(a), favs: pageFavs,
     bn: pageBn, settings: pageSettings, search: () => pageSearch(a)}[p] || pageHome)();
   window.scrollTo(0, 0);
 }

@@ -23,6 +23,8 @@ h2 small{color:var(--muted);font-weight:400;font-size:13px}
 .skel .img,.skel .t{background:linear-gradient(90deg,var(--panel2),var(--panel),var(--panel2));background-size:200% 100%;animation:sk 1.2s infinite}.skel .t{border-radius:4px}@keyframes sk{to{background-position:-200% 0}}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
 .chip{background:var(--panel);border:1px solid var(--panel2);color:var(--text);border-radius:999px;padding:7px 14px;cursor:pointer;font:inherit}
+.chiplabel{align-self:center;color:var(--muted);font-size:13px;min-width:64px}
+.chips{margin:10px 0}
 .chip.on{background:var(--accent);color:#000;border-color:var(--accent)}
 .msg{color:var(--muted);padding:40px 0;text-align:center}
 .modal{position:fixed;inset:0;background:#000b;z-index:10;display:grid;place-items:center;padding:16px}
@@ -55,6 +57,7 @@ h2 small{color:var(--muted);font-weight:400;font-size:13px}
 .rb-t{flex:1;min-width:0;display:grid}.rb-t b,.rb-t span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rb-t span{color:var(--muted);font-size:12px}
 @media (max-width:760px){
   .menu{grid-template-columns:repeat(2,1fr);gap:12px}.tile{min-height:130px;padding:14px}.tile .ic{font-size:32px}
+  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:6px 0;padding-bottom:2px}.chips::-webkit-scrollbar{display:none}.chip{flex:none;padding:6px 12px}.chiplabel{min-width:auto;flex:none}
   .radiobar{padding:8px 16px}.radiobar .btn{padding:8px 12px}.bnpanel{flex-direction:column;text-align:center}
   .top{grid-template-columns:1fr auto;padding:10px 16px}nav{grid-column:1/-1;order:3}.search{grid-column:1/-1;order:4}
   main{padding:4px 16px 24px}.grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px}

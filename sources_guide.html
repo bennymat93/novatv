@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>הוספת מקורות ל-NovaTV</title>
+<meta name="description" content="מדריך צעד אחר צעד להוספת מקורות להרחבת NovaTV ב-BN Stream, עם צילומי מסך ובדיקות הצלחה">
+<style>
+:root{--bg:#0b0d12;--panel:#151922;--line:#262d3b;--text:#eef1f6;--muted:#9aa3b2;--accent:#e2b13c;--ok:#3fb950;--bad:#f85149}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7f9;--panel:#fff;--line:#e3e6eb;--text:#151922;--muted:#5d6676;--accent:#a8780a;--ok:#1a7f37;--bad:#cf222e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.7 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:30px;margin:8px 0 4px}h2{font-size:23px;margin:44px 0 10px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:26px 0 6px}
+.lead{color:var(--muted);margin:0 0 20px}
+nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 20px}nav.toc ol{margin:6px 0;padding-inline-start:22px}
+a{color:var(--accent)}
+table{width:100%;border-collapse:collapse;margin:12px 0;background:var(--panel);border-radius:10px;overflow:hidden;font-size:15px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:start;vertical-align:top}th{background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+ol.steps{padding-inline-start:0;list-style:none;counter-reset:s}
+ol.steps>li{counter-increment:s;position:relative;padding-inline-start:46px;margin:18px 0}
+ol.steps>li::before{content:counter(s);position:absolute;inset-inline-start:0;top:0;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#000;font-weight:700;display:grid;place-items:center}
+figure{margin:10px 0 4px}figure img{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+figcaption{color:var(--muted);font-size:14px;margin-top:4px}
+code,kbd{direction:ltr;unicode-bidi:embed;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:15px}
+pre{direction:ltr;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:14px;line-height:1.5}
+.note{border-inline-start:4px solid var(--accent);background:var(--panel);padding:10px 14px;border-radius:8px;margin:14px 0}
+.check{border-inline-start:4px solid var(--ok);background:var(--panel);padding:10px 14px;border-radius:8px;margin:14px 0}
+.warn{border-inline-start:4px solid var(--bad);background:var(--panel);padding:10px 14px;border-radius:8px;margin:14px 0}
+.check b:first-child{color:var(--ok)}.warn b:first-child{color:var(--bad)}
+ul.ok{list-style:none;padding-inline-start:0}ul.ok li::before{content:"☐ ";color:var(--ok);font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<h1>הוספת מקורות ל-NovaTV</h1>
+<p class="lead">מדריך צעד אחר צעד, עם צילומי מסך, לכל דרך להוסיף מקור תוכן להרחבה NovaTV ב-BN Stream. בסוף כל חלק יש בדיקה: אם כולה עוברת, הפעולה הצליחה.
+גרסה 1.6.3 · נבדק בפועל ב-29/10/2026.</p>
+
+<div class="note"><b>על צילומי המסך:</b> הם צולמו ב-Kodi בעיצוב ברירת המחדל, ולכן הצבעים שונים מהבילד BN Stream. המסכים, השורות והכפתורים זהים.
+טקסט בעברית בתוך התוכן (למשל שמות תוכניות במדריך השידורים) מופיע ב-BN Stream כרגיל.</div>
+
+<nav class="toc"><b>תוכן</b>
+<ol>
+<li><a href="#types">איזה סוגי מקורות יש</a></li>
+<li><a href="#m3u">הוספת רשימת ערוצים משלך (M3U)</a></li>
+<li><a href="#epg">הוספת מדריך שידורים (EPG)</a></li>
+<li><a href="#free">הפעלה וכיבוי של רשימות הערוצים החינמיות</a></li>
+<li><a href="#search">הפעלה וכיבוי של מקורות החיפוש</a></li>
+<li><a href="#radio">הוספת תחנת רדיו</a></li>
+<li><a href="#addon">מתקדם: הוספת הרחבת וידאו חדשה (במחשב)</a></li>
+<li><a href="#final">בדיקה כללית בסוף</a></li>
+<li><a href="#trouble">אם משהו לא עובד</a></li>
+</ol></nav>
+
+<h2 id="types">1. איזה סוגי מקורות יש</h2>
+<table>
+<tr><th>סוג מקור</th><th>איפה ב-NovaTV</th><th>אפשר לבד?</th><th>מתי מופיע</th></tr>
+<tr><td>רשימת ערוצים (M3U) של ספק IPTV או של רשת</td><td>חשבונות וחיבורים ← IPTV</td><td>כן, מהשלט</td><td>מיד ברשימה; בטלוויזיה תוך שעה, או מיד אחרי הפעלה מחדש של Kodi</td></tr>
+<tr><td>מדריך שידורים (EPG)</td><td>חשבונות וחיבורים ← IPTV</td><td>כן, מהשלט</td><td>אחרי בניית המדריך (עד כמה דקות)</td></tr>
+<tr><td>רשימות ערוצים חינמיות מובנות</td><td>חשבונות וחיבורים ← IPTV</td><td>כן, מהשלט</td><td>כמו M3U</td></tr>
+<tr><td>מקורות לחיפוש (TMDb, ערוצים, רדיו, הרחבות)</td><td>הגדרות ← מקורות, או מסך המקורות</td><td>כן, מהשלט</td><td>בחיפוש הבא</td></tr>
+<tr><td>תחנת רדיו</td><td>radio-browser.info (מאגר פתוח)</td><td>כן, מהדפדפן</td><td>אחרי שהמאגר מאשר (בדרך כלל יום)</td></tr>
+<tr><td>הרחבת וידאו חדשה מהמאגר הרשמי של Kodi</td><td>קוד: <code>providers.py</code></td><td>במחשב, עם עריכת קובץ</td><td>בגרסה הבאה שמשחררים</td></tr>
+</table>
+<div class="warn"><b>חשוב:</b> מוסיפים רק מקורות חוקיים: הרשימה שהספק שלך נתן לך, רשימות ציבוריות כמו iptv-org, ותחנות ושידורים שבעליהם מפרסמים בחינם.
+רשימות "פיראטיות" (ערוצי כבלים בתשלום בחינם, ערוצי טלגרם עם סרטים וסדרות) מפרות זכויות יוצרים, ו-NovaTV מסנן חלק מהן גם בלי לשאול.</div>
+
+<h2 id="m3u">2. הוספת רשימת ערוצים משלך (M3U)</h2>
+<p>צריך: הקישור לרשימה, שמתחיל ב-<code>http</code> ונגמר בדרך כלל ב-<code>.m3u</code> או <code>.m3u8</code>. לדוגמה, כדי לנסות: הרשימה הציבורית של ערוצי קפריסין:
+<code>https://iptv-org.github.io/iptv/countries/cy.m3u</code></p>
+<ol class="steps">
+<li>פותחים את NovaTV ונכנסים ל-<b>חשבונות וחיבורים</b>.
+<figure><img src="img/sources/01_novatv_menu.jpg" alt="התפריט הראשי של NovaTV, השורה חשבונות וחיבורים מסומנת" loading="lazy"><figcaption>התפריט הראשי. השורה <b>חשבונות וחיבורים</b> (Accounts &amp; Connections).</figcaption></figure></li>
+<li>יורדים לשורה <b>IPTV (M3U + EPG)</b> ולוחצים OK. בצד מופיע הסבר קצר.
+<figure><img src="img/sources/02b_accounts_iptv.jpg" alt="מסך החשבונות, השורה IPTV מסומנת, מצב: לא מוגדר" loading="lazy"><figcaption>לפני ההוספה המצב הוא <b>לא מוגדר</b> (Not set).</figcaption></figure></li>
+<li>נפתח חלון <b>מקורות IPTV</b>. בוחרים <b>[+] M3U</b>.
+<figure><img src="img/sources/03_iptv_dialog.jpg" alt="חלון מקורות IPTV: [+] M3U, [+] EPG ורשימות iptv-org" loading="lazy"><figcaption>למטה ברשימה: רשימות הערוצים החינמיות, עם [x] ליד כל רשימה פעילה. עליהן בחלק 4.</figcaption></figure></li>
+<li>מקלידים את הקישור (בשלט, או במקלדת מחוברת) ולוחצים <b>OK</b>.
+<figure><img src="img/sources/04b_m3u_typed.jpg" alt="מקלדת המסך עם הקישור מוקלד" loading="lazy"><figcaption>מקלידים בדיוק כמו שהספק נתן, כולל <code>https://</code>.</figcaption></figure></li>
+<li>מופיע שדה <b>Name</b>, שם לרשימה (למשל "הספק שלי"). מאשרים.</li>
+<li>חוזרים לחלון מקורות IPTV, ובו שורה חדשה <code>M3U: השם שנתתם</code>. יורדים עד הסוף ובוחרים <b>[x] אישור</b>.
+NovaTV מוריד את הרשימה ובונה את רשימת הערוצים מחדש (כמה שניות עד דקה).</li>
+</ol>
+<div class="check"><b>✔ בדיקה: הפעולה הצליחה אם:</b>
+<ul class="ok">
+<li>במסך <b>חשבונות וחיבורים</b>, ליד IPTV כתוב <b>● מחובר</b> בירוק (Connected).
+<figure><img src="img/sources/12_accounts_connected.jpg" alt="מסך החשבונות: IPTV מחובר בירוק" loading="lazy"></figure></li>
+<li>ב-<b>טלוויזיה</b> מופיעה קבוצה חדשה <b>הרשימה שלי</b> (My list). היא מופיעה תוך שעה, או מיד אחרי סגירה ופתיחה של Kodi.
+<figure><img src="img/sources/11_tv_mylist.jpg" alt="תפריט הטלוויזיה עם הקבוצה My list" loading="lazy"></figure></li>
+<li>בתוך <b>הרשימה שלי</b> מופיעים הערוצים מהרשימה (בבדיקה: 18 ערוצי קפריסין), וערוץ שבוחרים מתחיל לנגן.
+<figure><img src="img/sources/13_mylist_channels.jpg" alt="הערוצים של הרשימה: Ada TV, ANT1 Cyprus, RIK 1 ועוד" loading="lazy"></figure></li>
+</ul></div>
+<div class="note"><b>טוב לדעת:</b>
+הרשימה שלך נשארת בדיוק כמו שהיא: הסדר, השמות והזרמים של הספק. NovaTV לא מסנן ממנה ערוצים ולא מחליף בה זרמים.
+אם מופיעים רק ערוצים בשם "Demo" או "Демонстрация", המנוי אצל הספק לא פעיל במכשיר הזה, ו-NovaTV גם מציג הודעה על כך.</div>
+
+<h2 id="epg">3. הוספת מדריך שידורים (EPG)</h2>
+<p>לערוצים החינמיים כבר יש מדריך מובנה. מדריך משלך צריך רק לרשימה של ספק, בדרך כלל עם קישור שהספק נתן, שנגמר ב-<code>.xml</code> או <code>.xml.gz</code>.</p>
+<ol class="steps">
+<li>חשבונות וחיבורים ← <b>IPTV (M3U + EPG)</b>, בדיוק כמו בחלק 2.</li>
+<li>בוחרים <b>[+] EPG</b>, מקלידים את הקישור ומאשרים.</li>
+<li>בוחרים <b>[x] אישור</b> בסוף הרשימה.</li>
+</ol>
+<div class="check"><b>✔ בדיקה: הפעולה הצליחה אם:</b>
+<ul class="ok">
+<li>בחלון מקורות IPTV מופיעה שורה <code>EPG: הקישור</code>.</li>
+<li>אחרי כמה דקות: ב-<b>טלוויזיה ← מדריך שידורים</b> מופיעות תוכניות ליד הערוצים של הספק.</li>
+<li>ברשימת הערוצים מופיע ליד הערוץ שם התוכנית שמשודרת עכשיו.</li>
+</ul></div>
+
+<h2 id="free">4. הפעלה וכיבוי של רשימות הערוצים החינמיות</h2>
+<p>NovaTV כולל 9 רשימות חינמיות מ-iptv-org: ישראל, עברית, רוסית, סרטים, ילדים, תעודה, חדשות, מוזיקה ואנגלית. חדשות, מוזיקה ואנגלית כבויות בהתחלה.</p>
+<ol class="steps">
+<li>חשבונות וחיבורים ← <b>IPTV (M3U + EPG)</b>.</li>
+<li>לוחצים על רשימה כדי להחליף מצב: <code>[x]</code> = פעילה, <code>[&nbsp;&nbsp;]</code> = כבויה.</li>
+<li>בוחרים <b>[x] אישור</b> בסוף.</li>
+</ol>
+<div class="check"><b>✔ בדיקה:</b> בהפעלה, הקבוצה המתאימה (למשל <b>חדשות</b>) מתמלאת בערוצים, ובכיבוי היא מתרוקנת (בטלוויזיה תוך שעה, או מיד אחרי הפעלה מחדש של Kodi).</div>
+<div class="note"><b>ערוצים מתים מוסתרים לבד (גרסה 1.6.2):</b> כל מכשיר בודק את הערוצים החינמיים מהחיבור שלו, 20 דקות אחרי ההפעלה ואחר כך כל 12 שעות.
+ערוץ שלא עונה פעמיים ברצף יוצא מהרשימה, וחוזר לבד כשהוא עונה שוב. הרשימה שלך לא נבדקת ולא מסוננת.</div>
+
+<h2 id="search">5. הפעלה וכיבוי של מקורות החיפוש</h2>
+<ol class="steps">
+<li>שתי דרכים: בהגדרות של NovaTV ← קטגוריה <b>מקורות</b> ← השורה הראשונה, או בתפריט הראשי ← הספרייה המרכזית ← <b>מקורות ותוספים</b>.</li>
+<li>במסך יש שתי קבוצות: <b>מקורות מובנים</b> (סרטים וסדרות מ-TMDb, ערוצים חיים, רדיו) ו-<b>תוספי וידאו</b>. נקודה ירוקה = כלול בחיפוש, אפורה = מתעלמים ממנו.
+<figure><img src="img/sources/05_sources.jpg" alt="מסך המקורות: התקן את כל המקורות היציבים, הפעל הכל, כבה הכל, מקורות מובנים ותוספי וידאו" loading="lazy"><figcaption>לחיצה על שורה מחליפה את המצב. למעלה יש גם <b>הפעל הכל</b> / <b>כבה הכל</b>.</figcaption></figure></li>
+<li>הפעלה של תוסף שלא מותקן מתקינה אותו מיד מהמאגר הרשמי של Kodi.</li>
+</ol>
+<div class="check"><b>✔ בדיקה: הפעולה הצליחה אם:</b>
+<ul class="ok">
+<li>הנקודה ליד המקור שינתה צבע, והסוגריים מראים <code>(פעיל, ...)</code> או <code>(כבוי, ...)</code>.</li>
+<li>בחיפוש הבא (למשל "Dune") מקור כבוי לא מופיע בכותרות התוצאות, ומקור פעיל מופיע אם יש לו תוצאות.</li>
+</ul></div>
+<div class="note">תוסף שמסומן <b>"עיון בלבד"</b> לא מאפשר חיפוש מבחוץ: אפשר להיכנס אליו מהספרייה, אבל הוא לא ייכלל בחיפוש הכללי.
+תוסף שמסומן <b>"לא יציב כרגע"</b> נכשל בבדיקה האחרונה (האתר שלו השתנה, או חסום באזור).</div>
+
+<h2 id="radio">6. הוספת תחנת רדיו</h2>
+<p>הרדיו ב-NovaTV מגיע מ-radio-browser.info, מאגר פתוח שכל אחד יכול להוסיף אליו תחנה.</p>
+<ol class="steps">
+<li>בדפדפן: <a href="https://www.radio-browser.info/add">radio-browser.info/add</a>.</li>
+<li>ממלאים שם, קישור לזרם (עדיף שמתחיל ב-<code>https://</code>), מדינה (Israel), שפה (hebrew) ותגיות (למשל news או pop).</li>
+<li>שולחים. המאגר בודק את התחנה, בדרך כלל תוך יום.</li>
+</ol>
+<div class="check"><b>✔ בדיקה:</b> ב-NovaTV ← רדיו ← <b>ישראל</b> (או ← <b>חיפוש</b> עם שם התחנה) התחנה מופיעה ומנגנת.
+ב-BN Stream Web היא מופיעה רק אם הזרם מתחיל ב-<code>https://</code>, כי דפדפנים חוסמים זרמים לא מאובטחים.</div>
+
+<h2 id="addon">7. מתקדם: הוספת הרחבת וידאו חדשה (במחשב)</h2>
+<p>להרחבה מהמאגר הרשמי של Kodi שעוד לא ברשימה. צריך את תיקיית הקוד במחשב (<code>C:\Users\benny\kodi-build</code>) ואת testkodi.</p>
+<ol class="steps">
+<li>מוצאים את מזהה ההרחבה, למשל <code>plugin.video.example</code>: ב-Kodi ← הרחבות ← ההרחבה ← מידע, או באתר addons.kodi.tv.</li>
+<li>בודקים אם יש לה כתובת חיפוש: פותחים אותה ב-testkodi, מחפשים משהו, ובקובץ היומן (<code>kodi.log</code>) מחפשים את הכתובת שנפתחה, למשל
+<code>plugin://plugin.video.example/search/?query=dune</code>.</li>
+<li>פותחים את <code>addons/plugin.video.nova/resources/lib/providers.py</code> ומוסיפים שורה ל-<code>PROVIDERS</code> בקבוצה המתאימה:
+<pre>('example', 'plugin.video.example', ('שם בעברית', 'English name', 'Русское имя'), 'docs',
+ 'plugin://plugin.video.example/search/?query={q}'),</pre>
+העמודות: מזהה קצר, מזהה ההרחבה, השם בשלוש שפות, קטגוריה (<code>movies</code>, <code>video</code>, <code>docs</code>, <code>news</code>, <code>kids</code>, <code>sport</code>, <code>music</code> או <code>live</code>), וכתובת החיפוש (<code>{q}</code> = מה שחיפשו), או <code>None</code> אם אין חיפוש.</li>
+<li>מריצים את הבדיקה האוטומטית רק על ההרחבה החדשה:
+<pre>python tools/provider_audit.py --version 1.6.3 --only example</pre>
+הבדיקה מתקינה את ההרחבה ב-testkodi, פותחת את התפריט, מחפשת (עד 12 שניות) ומנגנת סרטון. התוצאה נכתבת ל-<code>providers_status.json</code>.</li>
+<li>אם הבדיקה עברה, משחררים גרסה:
+<pre>python tools/release.py --version 1.6.3 --notes "Added Example as a source"</pre></li>
+</ol>
+<div class="check"><b>✔ בדיקה: הפעולה הצליחה אם:</b>
+<ul class="ok">
+<li>ב-<code>providers_status.json</code> השורה של <code>example</code> היא <code>"stable": true</code> ו-<code>"play": "ok"</code>.</li>
+<li>ב-NovaTV ← מסך המקורות יש שורה חדשה בשם שנתתם, עם <code>(פעיל, כלול בחיפוש)</code>.</li>
+<li>בחיפוש כללי מופיעה כותרת עם שם ההרחבה, ותוצאה ממנה מנגנת.</li>
+<li><code>python -m pytest -q tests</code> עובר בלי כשלים.</li>
+</ul></div>
+<div class="warn"><b>לא מוסיפים</b> הרחבות שאינן מהמאגר הרשמי של Kodi, או כאלה שמזרימות תוכן בלי רישיון (למשל Telemedia ודומיה). כך כתוב גם בכללי הפרויקט (CLAUDE.md).</div>
+
+<h2 id="final">8. בדיקה כללית בסוף</h2>
+<p>NovaTV ← <b>עדכון מערכת</b> (System Update). הבדיקה עוברת על הכל ומציגה דו"ח:</p>
+<figure><img src="img/sources/09_sysreport.jpg" alt="דו&quot;ח עדכון מערכת עם שורות OK ושגיאות ולחצן תיקון אוטומטי" loading="lazy"><figcaption>כל שורה עם שגיאה מקבלת מתחתיה <b>תיקון אוטומטי</b>. "Auto-Fix all errors" מתקן הכל בבת אחת.</figcaption></figure>
+<div class="check"><b>✔ הכל תקין אם:</b>
+<ul class="ok">
+<li>בשורה <b>IPTV</b> כתוב מספר ערוצים (למשל "993 ערוצים") וסימן תקין.</li>
+<li>בשורה <b>PVR</b> אותו סדר גודל של ערוצים.</li>
+<li>בשורת השירות <b>IPTV</b> כתוב "מחובר" (אם הוספת רשימה משלך).</li>
+<li>אין שגיאות חדשות שלא היו לפני ההוספה.</li>
+</ul></div>
+
+<h2 id="trouble">9. אם משהו לא עובד</h2>
+<table>
+<tr><th>מה רואים</th><th>הסיבה הסבירה</th><th>מה עושים</th></tr>
+<tr><td>IPTV נשאר "לא מוגדר"</td><td>לא לחצו <b>[x] אישור</b> בסוף החלון</td><td>חוזרים לחלון ולוחצים אישור</td></tr>
+<tr><td>IPTV "שגיאה"</td><td>הקישור שגוי או שהשרת לא עונה</td><td>בודקים את הקישור בדפדפן; הוא אמור להוריד קובץ טקסט שמתחיל ב-<code>#EXTM3U</code></td></tr>
+<tr><td>"הרשימה שלי" לא מופיעה בטלוויזיה</td><td>שירות הטלוויזיה עוד לא טען את הקובץ</td><td>מחכים עד שעה, או סוגרים ופותחים את Kodi</td></tr>
+<tr><td>רק ערוצי Demo</td><td>המנוי אצל הספק לא פעיל למכשיר</td><td>פונים לספק</td></tr>
+<tr><td>ערוץ חינמי נעלם</td><td>לא ענה פעמיים ברצף מהחיבור שלך</td><td>הוא יחזור לבד כשיענה שוב (נבדק כל 12 שעות)</td></tr>
+<tr><td>מקור לא מופיע בחיפוש</td><td>כבוי, לא מותקן, או "עיון בלבד"</td><td>מסך המקורות: מפעילים אותו, או מתקינים את כל המקורות היציבים</td></tr>
+<tr><td>תחנת רדיו לא נמצאת</td><td>המאגר עוד לא אישר אותה</td><td>מחכים יום, ואז מחפשים בשם</td></tr>
+</table>
+</main>
+</body>
+</html>
