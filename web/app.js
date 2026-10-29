@@ -75,10 +75,11 @@ async function channels(list) {
   return (chCache[list] = r.ok ? parseM3u(await r.text()) : []);
 }
 
-function card(img, title, sub, onClick, wide) {
+const tidy = (n) => n.replace(/\s*\((\d{3,4}p|\d+i)\)|\s*\[[^\]]*\]/gi, '').trim();     // "Kan 11 (1080p) [Not 24/7]" -> "Kan 11"
+function card(img, title, sub, onClick, wide, badge) {
   const b = document.createElement('button');
   b.className = 'card' + (wide ? ' wide' : '');
-  b.innerHTML = `<div class="img" style="background-image:url('${esc(img)}')"></div><div class="t">${esc(title)}</div>` +
+  b.innerHTML = (badge ? `<span class="badge">${esc(badge)}</span>` : '') + `<div class="img" style="background-image:url('${esc(img)}')"></div><div class="t" dir="auto">${esc(title)}</div>` +
                 (sub ? `<div class="s">${esc(sub)}</div>` : '');
   b.onclick = onClick;
   return b;
@@ -97,8 +98,12 @@ const tmdbCard = (r) => {
               (r.release_date || r.first_air_date || '').slice(0, 4), () => openTitle(type, r.id));
 };
 const iaCard = (d) => card(`https://archive.org/services/img/${d.identifier}`, d.title, d.year || '', () => openArchive(d));
-const chCard = (c) => card(c.logo || 'icon.png', c.name, c.group, () => openChannel(c), true);
+const chCard = (c) => card(c.logo || 'icon.png', tidy(c.name), c.group, () => openChannel(c), true, 'LIVE');
 const msg = (text) => { view.innerHTML = `<p class="msg">${esc(text)}</p>`; };
+function skeleton(n = 12) {          // placeholder cards while a source answers
+  view.innerHTML = '<div class="grid" style="margin-top:28px">' + '<div class="card skel"><div class="img"></div><div class="t"></div><div class="s"></div></div>'.repeat(n) + '</div>';
+}
+let hasTmdb = true;
 
 // ---------------------------------------------------------------- modal / players
 function modal(html) {
@@ -143,7 +148,7 @@ function openArchive(d) {
 }
 function openChannel(c) {
   modal(`<div class="player"><video id="vid" controls autoplay playsinline></video></div>
-    <div class="detail" style="grid-template-columns:1fr"><div><h3>${esc(c.name)}</h3><div class="meta">${esc(c.group)}</div></div></div>`);
+    <div class="detail" style="grid-template-columns:1fr"><div><h3>${esc(tidy(c.name))}</h3><div class="meta">${esc(c.group)}</div></div></div>`);
   const v = $('#vid');
   if (v.canPlayType('application/vnd.apple.mpegurl')) v.src = c.url;           // Safari / iOS: native HLS
   else if (window.Hls && Hls.isSupported()) { hls = new Hls(); hls.loadSource(c.url); hls.attachMedia(v); }
@@ -152,13 +157,14 @@ function openChannel(c) {
 
 // ---------------------------------------------------------------- pages
 async function pageHome() {
-  msg(t('loading'));
+  skeleton();
   try {
     const [m, s] = await Promise.all([tmdb('/trending/movie/week'), tmdb('/trending/tv/week')]);
     view.innerHTML = '';
     const g1 = section(t('trendM')); m.results.forEach((r) => g1.append(tmdbCard(r)));
     const g2 = section(t('trendT')); s.results.forEach((r) => g2.append(tmdbCard(r)));
   } catch (e) {           // no TMDb server: classics and Israeli channels instead
+    hasTmdb = false; shell(); markNav('');
     const [docs, chs] = await Promise.all([archive('', 24), channels('il')]);
     view.innerHTML = '';
     const g1 = section(t('live'), chs.length); chs.forEach((c) => g1.append(chCard(c)));
@@ -166,13 +172,13 @@ async function pageHome() {
   }
 }
 async function pageList(type) {
-  msg(t('loading'));
+  skeleton();
   try {
     const d = await tmdb(`/discover/${type}`, {sort_by: 'popularity.desc', 'vote_count.gte': 100});
     view.innerHTML = '';
     const g = section(t(type === 'movie' ? 'movies' : 'tv'));
     d.results.forEach((r) => g.append(tmdbCard({...r, media_type: type})));
-  } catch (e) { msg(e.message); }
+  } catch (e) { hasTmdb = false; location.hash = '#/'; }
 }
 async function pageLive(list = 'il') {
   view.innerHTML = '<div class="chips"></div>';
@@ -190,7 +196,7 @@ async function pageLive(list = 'il') {
   if (!items.length) g.outerHTML = `<p class="msg">${t('none')}</p>`;
 }
 async function pageClassic() {
-  msg(t('loading'));
+  skeleton();
   const docs = await archive('', 60);
   view.innerHTML = '';
   const g = section(t('classic'), docs.length);
@@ -230,16 +236,19 @@ function shell() {
   $('#lang').value = lang;
   $('#q').placeholder = t('search');
   $('#foot').textContent = t('foot');
-  $('#nav').innerHTML = NAV.map(([h, k]) => `<a href="${h}">${esc(t(k))}</a>`).join('');
+  $('#nav').innerHTML = NAV.filter(([, k]) => hasTmdb || (k !== 'movies' && k !== 'tv')).map(([h, k]) => `<a href="${h}">${esc(t(k))}</a>`).join('');
 }
 function route() {
   closeModal();
   const [, page = '', arg = ''] = location.hash.split('/');
-  document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#/' + page));
+  markNav(page);
   const q = decodeURIComponent(arg);
   ({movies: () => pageList('movie'), tv: () => pageList('tv'), live: () => pageLive(q || 'il'), classic: pageClassic,
     search: () => pageSearch(q)}[page] || pageHome)();
   window.scrollTo(0, 0);
+}
+function markNav(page) {
+  document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#/' + page));
 }
 $('#search').onsubmit = (e) => {
   e.preventDefault();

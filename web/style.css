@@ -13,12 +13,14 @@ main{flex:1;padding:8px 24px 32px;max-width:1500px;width:100%;margin:0 auto}
 h2{font-size:20px;margin:28px 0 12px;display:flex;justify-content:space-between;align-items:baseline}
 h2 small{color:var(--muted);font-weight:400;font-size:13px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--gap)}
-.card{background:var(--panel);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;border:0;padding:0;color:inherit;text-align:start;font:inherit}
+.card{position:relative;display:flex;flex-direction:column;background:var(--panel);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;border:0;padding:0;color:inherit;text-align:start;font:inherit}
 .card:hover,.card:focus-visible{transform:translateY(-3px);box-shadow:0 0 0 2px var(--ring)}
 .card .img{aspect-ratio:2/3;background:var(--panel2) center/cover no-repeat}
-.card.wide .img{aspect-ratio:16/9;background-size:contain;background-color:#fff1}
-.card .t{padding:8px 10px 10px;font-size:14px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
-.card .s{padding:0 10px 10px;color:var(--muted);font-size:12px}
+.card.wide .img{aspect-ratio:16/9;background-size:contain;background-origin:content-box;padding:10% 12%;background-color:var(--panel2)}
+.card .t{margin:10px 12px 0;font-size:14px;line-height:1.35;height:2.7em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:start;font-weight:500}
+.card .s{margin:4px 12px 12px;color:var(--muted);font-size:12px;height:1.5em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:start}
+.badge{position:absolute;top:8px;inset-inline-start:8px;background:#d33;color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:4px}
+.skel .img,.skel .t{background:linear-gradient(90deg,var(--panel2),var(--panel),var(--panel2));background-size:200% 100%;animation:sk 1.2s infinite}.skel .t{border-radius:4px}@keyframes sk{to{background-position:-200% 0}}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
 .chip{background:var(--panel);border:1px solid var(--panel2);color:var(--text);border-radius:999px;padding:7px 14px;cursor:pointer;font:inherit}
 .chip.on{background:var(--accent);color:#000;border-color:var(--accent)}
