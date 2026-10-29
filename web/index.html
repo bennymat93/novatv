@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BN Stream Web</title>
+<meta name="description" content="BN Stream in the browser: movies, series, free live TV and classic films">
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/"><img src="icon.png" alt=""><span>BN Stream</span></a>
+  <nav id="nav"></nav>
+  <form id="search" class="search" role="search"><input id="q" type="search" autocomplete="off"></form>
+  <select id="lang" aria-label="Language"><option value="he">עברית</option><option value="en">English</option><option value="ru">Русский</option></select>
+</header>
+<main id="view"></main>
+<div id="modal" class="modal" hidden><div class="sheet"><button class="close" aria-label="Close">×</button><div id="sheet"></div></div></div>
+<footer class="foot"><span id="foot"></span></footer>
+</body>
+</html>
