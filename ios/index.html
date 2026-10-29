@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kodi 20.5 IPA</title>
+<style>
+:root{--bg:#0b0d12;--panel:#151922;--text:#eef1f6;--muted:#9aa3b2;--accent:#e2b13c;--ok:#3fb950;--bad:#f85149}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7f9;--panel:#fff;--text:#151922;--muted:#5d6676;--accent:#a8780a;--ok:#1a7f37;--bad:#cf222e}}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.6 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+main{max-width:640px;margin:0 auto;padding:32px 16px}
+.card{background:var(--panel);border-radius:16px;padding:22px}
+h1{margin:0 0 6px;font-size:26px}.muted{color:var(--muted)}
+button{width:100%;margin-top:18px;padding:16px;border:0;border-radius:12px;background:var(--accent);color:#000;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6}
+progress{width:100%;height:14px;margin-top:14px}
+#st{margin-top:10px;min-height:1.6em}.ok{color:var(--ok)}.bad{color:var(--bad)}
+ol{padding-inline-start:20px}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+<h1>Kodi 20.5 לאייפון ואייפד (IPA)</h1>
+<p class="muted">נבנה מהקובץ הרשמי של Kodi (mirrors.kodi.tv), בלי שום שינוי בתוכן. 150 מ"ב. נדרש iOS 11 ומעלה.</p>
+<button id="go">הורדת Kodi-20.5.ipa</button>
+<progress id="pr" max="100" value="0" hidden></progress>
+<div id="st"></div>
+</div>
+<h3>התקנה</h3>
+<ol>
+<li>מעבירים את הקובץ למחשב (או מורידים אותו ישירות במחשב מהדף הזה).</li>
+<li>מתקינים Sideloadly (sideloadly.io), מחברים את האייפון בכבל, גוררים את הקובץ, מזינים Apple ID ולוחצים Start.</li>
+<li>באייפון: הגדרות ← כללי ← ניהול VPN ומכשירים ← ה-Apple ID ← אמון.</li>
+<li>עם Apple ID חינמי חותמים מחדש כל 7 ימים.</li>
+</ol>
+<p class="muted">הקובץ שמור באתר בשני חלקים (לאתר יש מגבלה של 100 מ"ב לקובץ). הדף מוריד את שניהם, מחבר אותם, בודק את טביעת האצבע (SHA-256) ושומר קובץ אחד שלם.</p>
+</main>
+<script>
+const PARTS = ['Kodi-20.5.ipa.part0', 'Kodi-20.5.ipa.part1'];
+const SIZE = 150231634;
+const SHA = '9d8f4666d88a63b36c8bd287e7082772a8223c1e95b06d0a51812bfe17d9b11a';
+const $ = (s) => document.querySelector(s);
+async function fetchPart(url, done, onp) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(url + ' ' + r.status);
+  const reader = r.body.getReader(), chunks = [];
+  let n = 0;
+  for (;;) {
+    const {value, done: end} = await reader.read();
+    if (end) break;
+    chunks.push(value); n += value.length; onp(done + n);
+  }
+  return new Blob(chunks);
+}
+$('#go').onclick = async () => {
+  const b = $('#go'), pr = $('#pr'), st = $('#st');
+  b.disabled = true; pr.hidden = false; st.className = ''; st.textContent = 'מוריד...';
+  try {
+    const blobs = [];
+    let done = 0;
+    for (const p of PARTS) {
+      const part = await fetchPart(p, done, (x) => { pr.value = Math.round(x * 100 / SIZE); });
+      done += part.size; blobs.push(part);
+    }
+    const file = new Blob(blobs, {type: 'application/octet-stream'});
+    if (file.size !== SIZE) throw new Error('גודל לא תקין: ' + file.size);
+    st.textContent = 'בודק שהקובץ שלם...';
+    if (crypto.subtle) {
+      const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer()))].map((x) => x.toString(16).padStart(2, '0')).join('');
+      if (h !== SHA) throw new Error('טביעת אצבע לא תואמת');
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = 'Kodi-20.5.ipa';
+    document.body.append(a); a.click(); a.remove();
+    st.className = 'ok'; st.textContent = '✔ הקובץ נשמר: Kodi-20.5.ipa (נבדק ושלם)';
+  } catch (e) {
+    st.className = 'bad'; st.textContent = 'ההורדה נכשלה: ' + e.message + ' – נסו שוב';
+  }
+  b.disabled = false;
+};
+</script>
+</body>
+</html>
