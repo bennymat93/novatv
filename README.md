@@ -12,13 +12,13 @@ Guides: [user guide](https://bennymat93.github.io/novatv/guide.html) ·
 
 | Add-on | Version | What it does |
 | --- | --- | --- |
-| `plugin.video.nova` | 1.7.0 | The hub: TMDb catalogue, search across every source, IPTV, radio, history, favourites, accounts, subtitles |
-| `plugin.video.telescope` | 1.2.0 | TeleScope AI, the Telegram engine: exact movie / episode matching, link and speed testing, range-streaming proxy |
+| `plugin.video.nova` | 3.0.0 | The hub: TMDb catalogue, search across every source, IPTV, radio, history, favourites, accounts, subtitles |
+| `plugin.video.telescope` | 3.0.0 | TeleScope AI, the Telegram engine: exact movie / episode matching, link and speed testing, range-streaming proxy |
 | `plugin.program.novawizard` | 0.2.1 | Installs and updates the build |
 | `resource.uisounds.nova` | 1.0.0 | Navigation sounds |
 | `repository.nova` | 1.0.0 | This repository |
 
-## 1.7.0 – Telegram is part of the build
+## 3.0.0 – Telegram is part of the build
 
 - NovaTV installs `plugin.video.telescope` from this repository by itself (builds installed before 1.7.0 included).
 - **Search all sources** lists Telegram results next to TMDb, the other add-ons, live channels and radio.
@@ -34,11 +34,15 @@ Guides: [user guide](https://bennymat93.github.io/novatv/guide.html) ·
 
 ### Fixes in this release
 
+- TeleScope 3.0.0: first-run setup failed with "No compatible wheel for pyaes" (pyaes publishes only a source
+  archive) - it is now installed from the source archive, downloads are retried, and login retries the setup.
+- Movies > Search and Series > Search also list the files the Telegram engine finds for the same text.
+
 - Wizard 0.2.1: an *update* no longer deletes add-ons that were installed from the repository after the build was
   made; the partly downloaded build file is removed after a cancelled, failed or corrupt download.
 - NovaTV: the "searching all sources" progress bar no longer stays on screen when a source search fails;
   duplicate `IsPlayable` property on movie rows removed.
-- Repository: old `plugin.video.nova` packages (1.5.1 – 1.6.3, about 325 MB) removed; 1.6.4 is kept beside 1.7.0.
+- Repository: old `plugin.video.nova` packages (1.5.1 – 1.6.3, about 325 MB) removed; only 3.0.0 is kept.
 
 ### Hub API of the Telegram engine (for other add-ons)
 

@@ -14,11 +14,11 @@
     <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
   </extension>
 </addon>
-<addon id="plugin.video.nova" name="NovaTV" version="1.7.0" provider-name="NovaTV">
+<addon id="plugin.video.nova" name="NovaTV" version="3.0.0" provider-name="NovaTV">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" version="2.22.0"/>
-    <import addon="plugin.video.telescope" version="1.2.0" optional="true"/>
+    <import addon="plugin.video.telescope" version="3.0.0" optional="true"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
     <provides>video audio</provides>
@@ -38,7 +38,7 @@
     </assets>
   </extension>
 </addon>
-<addon id="plugin.video.telescope" name="TeleScope AI" version="1.2.0" provider-name="TeleScope">
+<addon id="plugin.video.telescope" name="TeleScope AI" version="3.0.0" provider-name="TeleScope">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.22.0"/>
@@ -59,7 +59,7 @@
         <platform>all</platform>
         <license>GPL-3.0-or-later</license>
         <language>en he ru</language>
-        <news>1.2.0 - Embedding API (mode=hub) for the NovaTV build, shares TMDb/Gemini keys with NovaTV; 1.1.0 - Chiko Media, Telemedia bridge, Stremio-protocol servers</news>
+        <news>3.0.0 - Fixed first-run setup (pyaes is installed from its source archive; downloads are retried); login retries the setup by itself. 1.2.0 - Embedding API for NovaTV.</news>
         <assets>
             <icon>icon.png</icon>
             <fanart>fanart.jpg</fanart>
