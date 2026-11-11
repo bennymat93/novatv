@@ -14,10 +14,11 @@
     <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
   </extension>
 </addon>
-<addon id="plugin.video.nova" name="NovaTV" version="1.6.4" provider-name="NovaTV">
+<addon id="plugin.video.nova" name="NovaTV" version="1.7.0" provider-name="NovaTV">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" version="2.22.0"/>
+    <import addon="plugin.video.telescope" version="1.2.0" optional="true"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
     <provides>video audio</provides>
@@ -28,7 +29,7 @@
     <summary lang="en">NovaTV - Movies, Series, Live TV and Radio in one place</summary>
     <summary lang="he">NovaTV - סרטים, סדרות, ערוצי טלוויזיה ורדיו במקום אחד</summary>
     <summary lang="ru">NovaTV - фильмы, сериалы, ТВ и радио в одном месте</summary>
-    <description lang="en">Unified hub: TMDb-verified catalogue (plays via POV + Real-Debrid), merged IPTV with auto numbering, radio, watch history with timestamps, auto-categorised favourites, central accounts screen and AI Hebrew subtitles.</description>
+    <description lang="en">Unified hub: TMDb-verified catalogue (plays via POV + Real-Debrid and Telegram through the built-in TeleScope AI engine), merged IPTV with auto numbering, radio, watch history with timestamps, auto-categorised favourites, central accounts screen and AI Hebrew subtitles.</description>
     <platform>all</platform>
     <license>GPL-3.0-or-later</license>
     <assets>
@@ -37,7 +38,36 @@
     </assets>
   </extension>
 </addon>
-<addon id="plugin.program.novawizard" name="NovaTV Wizard" version="0.2.0" provider-name="NovaTV">
+<addon id="plugin.video.telescope" name="TeleScope AI" version="1.2.0" provider-name="TeleScope">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="script.module.requests" version="2.22.0"/>
+        <import addon="script.module.pycryptodome" version="3.4.3" optional="true"/>
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="default.py">
+        <provides>video</provides>
+    </extension>
+    <extension point="xbmc.service" library="service.py" start="login"/>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Stream movies and series directly from your Telegram chats, with AI-verified sources</summary>
+        <summary lang="he_IL">צפייה ישירה בסרטים וסדרות מתוך הטלגרם שלך, עם אימות מקורות בבינה מלאכותית</summary>
+        <summary lang="ru_RU">Фильмы и сериалы прямо из ваших чатов Telegram с проверкой источников ИИ</summary>
+        <description lang="en_GB">TeleScope AI searches the Telegram channels and groups you have joined for the exact movie or episode you picked from the TMDB catalog, verifies every link (availability, file type, speed, episode accuracy) and streams it through a local high-speed range proxy with parallel read-ahead. Optional Google Gemini integration expands title aliases (Hebrew / Russian / English) and double-checks ambiguous matches.</description>
+        <description lang="he_IL">TeleScope AI מחפשת בערוצים ובקבוצות הטלגרם שהצטרפת אליהם את הסרט או הפרק המדויק שבחרת מקטלוג TMDB, בודקת כל קישור (זמינות, סוג קובץ, מהירות, דיוק פרק) ומזרימה אותו דרך פרוקסי מקומי מהיר עם טעינה מקבילית מראש. שילוב Gemini אופציונלי מרחיב שמות חלופיים (עברית / רוסית / אנגלית) ומאמת התאמות לא חד-משמעיות.</description>
+        <description lang="ru_RU">TeleScope AI ищет в ваших каналах и группах Telegram именно тот фильм или серию, которые вы выбрали в каталоге TMDB, проверяет каждую ссылку (доступность, тип файла, скорость, точность серии) и воспроизводит её через локальный прокси с параллельной предзагрузкой. Gemini расширяет варианты названий и перепроверяет спорные совпадения.</description>
+        <disclaimer lang="en_GB">For personal use. Content availability depends on the Telegram chats you have joined.</disclaimer>
+        <platform>all</platform>
+        <license>GPL-3.0-or-later</license>
+        <language>en he ru</language>
+        <news>1.2.0 - Embedding API (mode=hub) for the NovaTV build, shares TMDb/Gemini keys with NovaTV; 1.1.0 - Chiko Media, Telemedia bridge, Stremio-protocol servers</news>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
+        <reuselanguageinvoker>false</reuselanguageinvoker>
+    </extension>
+</addon>
+<addon id="plugin.program.novawizard" name="NovaTV Wizard" version="0.2.1" provider-name="NovaTV">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
