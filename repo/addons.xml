@@ -38,7 +38,7 @@
     </assets>
   </extension>
 </addon>
-<addon id="plugin.video.telescope" name="TeleScope AI" version="3.0.0" provider-name="TeleScope">
+<addon id="plugin.video.telescope" name="TeleScope AI" version="3.0.1" provider-name="TeleScope">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.22.0"/>
@@ -59,7 +59,7 @@
         <platform>all</platform>
         <license>GPL-3.0-or-later</license>
         <language>en he ru</language>
-        <news>3.0.0 - Fixed first-run setup (pyaes is installed from its source archive; downloads are retried); login retries the setup by itself. 1.2.0 - Embedding API for NovaTV.</news>
+        <news>3.0.1 - Link test reads 128 KB instead of 1 MB and never hides real matches when a slow box cannot finish it; faster AES on PyCryptodome; the "nothing found" box says why. 3.0.0 - Fixed first-run setup (pyaes is installed from its source archive; downloads are retried); login retries the setup by itself. 1.2.0 - Embedding API for NovaTV.</news>
         <assets>
             <icon>icon.png</icon>
             <fanart>fanart.jpg</fanart>

@@ -13,7 +13,7 @@ Guides: [user guide](https://bennymat93.github.io/novatv/guide.html) ·
 | Add-on | Version | What it does |
 | --- | --- | --- |
 | `plugin.video.nova` | 3.0.0 | The hub: TMDb catalogue, search across every source, IPTV, radio, history, favourites, accounts, subtitles |
-| `plugin.video.telescope` | 3.0.0 | TeleScope AI, the Telegram engine: exact movie / episode matching, link and speed testing, range-streaming proxy |
+| `plugin.video.telescope` | 3.0.1 | TeleScope AI, the Telegram engine: exact movie / episode matching, link and speed testing, range-streaming proxy |
 | `plugin.program.novawizard` | 0.2.1 | Installs and updates the build |
 | `resource.uisounds.nova` | 1.0.0 | Navigation sounds |
 | `repository.nova` | 1.0.0 | This repository |
