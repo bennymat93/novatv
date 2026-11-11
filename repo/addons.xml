@@ -14,11 +14,11 @@
     <assets><icon>icon.png</icon><fanart>fanart.jpg</fanart></assets>
   </extension>
 </addon>
-<addon id="plugin.video.nova" name="NovaTV" version="3.0.0" provider-name="NovaTV">
+<addon id="plugin.video.nova" name="TeleNova" version="3.1.0" provider-name="NovaTV">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" version="2.22.0"/>
-    <import addon="plugin.video.telescope" version="3.0.0" optional="true"/>
+    <import addon="plugin.video.telescope" version="3.1.0" optional="true"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
     <provides>video audio</provides>
@@ -26,10 +26,10 @@
   <extension point="xbmc.service" library="service.py"/>
   <extension point="xbmc.addon.metadata">
     <reuselanguageinvoker>false</reuselanguageinvoker>
-    <summary lang="en">NovaTV - Movies, Series, Live TV and Radio in one place</summary>
-    <summary lang="he">NovaTV - סרטים, סדרות, ערוצי טלוויזיה ורדיו במקום אחד</summary>
-    <summary lang="ru">NovaTV - фильмы, сериалы, ТВ и радио в одном месте</summary>
-    <description lang="en">Unified hub: TMDb-verified catalogue (plays via POV + Real-Debrid and Telegram through the built-in TeleScope AI engine), merged IPTV with auto numbering, radio, watch history with timestamps, auto-categorised favourites, central accounts screen and AI Hebrew subtitles.</description>
+    <summary lang="en">TeleNova - Movies, Series, Live TV and Radio with Telegram links</summary>
+    <summary lang="he">TeleNova - סרטים, סדרות, ערוצים ורדיו עם קישורי טלגרם</summary>
+    <summary lang="ru">TeleNova - фильмы, сериалы, ТВ и радио со ссылками Telegram</summary>
+    <description lang="en">Unified hub: TMDb catalogue, every title opens its list of tested Telegram links (TeleScope AI engine) next to the other sources, merged IPTV with auto numbering, radio, watch history, favourites, accounts and AI Hebrew subtitles.</description>
     <platform>all</platform>
     <license>GPL-3.0-or-later</license>
     <assets>
@@ -38,7 +38,7 @@
     </assets>
   </extension>
 </addon>
-<addon id="plugin.video.telescope" name="TeleScope AI" version="3.0.1" provider-name="TeleScope">
+<addon id="plugin.video.telescope" name="TeleNova Telegram (TeleScope AI)" version="3.1.0" provider-name="TeleScope">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.22.0"/>
@@ -59,7 +59,7 @@
         <platform>all</platform>
         <license>GPL-3.0-or-later</license>
         <language>en he ru</language>
-        <news>3.0.1 - Link test reads 128 KB instead of 1 MB and never hides real matches when a slow box cannot finish it; faster AES on PyCryptodome; the "nothing found" box says why. 3.0.0 - Fixed first-run setup (pyaes is installed from its source archive; downloads are retried); login retries the setup by itself. 1.2.0 - Embedding API for NovaTV.</news>
+        <news>3.1.0 - Part of TeleNova. Much faster search: one request per query, a Telegram rate limit no longer freezes the search, 12 s limit, stragglers not waited for, AI and channel list never hold it up. Close matches are listed (marked ?) when nothing passes the strict rules. 3.0.1 - Link test reads 128 KB instead of 1 MB and never hides real matches when a slow box cannot finish it; faster AES on PyCryptodome; the "nothing found" box says why. 3.0.0 - Fixed first-run setup (pyaes is installed from its source archive; downloads are retried); login retries the setup by itself. 1.2.0 - Embedding API for NovaTV.</news>
         <assets>
             <icon>icon.png</icon>
             <fanart>fanart.jpg</fanart>

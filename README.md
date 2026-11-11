@@ -1,4 +1,7 @@
-# NovaTV
+# NovaTV (continues as TeleNova)
+
+> From 3.1.0 this project is **TeleNova**: https://github.com/bennymat93/TeleNova . This repository keeps serving
+> updates to boxes that installed the NovaTV build (TeleNova 3.1.0 and its Telegram engine 3.1.0).
 
 Kodi 21 build and add-on repository: Hebrew / English / Russian interface, one catalogue for movies and series,
 merged IPTV with automatic numbering, radio, AI Hebrew subtitles, and a built-in Telegram engine.
@@ -12,8 +15,8 @@ Guides: [user guide](https://bennymat93.github.io/novatv/guide.html) ·
 
 | Add-on | Version | What it does |
 | --- | --- | --- |
-| `plugin.video.nova` | 3.0.0 | The hub: TMDb catalogue, search across every source, IPTV, radio, history, favourites, accounts, subtitles |
-| `plugin.video.telescope` | 3.0.1 | TeleScope AI, the Telegram engine: exact movie / episode matching, link and speed testing, range-streaming proxy |
+| `plugin.video.nova` | 3.1.0 | The hub: TMDb catalogue, search across every source, IPTV, radio, history, favourites, accounts, subtitles |
+| `plugin.video.telescope` | 3.1.0 | TeleScope AI, the Telegram engine: exact movie / episode matching, link and speed testing, range-streaming proxy |
 | `plugin.program.novawizard` | 0.2.1 | Installs and updates the build |
 | `resource.uisounds.nova` | 1.0.0 | Navigation sounds |
 | `repository.nova` | 1.0.0 | This repository |
